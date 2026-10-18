@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import app from '../server/index';
+import app, { resetLiveCallsBudgetForTesting } from '../server/index';
 import type { Server } from 'http';
 
 describe('Server API Endpoints & Gateway Security', () => {
@@ -577,5 +577,129 @@ describe('Server API Endpoints & Gateway Security', () => {
       process.env.ALLOW_LIVE_AI = originalAllowLive;
       globalThis.fetch = originalFetch;
     }
+  });
+
+  it('POST /api/investigate blocks unauthorized browser origins with 403 FORBIDDEN_ORIGIN', async () => {
+    const res = await fetch(`${baseUrl}/api/investigate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Origin: 'https://malicious-phishing-site.com',
+      },
+      body: JSON.stringify({
+        exceptionId: 'EXP-SEC-01',
+        exceptionType: 'AMOUNT_MISMATCH',
+        amountDeltaRupees: '-240.00',
+        dateDeltaDays: 0,
+        consentGranted: true,
+      }),
+    });
+
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.code).toBe('FORBIDDEN_ORIGIN');
+  });
+
+  it('POST /api/investigate enforces process-level live call budget limits with 429 LIVE_BUDGET_EXHAUSTED', async () => {
+    const originalApiKey = process.env.NEBIUS_API_KEY;
+    const originalAllowLive = process.env.ALLOW_LIVE_AI;
+    const originalMaxCalls = process.env.MAX_LIVE_CALLS_PER_PROCESS;
+    const originalFetch = globalThis.fetch;
+
+    process.env.NEBIUS_API_KEY = 'mock-key';
+    process.env.ALLOW_LIVE_AI = 'true';
+    process.env.MAX_LIVE_CALLS_PER_PROCESS = '1'; // Budget = 1 call max
+    resetLiveCallsBudgetForTesting();
+
+    globalThis.fetch = async (input: any, init?: any) => {
+      if (typeof input === 'string' && input.includes('tokenfactory.nebius.com')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify({
+                    exceptionId: 'EXP-BUDGET-01',
+                    classification: 'BANK_FEE_OR_SURCHARGE',
+                    summary: 'Fee confirmed.',
+                    evidenceRowIds: ['BNK-010'],
+                    evidenceExplanation: 'Explanation.',
+                    missingEvidence: [],
+                    recommendedAction: 'Action.',
+                    confidence: 'HIGH',
+                    uncertaintyNotes: '',
+                  }),
+                },
+              },
+            ],
+          }),
+        } as any;
+      }
+      return originalFetch(input, init);
+    };
+
+    try {
+      // Call 1: succeeds and consumes the budget
+      const res1 = await originalFetch(`${baseUrl}/api/investigate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          exceptionId: 'EXP-BUDGET-01',
+          exceptionType: 'AMOUNT_MISMATCH',
+          amountDeltaRupees: '-240.00',
+          dateDeltaDays: 0,
+          consentGranted: true,
+          bankEvidence: {
+            id: 'BNK-010',
+            date: '2026-09-13',
+            amountRupees: '49760.00',
+            direction: 'credit',
+            sanitizedDescription: 'Client Payment',
+          },
+        }),
+      });
+      expect(res1.status).toBe(200);
+
+      // Call 2: Must be blocked by process budget cap!
+      const res2 = await originalFetch(`${baseUrl}/api/investigate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          exceptionId: 'EXP-BUDGET-01',
+          exceptionType: 'AMOUNT_MISMATCH',
+          amountDeltaRupees: '-240.00',
+          dateDeltaDays: 0,
+          consentGranted: true,
+          bankEvidence: {
+            id: 'BNK-010',
+            date: '2026-09-13',
+            amountRupees: '49760.00',
+            direction: 'credit',
+            sanitizedDescription: 'Client Payment',
+          },
+        }),
+      });
+
+      expect(res2.status).toBe(429);
+      const body2 = await res2.json();
+      expect(body2.code).toBe('LIVE_BUDGET_EXHAUSTED');
+    } finally {
+      process.env.NEBIUS_API_KEY = originalApiKey;
+      process.env.ALLOW_LIVE_AI = originalAllowLive;
+      process.env.MAX_LIVE_CALLS_PER_PROCESS = originalMaxCalls;
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('GET /api/ai/status includes live call budget telemetry safely', async () => {
+    const res = await fetch(`${baseUrl}/api/ai/status`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toHaveProperty('liveCallsBudget');
+    expect(body.liveCallsBudget).toHaveProperty('maxPerProcess');
+    expect(body.liveCallsBudget).toHaveProperty('completed');
+    expect(body.liveCallsBudget).toHaveProperty('remaining');
   });
 });

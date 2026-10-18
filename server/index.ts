@@ -24,40 +24,78 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const ALLOWED_ORIGIN = process.env.APP_ALLOWED_ORIGIN || 'http://localhost:5173';
+// Dynamic budget and origin getters for runtime configuration
+function getMaxLiveCalls(): number {
+  return parseInt(process.env.MAX_LIVE_CALLS_PER_PROCESS || '50', 10);
+}
+
+function isOriginAllowed(origin: string | undefined): boolean {
+  if (!origin) return true;
+  const configured = process.env.APP_ALLOWED_ORIGIN || 'http://localhost:5173';
+  return origin === configured || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:');
+}
+
+let liveCallsCount = 0;
+
+// Exported for testing
+export function resetLiveCallsBudgetForTesting() {
+  liveCallsCount = 0;
+}
 
 // 1. Restrictive CORS
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl) or matching allowed origin
-      if (!origin || origin === ALLOWED_ORIGIN || origin.startsWith('http://localhost:')) {
+      // Allow requests with no origin (like local dev tools, curl) or matching allowed origin
+      if (isOriginAllowed(origin)) {
         callback(null, true);
       } else {
-        callback(new Error('Blocked by CORS security policy'));
+        callback(null, false);
       }
     },
     methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'X-Requested-With'],
+    allowedHeaders: ['Content-Type', 'X-Requested-With', 'X-ProofLedger-Client'],
   })
 );
 
 // 2. Strict Request Body Size Cap (32 KB max to prevent DoS)
 app.use(express.json({ limit: '32kb' }));
 
-// 3. Simple in-memory Sliding Window Rate Limiter (15 requests per minute per IP)
+// 3. In-memory Sliding Window Rate Limiter with Active Cleanup (15 requests per minute per IP)
 const ipRequestWindow = new Map<string, number[]>();
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const MAX_REQUESTS_PER_WINDOW = 15;
+const MAX_TRACKED_IPS = 2000;
+
+function cleanupRateLimiter(now: number) {
+  for (const [ip, timestamps] of ipRequestWindow.entries()) {
+    const active = timestamps.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+    if (active.length === 0) {
+      ipRequestWindow.delete(ip);
+    } else {
+      ipRequestWindow.set(ip, active);
+    }
+  }
+  if (ipRequestWindow.size > MAX_TRACKED_IPS) {
+    ipRequestWindow.clear();
+  }
+}
 
 const rateLimiter = (req: Request, res: Response, next: () => void) => {
   const ip = req.ip || req.socket.remoteAddress || 'unknown';
   const now = Date.now();
+
+  // Periodic cleanup if map grows
+  if (ipRequestWindow.size > 50) {
+    cleanupRateLimiter(now);
+  }
+
   const timestamps = (ipRequestWindow.get(ip) || []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
 
   if (timestamps.length >= MAX_REQUESTS_PER_WINDOW) {
     res.status(429).json({
       error: 'Too Many Requests',
+      code: 'RATE_LIMIT_EXCEEDED',
       message: 'Rate limit exceeded. Please wait a minute before requesting another AI investigation.',
     });
     return;
@@ -65,6 +103,22 @@ const rateLimiter = (req: Request, res: Response, next: () => void) => {
 
   timestamps.push(now);
   ipRequestWindow.set(ip, timestamps);
+  next();
+};
+
+/**
+ * Middleware: Validates that browser Origin matches allowed configuration.
+ */
+const originValidator = (req: Request, res: Response, next: () => void) => {
+  const origin = req.headers.origin;
+  if (!isOriginAllowed(origin)) {
+    res.status(403).json({
+      error: 'Forbidden Origin',
+      code: 'FORBIDDEN_ORIGIN',
+      message: 'Requests from unauthorized browser origins are blocked by gateway security policy.',
+    });
+    return;
+  }
   next();
 };
 
@@ -89,11 +143,16 @@ app.get('/api/ai/status', (_req: Request, res: Response) => {
     modelId,
     endpoint: 'Nebius Token Factory (OpenAI-compatible)',
     status: hasKey && allowLive ? 'READY' : 'LOCAL_ONLY',
+    liveCallsBudget: {
+      maxPerProcess: getMaxLiveCalls(),
+      completed: liveCallsCount,
+      remaining: Math.max(0, getMaxLiveCalls() - liveCallsCount),
+    },
   });
 });
 
 // 6. Exception Investigation Endpoint
-app.post('/api/investigate', rateLimiter, async (req: Request, res: Response): Promise<void> => {
+app.post('/api/investigate', originValidator, rateLimiter, async (req: Request, res: Response): Promise<void> => {
   // Validate inbound payload structure with strict server schema
   const parseResult = InvestigationRequestSchema.safeParse(req.body);
   if (!parseResult.success) {
@@ -154,6 +213,16 @@ app.post('/api/investigate', rateLimiter, async (req: Request, res: Response): P
     return;
   }
 
+  // Enforce process-level live call budget limit
+  if (liveCallsCount >= getMaxLiveCalls()) {
+    res.status(429).json({
+      error: 'Live AI Budget Exhausted',
+      code: 'LIVE_BUDGET_EXHAUSTED',
+      message: `Inference budget cap of ${getMaxLiveCalls()} calls reached for this server process.`,
+    });
+    return;
+  }
+
   try {
     const userPrompt = `Investigate this financial exception:
 Exception ID: ${payload.exceptionId}
@@ -167,7 +236,7 @@ Analyze whether this is a timing lag, surcharge fee, duplicate, or unrecorded tr
 
     const chatEndpoint = `${baseURL.replace(/\/$/, '')}/chat/completions`;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000); // 20s timeout
+    const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
     const upstreamResponse = await fetch(chatEndpoint, {
       method: 'POST',
@@ -182,7 +251,7 @@ Analyze whether this is a timing lag, surcharge fee, duplicate, or unrecorded tr
           { role: 'user', content: userPrompt },
         ],
         temperature: 0.2, // Low temperature for factual precision
-        max_tokens: 500,
+        max_tokens: 600,
         response_format: { type: 'json_object' },
       }),
       signal: controller.signal,
@@ -272,6 +341,9 @@ Analyze whether this is a timing lag, surcharge fee, duplicate, or unrecorded tr
       return;
     }
 
+    // Increment process live call budget counter
+    liveCallsCount++;
+
     res.json({
       status: 'AI_SUCCESS',
       model: modelId,
@@ -283,7 +355,7 @@ Analyze whether this is a timing lag, surcharge fee, duplicate, or unrecorded tr
       res.status(504).json({
         error: 'Gateway Timeout',
         code: 'GATEWAY_TIMEOUT',
-        message: 'Inference request to Nebius Token Factory timed out after 20 seconds.',
+        message: 'Inference request to Nebius Token Factory timed out after 15 seconds.',
       });
       return;
     }

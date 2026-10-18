@@ -230,7 +230,10 @@ export const App: React.FC = () => {
 
       const response = await fetch('/api/investigate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-ProofLedger-Client': 'v1',
+        },
         body: JSON.stringify(payload),
       });
 
