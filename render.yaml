@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: proofledger-ai
+    runtime: node
+    plan: free
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm run build
+    startCommand: pnpm run server
+    healthCheckPath: /api/health
+    envVars:
+      - key: ALLOW_LIVE_AI
+        value: "false"
+      - key: APP_ALLOWED_ORIGIN
+        sync: false

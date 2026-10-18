@@ -702,4 +702,51 @@ describe('Server API Endpoints & Gateway Security', () => {
     expect(body.liveCallsBudget).toHaveProperty('completed');
     expect(body.liveCallsBudget).toHaveProperty('remaining');
   });
+
+  it('GET / serves the built frontend SPA from dist/', async () => {
+    const res = await fetch(`${baseUrl}/`);
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    expect(text.toLowerCase()).toContain('<!doctype html>');
+    expect(text).toContain('id="root"');
+  });
+
+  it('GET /workspace serves SPA index.html for client-side routing', async () => {
+    const res = await fetch(`${baseUrl}/workspace`);
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    expect(text.toLowerCase()).toContain('<!doctype html>');
+    expect(text).toContain('id="root"');
+  });
+
+  it('GET /api/nonexistent returns 404 JSON and is NOT swallowed by SPA fallback', async () => {
+    const res = await fetch(`${baseUrl}/api/nonexistent`);
+    expect(res.status).toBe(404);
+    expect(res.headers.get('content-type')).toContain('application/json');
+    const body = await res.json();
+    expect(body.code).toBe('API_NOT_FOUND');
+    expect(body.error).toBe('API Endpoint Not Found');
+  });
+
+  it('POST /api/unknown/subpath returns 404 JSON and is NOT swallowed by SPA fallback', async () => {
+    const res = await fetch(`${baseUrl}/api/unknown/subpath`, { method: 'POST' });
+    expect(res.status).toBe(404);
+    expect(res.headers.get('content-type')).toContain('application/json');
+    const body = await res.json();
+    expect(body.code).toBe('API_NOT_FOUND');
+  });
+
+  it('permits origin matching RENDER_EXTERNAL_URL in production', async () => {
+    const originalRenderUrl = process.env.RENDER_EXTERNAL_URL;
+    process.env.RENDER_EXTERNAL_URL = 'https://proofledger-ai.onrender.com';
+    try {
+      const res = await fetch(`${baseUrl}/api/health`, {
+        headers: { Origin: 'https://proofledger-ai.onrender.com' },
+      });
+      expect(res.status).toBe(200);
+      expect(res.headers.get('access-control-allow-origin')).toBe('https://proofledger-ai.onrender.com');
+    } finally {
+      process.env.RENDER_EXTERNAL_URL = originalRenderUrl;
+    }
+  });
 });

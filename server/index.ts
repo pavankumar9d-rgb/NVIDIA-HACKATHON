@@ -12,6 +12,8 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
 import {
   InvestigationRequestSchema,
   InvestigationResultSchema,
@@ -23,7 +25,9 @@ import { serverSanitizeNarration } from '../src/lib/privacy';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = parseInt(process.env.PORT || '3001', 10);
+const DIST_DIR = path.resolve(process.cwd(), 'dist');
+
 // Dynamic budget and origin getters for runtime configuration
 function getMaxLiveCalls(): number {
   return parseInt(process.env.MAX_LIVE_CALLS_PER_PROCESS || '50', 10);
@@ -31,8 +35,15 @@ function getMaxLiveCalls(): number {
 
 function isOriginAllowed(origin: string | undefined): boolean {
   if (!origin) return true;
-  const configured = process.env.APP_ALLOWED_ORIGIN || 'http://localhost:5173';
-  return origin === configured || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:');
+  const rawConfigured = process.env.APP_ALLOWED_ORIGIN || 'http://localhost:5173';
+  const configuredList = rawConfigured.split(',').map((o) => o.trim()).filter(Boolean);
+  if (process.env.RENDER_EXTERNAL_URL) {
+    configuredList.push(process.env.RENDER_EXTERNAL_URL.trim());
+  }
+  if (configuredList.includes(origin)) {
+    return true;
+  }
+  return origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:');
 }
 
 let liveCallsCount = 0;
@@ -61,7 +72,12 @@ app.use(
 // 2. Strict Request Body Size Cap (32 KB max to prevent DoS)
 app.use(express.json({ limit: '32kb' }));
 
-// 3. In-memory Sliding Window Rate Limiter with Active Cleanup (15 requests per minute per IP)
+// 3. Serve built Vite frontend from dist/ in production
+if (fs.existsSync(DIST_DIR)) {
+  app.use(express.static(DIST_DIR));
+}
+
+// 4. In-memory Sliding Window Rate Limiter with Active Cleanup (15 requests per minute per IP)
 const ipRequestWindow = new Map<string, number[]>();
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const MAX_REQUESTS_PER_WINDOW = 15;
@@ -368,10 +384,34 @@ Analyze whether this is a timing lag, surcharge fee, duplicate, or unrecorded tr
   }
 });
 
+// 7. Unmatched /api/* routes must return 404 JSON, not SPA HTML
+app.all(/^\/api(\/.*)?$/, (_req: Request, res: Response) => {
+  res.status(404).json({
+    error: 'API Endpoint Not Found',
+    code: 'API_NOT_FOUND',
+    message: 'The requested /api endpoint does not exist on this server.',
+  });
+});
+
+// 8. Safe SPA fallback for non-API client-side navigation
+app.get('{*path}', (req: Request, res: Response, next: () => void) => {
+  if (req.path.startsWith('/api')) {
+    next();
+    return;
+  }
+  const indexPath = path.join(DIST_DIR, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('ProofLedger AI: Frontend distribution not found. Run `pnpm run build` first.');
+  }
+});
+
 // Start listening if run directly
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
-    console.log(`[ProofLedger Server] Listening on http://localhost:${PORT}`);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`[ProofLedger Server] Listening on http://0.0.0.0:${PORT}`);
+    console.log(`[ProofLedger Server] Static Directory: ${DIST_DIR}`);
     console.log(`[ProofLedger Server] CORS Origin allowed: ${process.env.APP_ALLOWED_ORIGIN || 'http://localhost:5173'}`);
     console.log(`[ProofLedger Server] Live AI Enabled: ${process.env.ALLOW_LIVE_AI === 'true'}`);
   });

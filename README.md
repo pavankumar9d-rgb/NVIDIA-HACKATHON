@@ -8,7 +8,7 @@
   </p>
   <p>
     <a href="#quickstart"><img src="https://img.shields.io/badge/Status-Built%20%26%20Tested-17845B" alt="Status" /></a>
-    <a href="#test-results"><img src="https://img.shields.io/badge/Tests-72%2F72%20Passing-17845B" alt="Tests" /></a>
+    <a href="#test-results"><img src="https://img.shields.io/badge/Tests-77%2F77%20Passing-17845B" alt="Tests" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue" alt="License" /></a>
     <img src="https://img.shields.io/badge/Model-NVIDIA%20Nemotron%2070B-D7FF56?labelColor=101A2B" alt="Model" />
     <img src="https://img.shields.io/badge/Platform-Nebius%20Token%20Factory-101A2B" alt="Nebius" />
@@ -112,7 +112,7 @@ pnpm run dev
 
 ## 4. Test Results & Quality Gates
 
-The test suite contains **72 automated tests** across 7 test suites covering arithmetic precision, matching rules, Zod schemas, provenance guards, duplicate detection, export consistency, and formula injection escaping:
+The test suite contains **77 automated tests** across 7 test suites covering arithmetic precision, matching rules, Zod schemas, provenance guards, duplicate detection, export consistency, production static serving, SPA fallback routing, and formula injection escaping:
 
 ```powershell
 pnpm test
@@ -128,24 +128,69 @@ pnpm test
  ✓ tests/privacy-security.test.ts (17 tests)
  ✓ tests/export-consistency.test.ts (7 tests)
  ✓ tests/ai-safety.test.ts (6 tests)
- ✓ tests/server-api.test.ts (15 tests)
+ ✓ tests/server-api.test.ts (20 tests)
 
  Test Files  7 passed (7)
-      Tests  72 passed (72)
+      Tests  77 passed (77)
 ```
 
 ### Quality Linters & Production Build:
 ```powershell
 pnpm run lint        # Oxlint: 0 warnings, 0 errors across 33 files
 pnpm run typecheck   # tsc --noEmit: zero type errors
-pnpm run build       # Vite build: production client bundle generated in ~7.6s
+pnpm run build       # Vite build: production client bundle generated in ~6.5s
 ```
 
 ---
 
-## 5. Demonstration Walkthrough (Northstar Studio Scenario)
+## 5. Production Deployment on Render (Free Plan)
 
-1. Open `http://localhost:5173`.
+ProofLedger AI is configured as a single full-stack Node.js web service. The Express backend serves the pre-built React/Vite frontend from `dist/`, routes all `/api/*` endpoints, guards against unmatched API requests (returns 404 JSON, not HTML), and falls back safely to `index.html` for client-side SPA routing.
+
+Repository: `https://github.com/pavankumar9d-rgb/NVIDIA-HACKATHON.git`
+
+### 5.1 Option A: Automatic Blueprint Deployment (`render.yaml`)
+The repository includes a committed `render.yaml` Blueprint file:
+1. Log in to [Render Dashboard](https://dashboard.render.com/).
+2. Click **New +** $\to$ **Blueprint**.
+3. Connect repository `https://github.com/pavankumar9d-rgb/NVIDIA-HACKATHON.git` on branch `main`.
+4. Render will detect `render.yaml` and configure the free Node web service automatically.
+5. Click **Apply**.
+6. After provisioning, copy your assigned Render service URL (e.g., `https://proofledger-ai.onrender.com`), go to **Environment**, set `APP_ALLOWED_ORIGIN` to this exact URL, and click **Save Changes**.
+
+### 5.2 Option B: Manual Web Service Setup Checklist
+If creating the service manually:
+1. In Render Dashboard, click **New +** $\to$ **Web Service**.
+2. Select **Build and deploy from a Git repository**.
+3. Enter repository URL: `https://github.com/pavankumar9d-rgb/NVIDIA-HACKATHON.git`.
+4. Configure service settings:
+   - **Name:** `proofledger-ai`
+   - **Region:** Any preferred region (e.g., Oregon, Frankfurt, Singapore)
+   - **Branch:** `main`
+   - **Root Directory:** Leave blank (root of repo)
+   - **Runtime:** `Node`
+   - **Build Command:** `corepack enable && pnpm install --frozen-lockfile && pnpm run build`
+   - **Start Command:** `pnpm run server`
+   - **Instance Type:** `Free`
+5. Open **Advanced** settings:
+   - **Health Check Path:** `/api/health`
+   - **Auto-Deploy:** `Yes`
+6. Add Environment Variables:
+   - `ALLOW_LIVE_AI` = `false` *(Strictly mandatory: keeps live model calls disabled on public demo)*
+   - `APP_ALLOWED_ORIGIN` = `http://localhost:5173` *(Temporarily set, then updated to Render URL after first deploy)*
+7. Click **Create Web Service**.
+8. Once the build finishes and the service is live, copy your assigned HTTPS URL (e.g. `https://proofledger-ai.onrender.com`), edit `APP_ALLOWED_ORIGIN` in **Environment** to match this exact origin, and save.
+
+### 5.3 Important Operational Disclosures
+- **Free-Tier Sleep Cycle:** Render's free plan spins down web services after 15 minutes of inactivity. When visiting the site after an idle period, expect a ~30 to 50 second cold start delay while the instance wakes up.
+- **Hackathon Live Model Requirement Disclosure:** In this deployed demo, live cloud inference calls to NVIDIA Nemotron on Nebius Token Factory remain **disabled** (`ALLOW_LIVE_AI=false`). Live inference requires a verified, funded `NEBIUS_API_KEY` and rate/budget controls to prevent token drainage. The live model integration is fully implemented and tested via mock suites, but pending developer key configuration.
+- **Full Local Mode Functionality:** Even with live AI disabled, the application is 100% interactive and functional: loading synthetic client records, integer paise arithmetic, deterministic reconciliation, cash flow charts, evidence drawer, human triage decisions, audit trail recording, and formula-safe CSV/JSON/Markdown exports all function seamlessly in-browser.
+
+---
+
+## 6. Demonstration Walkthrough (Northstar Studio Scenario)
+
+1. Open `http://localhost:5173` (or your deployed Render URL).
 2. Notice the top bar: **"Northstar Studio — September Close"** synthetic dataset is loaded automatically.
 3. The Executive Overview computes verified accounting positions:
    - **Opening Anchor:** ₹4,50,000.00
@@ -170,7 +215,7 @@ pnpm run build       # Vite build: production client bundle generated in ~7.6s
 
 ---
 
-## 6. Project Documentation Index
+## 7. Project Documentation Index
 
 - [`docs/PRD.md`](docs/PRD.md) — Comprehensive Product Requirements Document & Acceptance Criteria.
 - [`docs/DESIGN_SPEC.md`](docs/DESIGN_SPEC.md) — UI/UX Design System, Design Tokens & Information Architecture.
@@ -184,6 +229,6 @@ pnpm run build       # Vite build: production client bundle generated in ~7.6s
 
 ---
 
-## 7. License
+## 8. License
 
 Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for details.
