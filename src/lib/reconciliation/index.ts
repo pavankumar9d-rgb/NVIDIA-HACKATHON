@@ -211,12 +211,21 @@ export function runReconciliation(
       for (let j = i + 1; j < rows.length; j++) {
         const a = rows[i];
         const b = rows[j];
-        if (
-          a.amountPaise === b.amountPaise &&
-          a.direction === b.direction &&
-          a.date === b.date &&
-          (normalizeReference(a.reference) === normalizeReference(b.reference) || a.sanitizedDescription === b.sanitizedDescription)
-        ) {
+        if (a.amountPaise !== b.amountPaise || a.direction !== b.direction) {
+          continue;
+        }
+
+        const normRefA = normalizeReference(a.reference);
+        const normRefB = normalizeReference(b.reference);
+        const dateDiff = calculateDateDifferenceDays(a.date, b.date);
+
+        // Case 1: Identical non-empty reference within date tolerance window (e.g. consecutive days)
+        const isRefDuplicate = normRefA !== '' && normRefA === normRefB && dateDiff <= maxDateToleranceDays;
+
+        // Case 2: Identical sanitized description on the exact same date (same day debit/credit)
+        const isDescDuplicate = a.sanitizedDescription.length > 0 && a.sanitizedDescription === b.sanitizedDescription && dateDiff === 0;
+
+        if (isRefDuplicate || isDescDuplicate) {
           dupSet.add(a.id);
           dupSet.add(b.id);
         }
@@ -417,19 +426,40 @@ export function runReconciliation(
   for (const b of bankRows) {
     if (!consumedBankIds.has(b.id)) {
       const isDuplicate = bankDuplicateIds.has(b.id);
+      const duplicateCounterparts = isDuplicate
+        ? bankRows.filter(
+            (other) =>
+              other.id !== b.id &&
+              other.amountPaise === b.amountPaise &&
+              other.direction === b.direction &&
+              ((normalizeReference(other.reference) !== '' &&
+                normalizeReference(other.reference) === normalizeReference(b.reference) &&
+                calculateDateDifferenceDays(other.date, b.date) <= maxDateToleranceDays) ||
+                (other.sanitizedDescription === b.sanitizedDescription && other.date === b.date))
+          )
+        : undefined;
+
+      const normRef = normalizeReference(b.reference);
+      const refSnippet = normRef ? `with reference "${b.reference}"` : `("${b.sanitizedDescription}")`;
+
       exceptions.push({
-        exceptionId: `EXP-BNK-${b.id}`,
+        exceptionId: isDuplicate ? `EXP-DUP-${b.id}` : `EXP-BNK-${b.id}`,
         type: isDuplicate ? 'DUPLICATE_CANDIDATE' : 'UNMATCHED_BANK',
-        title: isDuplicate ? `Potential Bank Duplicate: ${b.id}` : `Unmatched Bank Entry: ${b.id}`,
+        title: isDuplicate 
+          ? `Suspected Bank Duplicate: ${b.reference || b.id}` 
+          : b.reference
+          ? `Unmatched Bank Entry: ${b.reference} (${b.id})`
+          : `Unmatched Bank Entry: ${b.id}`,
         description: isDuplicate
-          ? `Bank transaction of ₹${(b.amountPaise / 100).toFixed(2)} appears multiple times on ${b.date}. Potential double-charge or duplicate receipt.`
-          : `Bank transaction of ₹${(b.amountPaise / 100).toFixed(2)} (${b.direction}) has no counterpart in the accounting ledger.`,
+          ? `Bank ${b.direction} of ₹${(b.amountPaise / 100).toFixed(2)} ${refSnippet} appears multiple times in bank statement (${b.date}). Suspected duplicate bank posting requiring operator review.`
+          : `Bank transaction of ₹${(b.amountPaise / 100).toFixed(2)} (${b.direction}) ${refSnippet} on ${b.date} has no counterpart in the accounting ledger.`,
         bankTransaction: b,
+        candidateTransactions: duplicateCounterparts,
         amountDeltaPaise: b.signedAmountPaise,
         dateDeltaDays: 0,
         deterministicSignals: {
-          referenceMatch: false,
-          descriptionSimilarity: 0,
+          referenceMatch: isDuplicate && normRef !== '',
+          descriptionSimilarity: isDuplicate ? 1.0 : 0,
           dateLagDays: 0,
           amountDeltaPaise: b.signedAmountPaise,
         },
@@ -442,19 +472,40 @@ export function runReconciliation(
   for (const l of ledgerRows) {
     if (!consumedLedgerIds.has(l.id)) {
       const isDuplicate = ledgerDuplicateIds.has(l.id);
+      const duplicateCounterparts = isDuplicate
+        ? ledgerRows.filter(
+            (other) =>
+              other.id !== l.id &&
+              other.amountPaise === l.amountPaise &&
+              other.direction === l.direction &&
+              ((normalizeReference(other.reference) !== '' &&
+                normalizeReference(other.reference) === normalizeReference(l.reference) &&
+                calculateDateDifferenceDays(other.date, l.date) <= maxDateToleranceDays) ||
+                (other.sanitizedDescription === l.sanitizedDescription && other.date === l.date))
+          )
+        : undefined;
+
+      const normRef = normalizeReference(l.reference);
+      const refSnippet = normRef ? `with reference "${l.reference}"` : `("${l.sanitizedDescription}")`;
+
       exceptions.push({
-        exceptionId: `EXP-LDG-${l.id}`,
+        exceptionId: isDuplicate ? `EXP-DUP-${l.id}` : `EXP-LDG-${l.id}`,
         type: isDuplicate ? 'DUPLICATE_CANDIDATE' : 'UNMATCHED_LEDGER',
-        title: isDuplicate ? `Potential Ledger Duplicate: ${l.id}` : `Unmatched Ledger Entry: ${l.id}`,
+        title: isDuplicate 
+          ? `Suspected Ledger Duplicate: ${l.reference || l.id}` 
+          : l.reference
+          ? `Unmatched Ledger Entry: ${l.reference} (${l.id})`
+          : `Unmatched Ledger Entry: ${l.id}`,
         description: isDuplicate
-          ? `Ledger transaction of ₹${(l.amountPaise / 100).toFixed(2)} appears multiple times on ${l.date}. Potential double-posting.`
-          : `Ledger entry of ₹${(l.amountPaise / 100).toFixed(2)} (${l.direction}) has not cleared the bank statement.`,
+          ? `Ledger ${l.direction} of ₹${(l.amountPaise / 100).toFixed(2)} ${refSnippet} appears multiple times in general ledger (${l.date}). Suspected duplicate voucher entry requiring review.`
+          : `Ledger entry of ₹${(l.amountPaise / 100).toFixed(2)} (${l.direction}) ${refSnippet} on ${l.date} has not cleared the bank statement.`,
         ledgerTransaction: l,
+        candidateTransactions: duplicateCounterparts,
         amountDeltaPaise: l.signedAmountPaise,
         dateDeltaDays: 0,
         deterministicSignals: {
-          referenceMatch: false,
-          descriptionSimilarity: 0,
+          referenceMatch: isDuplicate && normRef !== '',
+          descriptionSimilarity: isDuplicate ? 1.0 : 0,
           dateLagDays: 0,
           amountDeltaPaise: l.signedAmountPaise,
         },

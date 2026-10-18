@@ -3,7 +3,7 @@
   "currency": "INR",
   "bankCount": 29,
   "ledgerCount": 27,
-  "confirmedMatches": 23,
+  "confirmedMatches": 25,
   "expectedExceptions": [
     {
       "type": "AMOUNT_MISMATCH",

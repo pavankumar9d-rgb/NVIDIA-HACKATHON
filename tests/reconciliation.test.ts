@@ -176,8 +176,15 @@ describe('Deterministic Reconciliation Engine', () => {
 
     expect(result.summary.bankRowCount).toBe(29);
     expect(result.summary.ledgerRowCount).toBe(27);
-    expect(result.matches.length).toBeGreaterThanOrEqual(20);
-    expect(result.exceptions.length).toBeGreaterThanOrEqual(4);
+    expect(result.matches.length).toBe(25);
+    expect(result.exceptions.length).toBe(5);
+
+    // Verify all 5 deliberate synthetic exceptions match expected fixture counts
+    expect(result.summary.amountMismatchCount).toBe(1);
+    expect(result.summary.unmatchedBankCount).toBe(2); // HDFC-SVC-09 & HDFC-INT-Q2
+    expect(result.summary.unmatchedLedgerCount).toBe(1); // CHQ-771829
+    expect(result.summary.duplicateCandidateCount).toBe(1); // ATM-00912
+    expect(result.summary.ambiguousMatchCount).toBe(0);
 
     // Verify key deliberate exceptions are found
     const amountMismatch = result.exceptions.find((e) => e.type === 'AMOUNT_MISMATCH');
@@ -189,5 +196,114 @@ describe('Deterministic Reconciliation Engine', () => {
     );
     expect(unmatchedBankSurcharge).toBeDefined();
     expect(unmatchedBankSurcharge?.bankTransaction?.amountPaise).toBe(125000); // ₹1,250 fee
+
+    const unmatchedBankInterest = result.exceptions.find(
+      (e) => e.bankTransaction?.reference === 'HDFC-INT-Q2'
+    );
+    expect(unmatchedBankInterest).toBeDefined();
+    expect(unmatchedBankInterest?.bankTransaction?.amountPaise).toBe(342000); // ₹3,420 credit
+
+    const unmatchedVendorCheque = result.exceptions.find(
+      (e) => e.ledgerTransaction?.reference === 'CHQ-771829'
+    );
+    expect(unmatchedVendorCheque).toBeDefined();
+    expect(unmatchedVendorCheque?.ledgerTransaction?.amountPaise).toBe(1850000); // ₹18,500 unpresented cheque
+
+    const duplicateATM = result.exceptions.find((e) => e.type === 'DUPLICATE_CANDIDATE');
+    expect(duplicateATM).toBeDefined();
+    expect(duplicateATM?.bankTransaction?.reference).toBe('ATM-00912');
+    expect(duplicateATM?.bankTransaction?.amountPaise).toBe(500000); // ₹5,000 duplicate debit
+    expect(duplicateATM?.candidateTransactions).toBeDefined();
+    expect(duplicateATM?.candidateTransactions?.length).toBeGreaterThan(0);
+    expect(duplicateATM?.candidateTransactions?.[0].reference).toBe('ATM-00912');
+  });
+
+  describe('Duplicate Candidate Boundary & Edge Cases', () => {
+    const baseTx = (id: string, date: string, amountPaise: number, ref?: string, desc = 'Payment'): CanonicalTransaction => ({
+      id,
+      source: 'bank',
+      sourceRowNumber: 1,
+      date,
+      rawDescription: desc,
+      sanitizedDescription: desc,
+      amountPaise,
+      direction: 'debit',
+      signedAmountPaise: -amountPaise,
+      reference: ref,
+      currency: 'INR',
+      rawRow: {},
+    });
+
+    it('flags consecutive date withdrawals with identical reference as duplicate candidate', () => {
+      const b1 = baseTx('BNK-1', '2026-09-21', 500000, 'ATM-00912');
+      const b2 = baseTx('BNK-2', '2026-09-22', 500000, 'ATM-00912');
+      const l1 = { ...baseTx('LDG-1', '2026-09-21', 500000, 'ATM-00912'), source: 'ledger' as const };
+
+      const res = runReconciliation([b1, b2], [l1]);
+      expect(res.matches.length).toBe(1);
+      expect(res.exceptions.length).toBe(1);
+      expect(res.exceptions[0].type).toBe('DUPLICATE_CANDIDATE');
+      expect(res.summary.duplicateCandidateCount).toBe(1);
+      expect(res.summary.unmatchedBankCount).toBe(0);
+    });
+
+    it('does NOT flag different references as duplicate even on consecutive days', () => {
+      const b1 = baseTx('BNK-1', '2026-09-21', 500000, 'ATM-00912');
+      const b2 = baseTx('BNK-2', '2026-09-22', 500000, 'ATM-00913'); // Different ref!
+      const l1 = { ...baseTx('LDG-1', '2026-09-21', 500000, 'ATM-00912'), source: 'ledger' as const };
+
+      const res = runReconciliation([b1, b2], [l1]);
+      expect(res.matches.length).toBe(1);
+      expect(res.exceptions.length).toBe(1);
+      expect(res.exceptions[0].type).toBe('UNMATCHED_BANK');
+      expect(res.summary.duplicateCandidateCount).toBe(0);
+      expect(res.summary.unmatchedBankCount).toBe(1);
+    });
+
+    it('does NOT flag different amounts as duplicate even with matching reference', () => {
+      const b1 = baseTx('BNK-1', '2026-09-21', 500000, 'ATM-00912');
+      const b2 = baseTx('BNK-2', '2026-09-22', 400000, 'ATM-00912'); // ₹4,000 vs ₹5,000!
+      const l1 = { ...baseTx('LDG-1', '2026-09-21', 500000, 'ATM-00912'), source: 'ledger' as const };
+
+      const res = runReconciliation([b1, b2], [l1]);
+      expect(res.matches.length).toBe(1);
+      expect(res.exceptions.length).toBe(1);
+      expect(res.exceptions[0].type).toBe('UNMATCHED_BANK');
+      expect(res.summary.duplicateCandidateCount).toBe(0);
+    });
+
+    it('does NOT flag transactions beyond maxDateToleranceDays as duplicate', () => {
+      const b1 = baseTx('BNK-1', '2026-09-01', 500000, 'ATM-00912');
+      const b2 = baseTx('BNK-2', '2026-09-28', 500000, 'ATM-00912'); // 27 days apart!
+      const l1 = { ...baseTx('LDG-1', '2026-09-01', 500000, 'ATM-00912'), source: 'ledger' as const };
+
+      const res = runReconciliation([b1, b2], [l1], { maxDateToleranceDays: 4 });
+      expect(res.matches.length).toBe(1);
+      expect(res.exceptions.length).toBe(1);
+      expect(res.exceptions[0].type).toBe('UNMATCHED_BANK');
+      expect(res.summary.duplicateCandidateCount).toBe(0);
+    });
+
+    it('does NOT flag recurring expenses without reference on different days as duplicates', () => {
+      const b1 = baseTx('BNK-1', '2026-09-10', 15000, undefined, 'Coffee Pantry');
+      const b2 = baseTx('BNK-2', '2026-09-11', 15000, undefined, 'Coffee Pantry');
+
+      const res = runReconciliation([b1, b2], []);
+      expect(res.exceptions.length).toBe(2);
+      expect(res.exceptions[0].type).toBe('UNMATCHED_BANK');
+      expect(res.exceptions[1].type).toBe('UNMATCHED_BANK');
+      expect(res.summary.duplicateCandidateCount).toBe(0);
+    });
+
+    it('flags identical description without reference on the EXACT SAME date as suspected duplicate', () => {
+      const b1 = baseTx('BNK-1', '2026-09-10', 15000, undefined, 'Coffee Pantry');
+      const b2 = baseTx('BNK-2', '2026-09-10', 15000, undefined, 'Coffee Pantry');
+
+      const res = runReconciliation([b1, b2], []);
+      expect(res.exceptions.length).toBe(2);
+      expect(res.exceptions[0].type).toBe('DUPLICATE_CANDIDATE');
+      expect(res.exceptions[1].type).toBe('DUPLICATE_CANDIDATE');
+      expect(res.summary.duplicateCandidateCount).toBe(2);
+    });
   });
 });
