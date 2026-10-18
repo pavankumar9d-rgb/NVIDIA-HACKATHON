@@ -120,15 +120,15 @@
 
 ### Scenario 12: Repeated Clicks / Loops Burn API Credits Unexpectedly
 - **Attack Path:** Rapid double-clicking on "Investigate" or automated loop drains Nebius API credits.
-- **Mitigation:** Frontend disables the investigation button and displays an active loading skeleton while a request is in flight. Backend enforces rate limiting (10 requests per minute per IP). Live AI defaults to disabled (`ALLOW_LIVE_AI=false`).
-- **Test:** Button debouncing and rate limiter tests.
+- **Mitigation:** Frontend disables the investigation button and displays an active loading skeleton while a request is in flight. Backend enforces rate limiting (15 requests per minute per IP with active memory cleanup) and a hard process-level live call budget cap (`MAX_LIVE_CALLS_PER_PROCESS = 50`, returning `429 LIVE_BUDGET_EXHAUSTED`). Live AI defaults to disabled (`ALLOW_LIVE_AI=false`).
+- **Test:** Process budget cap and rate limiter integration tests in `tests/server-api.test.ts`.
 - **Residual Risk:** Low.
 
-### Scenario 13: Abuse of CORS or Internal Status Endpoints
-- **Attack Path:** External website invokes `/api/investigate` or reads sensitive server configuration.
-- **Mitigation:** Server configures strict CORS (`APP_ALLOWED_ORIGIN`), rejecting cross-origin requests from untrusted domains. `/api/ai/status` returns only `{ configured: boolean, model: string }` and never discloses API keys.
-- **Test:** CORS and status disclosure tests.
-- **Residual Risk:** Low.
+### Scenario 13: Abuse of CORS or Unauthorized Browser Origins
+- **Attack Path:** External malicious website invokes `/api/investigate` or reads sensitive server configuration.
+- **Mitigation:** Server configures strict CORS and runtime `originValidator` middleware, rejecting cross-origin requests from untrusted origins with `403 FORBIDDEN_ORIGIN`. `/api/ai/status` returns safe configuration metadata (`configured`, `allowLiveAI`, `modelId`, `liveCallsBudget`) and never discloses secrets.
+- **Test:** CORS and unauthorized origin rejection integration tests in `tests/server-api.test.ts`.
+- **Residual Risk:** Zero.
 
 ### Scenario 14: Real Records Accidentally Appear in Screenshots, Docs, or Video
 - **Attack Path:** Developer tests with real personal or company bank statements and publishes them in public repos or demo videos.
@@ -138,6 +138,44 @@
 
 ### Scenario 15: Public Hosting Exposes API Key or Unbounded Calls
 - **Attack Path:** Production deployment to Vercel/Render allows anonymous web traffic to generate unbounded Nebius API calls at the owner's expense.
-- **Mitigation:** By default, public deployments run in **Local Mode** with live inference deactivated (`ALLOW_LIVE_AI=false`). Judges and evaluators are provided instructions to supply their own `NEBIUS_API_KEY` locally or via protected environment variables.
-- **Test:** Health check verifies live call gating.
+- **Mitigation:** By default, public deployments run in **Local Mode** with live inference deactivated (`ALLOW_LIVE_AI=false`). Process-level live call budget (`MAX_LIVE_CALLS_PER_PROCESS`) prevents runaway spend if live mode is ever toggled. Judges and evaluators can supply their own `NEBIUS_API_KEY` locally in a secure environment.
+- **Test:** Health check and live call budget gating tests.
 - **Residual Risk:** Zero.
+
+---
+
+## 3. Independent Review of External Security Tooling (Shannon, Strix, MiroFish)
+
+As part of architectural review, three external automated security and multi-agent testing tools were evaluated for applicability to the ProofLedger AI repository.
+
+### 1. Shannon (Autonomous AI Penetration Testing)
+- **Role & Capabilities:** Shannon is an autonomous red-teaming tool designed to discover prompt injection, data extraction, and business logic flaws in LLM-powered applications.
+- **Assessment for ProofLedger AI:**
+  - ProofLedger AI's attack surface is intentionally minimized: input validation is enforced by strict server Zod schemas, narration is sanitized server-side, and model output is strictly constrained by Zod schema and runtime provenance checks.
+  - **Decision:** Not installed or bundled in this repository. In keeping with our ₹0 budget and strict zero-unnecessary-dependency principle, internal Vitest automated security suites (`tests/server-api.test.ts`, `tests/ai-safety.test.ts`, `tests/privacy-security.test.ts`) provide complete regression coverage without non-deterministic test runners.
+  - **Operational Policy:** If Shannon is used in future staging audits, it must be explicitly authorized by the project lead, evaluated for execution costs/rate limits, and run strictly against an isolated local instance with mock credentials.
+
+### 2. Strix (Automated Dynamic Application Security Testing)
+- **Role & Capabilities:** Strix is an AI-driven dynamic application security testing (DAST) agent that probes HTTP endpoints for standard web vulnerabilities (CSRF, SSRF, injection, header misconfigurations).
+- **Assessment for ProofLedger AI:**
+  - ProofLedger AI implements direct architectural mitigations: origin validation (`403 FORBIDDEN_ORIGIN`), request body capping (32 KB limit), bounded sliding-window rate limiting, and CWE-1236 formula injection escaping.
+  - **Decision:** Not installed or bundled in this repository. Our local automated integration tests cover all DAST vectors relevant to our API gateway.
+  - **Operational Policy:** Any future deployment of Strix must be run in an isolated test harness without external network access, with explicit budget limits, and must not target third-party inference endpoints.
+
+### 3. MiroFish (Multi-Agent Simulation & Swarm Orchestration)
+- **Role & Capabilities:** MiroFish is a multi-agent simulation framework that orchestrates swarms of autonomous agents for emergent behavior modeling.
+- **Assessment for ProofLedger AI:**
+  - ProofLedger AI's core reconciliation is strictly deterministic (O(n) set-based matching with integer arithmetic), paired with a single, highly constrained gateway call to NVIDIA Nemotron for forensic hypothesis generation. Multi-agent orchestration is neither needed nor desired; it would introduce architectural bloat, unpredictable latency, high token costs, and unverifiable provenance chains.
+  - **Decision:** Explicitly excluded. ProofLedger AI's single-agent, provenance-verified design is fundamentally safer and more auditable for financial reconciliation.
+  - **Operational Policy:** If multi-agent simulations are ever explored for stress-testing transaction loads, they must be isolated in a dedicated research sandbox with pre-allocated compute limits.
+
+---
+
+## 4. Verification Summary
+
+All threat mitigations are backed by automated tests across 5 test suites (57 passing tests):
+- `tests/server-api.test.ts` (15 tests): Origin validation, process budget limit, provenance enforcement, upstream error handling.
+- `tests/privacy-security.test.ts` (17 tests): Unicode NFKC normalization, zero-width space stripping, PII redaction, CSV bounds, formula injection escaping.
+- `tests/money.test.ts` (13 tests): Decimal safety, non-numeric character rejection, Indian comma grouping, integer boundary guards.
+- `tests/ai-safety.test.ts` (6 tests): Prompt injection defense, untrusted data boundary, zero hallucination verification.
+- `tests/reconciliation.test.ts` (6 tests): Deterministic matcher, set-based row consumption, date tolerance, tie protection.

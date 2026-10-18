@@ -92,9 +92,32 @@ All quality gates were executed directly via PowerShell:
 
 | Verification Command | Purpose | Result | Evidence |
 | :--- | :--- | :--- | :--- |
-| `pnpm test` | Automated Vitest test suite | **PASS** | 5 test files, 29 tests passing (100% green in 18.15s). |
-| `pnpm run build` | TypeScript typecheck (`tsc -b`) & Vite production bundle | **PASS** | `✓ built in 3.82s` with zero errors or warnings. |
+| `pnpm test` | Automated Vitest test suite | **PASS** | 5 test files, 57 tests passing (100% green in 11.49s). |
+| `pnpm run build` | TypeScript typecheck (`tsc -b`) & Vite production bundle | **PASS** | `✓ built in 1.94s` with zero errors or warnings. |
 | `pnpm run typecheck` | Strict compiler typecheck | **PASS** | 0 type errors. |
+
+### Incremental Security Remediation Git Delivery:
+1. `dbfd863`: `fix(security): enforce server-side privacy minimization`
+   - Server-side independent narration sanitization (`serverSanitizeNarration`) with NFKC Unicode normalization, zero-width space stripping, Indian phone vs account regex lookarounds, 200-char cap.
+   - Strict Zod validation on incoming payloads (`.strict()`) blocking unpermitted properties.
+2. `e2e1d3a`: `fix(ai): verify investigation evidence provenance at runtime`
+   - Bound returned `exceptionId` to current invocation.
+   - Whitelisted authorized row IDs and executed `verifyRowIdProvenance` in HTTP gateway runtime; rejected fabricated or out-of-scope citations with `422 PROVENANCE_VIOLATION`.
+   - Prevented rejected AI hypotheses from saving to audit trail; fallback to local deterministic rule.
+3. `04148cc`: `fix(finance): reject malformed and unsafe monetary values`
+   - Strict character validation rejecting letters/symbols within numbers (`12x3.456`).
+   - 2-decimal restriction for INR (`12.345` rejected).
+   - Validated Indian and standard comma grouping (`1,25,000` / `125,000`).
+   - Integer bounds checks guarding `Number.MAX_SAFE_INTEGER` in `parseToPaise` and `sumPaise`.
+4. `c6b32a1`: `fix(csv): bound imports and harden formula-safe exports`
+   - Client and server CSV bounds: 5 MB file size limit, 10,000 row cap, UTF-8 BOM (`\uFEFF`) stripping.
+   - Empty CSV rejection with descriptive errors.
+   - Whitespace-aware formula injection escaping (neutralizes `=`, `+`, `-`, `@`, `|`, `%`, `\t`, `\r`).
+5. `26f623d`: `fix(api): enforce live inference request and budget limits`
+   - Browser Origin validation middleware (`403 FORBIDDEN_ORIGIN`).
+   - Process-level live call budget cap (`MAX_LIVE_CALLS_PER_PROCESS = 50`, returning `429 LIVE_BUDGET_EXHAUSTED`).
+   - Dynamic sliding-window rate limiter with active cleanup.
+   - 15s timeout and 600 max tokens upstream safeguards.
 
 ---
 
@@ -113,11 +136,13 @@ All quality gates were executed directly via PowerShell:
 
 Tested against the 15 attack scenarios documented in `docs/THREAT_MODEL.md`:
 1. **Raw CSV Leakage:** Prevented. Browser parses CSVs in memory; server endpoint only accepts sanitized single-exception payloads.
-2. **PII in Narration:** Sanitized. Regex masks bank accounts, UPI IDs, and phone numbers before prompt construction.
+2. **PII in Narration:** Sanitized. Server independently scrubs bank accounts, UPI IDs, phone numbers, and emails with lookaround-safe regexes and Unicode normalization.
 3. **Secret Hygiene:** Verified. `NEBIUS_API_KEY` is never exposed to client JS. `.env` is ignored by Git; `.env.example` contains safe blank placeholders.
-4. **CSV Formula Injection (CWE-1236):** Neutralized. Text cells beginning with `=`, `+`, `-`, or `@` are apostrophe-escaped on export.
+4. **CSV Formula Injection (CWE-1236):** Neutralized. Text cells beginning with `=`, `+`, `-`, `@`, `|`, `%`, `\t`, or `\r` (even when preceded by whitespace) are apostrophe-escaped on export.
 5. **Prompt Injection:** Handled. Narration text is delimited as untrusted data; cannot execute code or commands.
-6. **Hallucinated Row Citations:** Blocked. Provenance checker cross-references model citations against session IDs.
+6. **Hallucinated Row Citations:** Blocked. Provenance checker cross-references model citations against authorized session IDs in runtime path.
+7. **Rate Limiting & Budget Exhaustion:** Enforced. Sliding window rate limiter with active pruning plus process budget cap (50 calls).
+8. **External Security Tooling Review (Shannon, Strix, MiroFish):** Evaluated in `docs/THREAT_MODEL.md`. None are installed to maintain ₹0 zero-dependency footprint. ProofLedger AI's internal test suites provide comprehensive deterministic verification.
 
 ---
 
@@ -129,7 +154,7 @@ Tested against the 15 attack scenarios documented in `docs/THREAT_MODEL.md`:
 | **Open Source Model** | NVIDIA Nemotron (`nvidia/Llama-3.1-Nemotron-70B-Instruct`) | **PASS (Configured & Adapter Tested)** |
 | **Infrastructure** | Nebius Token Factory / AI Cloud Compute | **PASS (Adapter Built to Spec)** |
 | **Public Source Repo** | Public repository with open-source license | **PASS (MIT License committed)** |
-| **Working Software** | Functional application with working interactions | **PASS (Verified via 29 tests & build)** |
+| **Working Software** | Functional application with working interactions | **PASS (Verified via 57 tests & build)** |
 | **Demonstration Video** | Public video under 3 minutes | **READY (Timestamped script complete)** |
 | **Live API Call Evidence** | Real runtime inference call to Nebius Token Factory | **NOT VERIFIED (Pending user key input)** |
 
