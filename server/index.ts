@@ -15,6 +15,7 @@ import dotenv from 'dotenv';
 import {
   InvestigationRequestSchema,
   InvestigationResultSchema,
+  verifyRowIdProvenance,
   NEMOTRON_SYSTEM_PROMPT,
 } from '../src/features/investigation/schema';
 import { serverSanitizeNarration } from '../src/lib/privacy';
@@ -230,6 +231,43 @@ Analyze whether this is a timing lag, surcharge fee, duplicate, or unrecorded tr
         error: 'Model Output Schema Violation',
         code: 'SCHEMA_VIOLATION',
         details: validationResult.error.format(),
+      });
+      return;
+    }
+
+    // 1. Bind returned exceptionId to the requested exception
+    if (validationResult.data.exceptionId !== payload.exceptionId) {
+      res.status(422).json({
+        error: 'Exception ID Mismatch',
+        code: 'EXCEPTION_ID_MISMATCH',
+        message: `Model returned hypothesis for ${validationResult.data.exceptionId}, expected ${payload.exceptionId}.`,
+      });
+      return;
+    }
+
+    // 2. Build strictly authorized row IDs for THIS exception invocation
+    const authorizedRowIds = new Set<string>();
+    if (bankSanitized?.id) authorizedRowIds.add(bankSanitized.id);
+    if (ledgerSanitized?.id) authorizedRowIds.add(ledgerSanitized.id);
+
+    // 3. Provenance check: Citations to unrelated or fabricated rows are strictly rejected
+    const provenance = verifyRowIdProvenance(validationResult.data.evidenceRowIds, authorizedRowIds);
+    if (!provenance.isValid) {
+      res.status(422).json({
+        error: 'Evidence Provenance Violation',
+        code: 'PROVENANCE_VIOLATION',
+        message: 'The model cited transaction row IDs that were not present in the authorized evidence for this exception.',
+        invalidIds: provenance.invalidIds,
+      });
+      return;
+    }
+
+    // 4. Mandatory evidence citation: Must cite at least one authorized row if evidence was provided
+    if (authorizedRowIds.size > 0 && validationResult.data.evidenceRowIds.length === 0) {
+      res.status(422).json({
+        error: 'Missing Mandatory Evidence Citation',
+        code: 'MISSING_EVIDENCE_CITATION',
+        message: 'The model failed to cite any authorized evidence row IDs.',
       });
       return;
     }

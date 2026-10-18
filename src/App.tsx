@@ -275,7 +275,9 @@ export const App: React.FC = () => {
           ].filter(Boolean),
           recommendedAction: 'Verify vendor tax invoice or bank voucher to confirm variance.',
           confidence: 'MEDIUM' as const,
-          uncertaintyNotes: 'Inferred via local deterministic rule. Configure Nebius API Key for live Nemotron LLM inference.',
+          uncertaintyNotes: data.error
+            ? `Gateway rejected upstream output (${data.error}). Deterministic rule retained.`
+            : 'Inferred via local deterministic rule. Configure Nebius API Key for live Nemotron LLM inference.',
           inferredAt: new Date().toISOString(),
           model: 'ProofLedger Local Deterministic Rule',
         };

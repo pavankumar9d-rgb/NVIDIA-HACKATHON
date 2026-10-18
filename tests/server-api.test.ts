@@ -202,4 +202,380 @@ describe('Server API Endpoints & Gateway Security', () => {
       globalThis.fetch = originalFetch;
     }
   });
+
+  it('POST /api/investigate rejects model output with a fabricated row ID (422 PROVENANCE_VIOLATION)', async () => {
+    const originalApiKey = process.env.NEBIUS_API_KEY;
+    const originalAllowLive = process.env.ALLOW_LIVE_AI;
+    const originalFetch = globalThis.fetch;
+
+    process.env.NEBIUS_API_KEY = 'mock-key';
+    process.env.ALLOW_LIVE_AI = 'true';
+
+    globalThis.fetch = async (input: any, init?: any) => {
+      if (typeof input === 'string' && input.includes('tokenfactory.nebius.com')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify({
+                    exceptionId: 'EXP-PROV-01',
+                    classification: 'BANK_FEE_OR_SURCHARGE',
+                    summary: 'Hypothetical fee.',
+                    evidenceRowIds: ['BNK-010', 'LDG-999'], // LDG-999 is fabricated!
+                    evidenceExplanation: 'Fabricated explanation citing ghost ID.',
+                    missingEvidence: [],
+                    recommendedAction: 'Check files.',
+                    confidence: 'HIGH',
+                    uncertaintyNotes: '',
+                  }),
+                },
+              },
+            ],
+          }),
+        } as any;
+      }
+      return originalFetch(input, init);
+    };
+
+    try {
+      const res = await originalFetch(`${baseUrl}/api/investigate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          exceptionId: 'EXP-PROV-01',
+          exceptionType: 'AMOUNT_MISMATCH',
+          amountDeltaRupees: '-240.00',
+          dateDeltaDays: 0,
+          consentGranted: true,
+          bankEvidence: {
+            id: 'BNK-010',
+            date: '2026-09-13',
+            amountRupees: '49760.00',
+            direction: 'credit',
+            sanitizedDescription: 'Client Payment',
+          },
+        }),
+      });
+
+      expect(res.status).toBe(422);
+      const body = await res.json();
+      expect(body.code).toBe('PROVENANCE_VIOLATION');
+      expect(body.invalidIds).toContain('LDG-999');
+    } finally {
+      process.env.NEBIUS_API_KEY = originalApiKey;
+      process.env.ALLOW_LIVE_AI = originalAllowLive;
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('POST /api/investigate rejects model output citing an existing but unauthorized row ID (422 PROVENANCE_VIOLATION)', async () => {
+    const originalApiKey = process.env.NEBIUS_API_KEY;
+    const originalAllowLive = process.env.ALLOW_LIVE_AI;
+    const originalFetch = globalThis.fetch;
+
+    process.env.NEBIUS_API_KEY = 'mock-key';
+    process.env.ALLOW_LIVE_AI = 'true';
+
+    globalThis.fetch = async (input: any, init?: any) => {
+      if (typeof input === 'string' && input.includes('tokenfactory.nebius.com')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify({
+                    exceptionId: 'EXP-PROV-02',
+                    classification: 'BANK_FEE_OR_SURCHARGE',
+                    summary: 'Hypothetical fee.',
+                    evidenceRowIds: ['BNK-001'], // BNK-001 exists in session but was NOT in this exception!
+                    evidenceExplanation: 'Citing unauthorized row from another transaction.',
+                    missingEvidence: [],
+                    recommendedAction: 'Check files.',
+                    confidence: 'HIGH',
+                    uncertaintyNotes: '',
+                  }),
+                },
+              },
+            ],
+          }),
+        } as any;
+      }
+      return originalFetch(input, init);
+    };
+
+    try {
+      const res = await originalFetch(`${baseUrl}/api/investigate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          exceptionId: 'EXP-PROV-02',
+          exceptionType: 'AMOUNT_MISMATCH',
+          amountDeltaRupees: '-240.00',
+          dateDeltaDays: 0,
+          consentGranted: true,
+          bankEvidence: {
+            id: 'BNK-010', // Only BNK-010 is authorized!
+            date: '2026-09-13',
+            amountRupees: '49760.00',
+            direction: 'credit',
+            sanitizedDescription: 'Client Payment',
+          },
+        }),
+      });
+
+      expect(res.status).toBe(422);
+      const body = await res.json();
+      expect(body.code).toBe('PROVENANCE_VIOLATION');
+      expect(body.invalidIds).toContain('BNK-001');
+    } finally {
+      process.env.NEBIUS_API_KEY = originalApiKey;
+      process.env.ALLOW_LIVE_AI = originalAllowLive;
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('POST /api/investigate rejects model output with a mismatched exception ID (422 EXCEPTION_ID_MISMATCH)', async () => {
+    const originalApiKey = process.env.NEBIUS_API_KEY;
+    const originalAllowLive = process.env.ALLOW_LIVE_AI;
+    const originalFetch = globalThis.fetch;
+
+    process.env.NEBIUS_API_KEY = 'mock-key';
+    process.env.ALLOW_LIVE_AI = 'true';
+
+    globalThis.fetch = async (input: any, init?: any) => {
+      if (typeof input === 'string' && input.includes('tokenfactory.nebius.com')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify({
+                    exceptionId: 'EXP-MISMATCH-999', // Mismatched!
+                    classification: 'BANK_FEE_OR_SURCHARGE',
+                    summary: 'Valid summary text.',
+                    evidenceRowIds: ['BNK-010'],
+                    evidenceExplanation: 'Valid explanation text.',
+                    missingEvidence: [],
+                    recommendedAction: 'Valid action text.',
+                    confidence: 'HIGH',
+                    uncertaintyNotes: '',
+                  }),
+                },
+              },
+            ],
+          }),
+        } as any;
+      }
+      return originalFetch(input, init);
+    };
+
+    try {
+      const res = await originalFetch(`${baseUrl}/api/investigate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          exceptionId: 'EXP-PROV-03',
+          exceptionType: 'AMOUNT_MISMATCH',
+          amountDeltaRupees: '-240.00',
+          dateDeltaDays: 0,
+          consentGranted: true,
+          bankEvidence: {
+            id: 'BNK-010',
+            date: '2026-09-13',
+            amountRupees: '49760.00',
+            direction: 'credit',
+            sanitizedDescription: 'Client Payment',
+          },
+        }),
+      });
+
+      expect(res.status).toBe(422);
+      const body = await res.json();
+      expect(body.code).toBe('EXCEPTION_ID_MISMATCH');
+    } finally {
+      process.env.NEBIUS_API_KEY = originalApiKey;
+      process.env.ALLOW_LIVE_AI = originalAllowLive;
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('POST /api/investigate rejects model output with malformed JSON (422 MODEL_JSON_PARSE_ERROR)', async () => {
+    const originalApiKey = process.env.NEBIUS_API_KEY;
+    const originalAllowLive = process.env.ALLOW_LIVE_AI;
+    const originalFetch = globalThis.fetch;
+
+    process.env.NEBIUS_API_KEY = 'mock-key';
+    process.env.ALLOW_LIVE_AI = 'true';
+
+    globalThis.fetch = async (input: any, init?: any) => {
+      if (typeof input === 'string' && input.includes('tokenfactory.nebius.com')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            choices: [
+              {
+                message: {
+                  content: 'Sorry, I am an AI and cannot return JSON right now: { invalid json',
+                },
+              },
+            ],
+          }),
+        } as any;
+      }
+      return originalFetch(input, init);
+    };
+
+    try {
+      const res = await originalFetch(`${baseUrl}/api/investigate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          exceptionId: 'EXP-PROV-04',
+          exceptionType: 'AMOUNT_MISMATCH',
+          amountDeltaRupees: '-240.00',
+          dateDeltaDays: 0,
+          consentGranted: true,
+          bankEvidence: {
+            id: 'BNK-010',
+            date: '2026-09-13',
+            amountRupees: '49760.00',
+            direction: 'credit',
+            sanitizedDescription: 'Client Payment',
+          },
+        }),
+      });
+
+      expect(res.status).toBe(422);
+      const body = await res.json();
+      expect(body.code).toBe('MODEL_JSON_PARSE_ERROR');
+    } finally {
+      process.env.NEBIUS_API_KEY = originalApiKey;
+      process.env.ALLOW_LIVE_AI = originalAllowLive;
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('POST /api/investigate rejects model output with schema violations or invalid classifications (422 SCHEMA_VIOLATION)', async () => {
+    const originalApiKey = process.env.NEBIUS_API_KEY;
+    const originalAllowLive = process.env.ALLOW_LIVE_AI;
+    const originalFetch = globalThis.fetch;
+
+    process.env.NEBIUS_API_KEY = 'mock-key';
+    process.env.ALLOW_LIVE_AI = 'true';
+
+    globalThis.fetch = async (input: any, init?: any) => {
+      if (typeof input === 'string' && input.includes('tokenfactory.nebius.com')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify({
+                    exceptionId: 'EXP-PROV-05',
+                    classification: 'INVALID_UNSUPPORTED_TYPE', // Invalid classification!
+                    summary: 'Summary here.',
+                    evidenceRowIds: ['BNK-010'],
+                    evidenceExplanation: 'Explanation here.',
+                    missingEvidence: [],
+                    recommendedAction: 'Action here.',
+                    confidence: 'HIGH',
+                    uncertaintyNotes: '',
+                  }),
+                },
+              },
+            ],
+          }),
+        } as any;
+      }
+      return originalFetch(input, init);
+    };
+
+    try {
+      const res = await originalFetch(`${baseUrl}/api/investigate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          exceptionId: 'EXP-PROV-05',
+          exceptionType: 'AMOUNT_MISMATCH',
+          amountDeltaRupees: '-240.00',
+          dateDeltaDays: 0,
+          consentGranted: true,
+          bankEvidence: {
+            id: 'BNK-010',
+            date: '2026-09-13',
+            amountRupees: '49760.00',
+            direction: 'credit',
+            sanitizedDescription: 'Client Payment',
+          },
+        }),
+      });
+
+      expect(res.status).toBe(422);
+      const body = await res.json();
+      expect(body.code).toBe('SCHEMA_VIOLATION');
+    } finally {
+      process.env.NEBIUS_API_KEY = originalApiKey;
+      process.env.ALLOW_LIVE_AI = originalAllowLive;
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('POST /api/investigate handles upstream provider errors with 502 UPSTREAM_ERROR', async () => {
+    const originalApiKey = process.env.NEBIUS_API_KEY;
+    const originalAllowLive = process.env.ALLOW_LIVE_AI;
+    const originalFetch = globalThis.fetch;
+
+    process.env.NEBIUS_API_KEY = 'mock-key';
+    process.env.ALLOW_LIVE_AI = 'true';
+
+    globalThis.fetch = async (input: any, init?: any) => {
+      if (typeof input === 'string' && input.includes('tokenfactory.nebius.com')) {
+        return {
+          ok: false,
+          status: 503,
+          text: async () => 'Service Unavailable',
+        } as any;
+      }
+      return originalFetch(input, init);
+    };
+
+    try {
+      const res = await originalFetch(`${baseUrl}/api/investigate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          exceptionId: 'EXP-PROV-06',
+          exceptionType: 'AMOUNT_MISMATCH',
+          amountDeltaRupees: '-240.00',
+          dateDeltaDays: 0,
+          consentGranted: true,
+          bankEvidence: {
+            id: 'BNK-010',
+            date: '2026-09-13',
+            amountRupees: '49760.00',
+            direction: 'credit',
+            sanitizedDescription: 'Client Payment',
+          },
+        }),
+      });
+
+      expect(res.status).toBe(502);
+      const body = await res.json();
+      expect(body.code).toBe('UPSTREAM_ERROR');
+    } finally {
+      process.env.NEBIUS_API_KEY = originalApiKey;
+      process.env.ALLOW_LIVE_AI = originalAllowLive;
+      globalThis.fetch = originalFetch;
+    }
+  });
 });
