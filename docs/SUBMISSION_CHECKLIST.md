@@ -15,7 +15,7 @@
 | **Model Requirement** | Must use at least one NVIDIA open-source model. | **COMPLIANT** | Configured for verified available open model: `nvidia/Llama-3.1-Nemotron-70B-Instruct`. |
 | **Track Alignment** | Best Apps & Agents: real-world utility, agents/copilots, autonomous workflows. | **COMPLIANT** | Multi-stage agent: deterministic telemetry extraction $\to$ context reduction $\to$ explicit consent gate $\to$ Nemotron inference $\to$ Zod provenance check $\to$ human sign-off $\to$ audit export. |
 | **Working Software** | Working application, not a static mockup or non-interactive page. | **VERIFIED** | Full interactive SPA with real PapaParse CSV parser, integer paise engine, 1-to-1 matcher, evidence inspector, and audit pack generation. |
-| **Open Source License** | Public repository with visible open-source license. | **COMPLIANT** | MIT License committed in `LICENSE` file. |
+| **Open Source License** | Public repository with visible open-source license. | **COMPLIANT** | Public repository at `https://github.com/pavankumar9d-rgb/NVIDIA-HACKATHON.git` with MIT License committed in `LICENSE` file. |
 | **Documentation & README** | Clear setup instructions, architecture, threat model, testing. | **COMPLIANT** | Comprehensive `README.md`, `docs/PRD.md`, `docs/DESIGN_SPEC.md`, `docs/ARCHITECTURE.md`, `docs/THREAT_MODEL.md`, `docs/TEST_PLAN.md`. |
 | **Video Demonstration** | Public demonstration video under 3 minutes. | **READY FOR RECORDING** | Complete timestamped script (2m 50s) in `docs/DEMO_SCRIPT.md`. |
 | **₹0 Budget / No Paid Resources** | Zero expenditure on APIs, paid tools, or credit card subscriptions. | **COMPLIANT** | Uses genuinely free local stack (React, Vite, Express, Vitest). Nebius Token Factory uses hackathon provided serverless credits/keys. |
@@ -50,7 +50,7 @@
 ---
 
 ## 3. Truthful Runtime Status Disclosure
-- **Deterministic Reconciliation Engine:** Fully implemented, verified, and passes 29 of 29 automated tests.
+- **Deterministic Reconciliation Engine:** Fully implemented, verified, and passes 72 of 72 automated tests across 7 test suites.
 - **Nebius Token Factory Adapter:** Fully implemented and configured in `server/index.ts` with model `nvidia/Llama-3.1-Nemotron-70B-Instruct`.
 - **Live Cloud Inference State:** Currently running in **Local Mode** with live inference switch `ALLOW_LIVE_AI=false` because a funded `NEBIUS_API_KEY` has not yet been supplied. All deterministic rules, redactions, schemas, and UI fallbacks function cleanly.
 - **Eligibility Verdict:** **PASS ON ARCHITECTURE, CODE & DEMO; LIVE API INFERENCE PENDING USER KEY CONFIGURATION.**

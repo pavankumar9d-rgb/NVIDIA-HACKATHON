@@ -8,7 +8,7 @@
   </p>
   <p>
     <a href="#quickstart"><img src="https://img.shields.io/badge/Status-Built%20%26%20Tested-17845B" alt="Status" /></a>
-    <a href="#test-results"><img src="https://img.shields.io/badge/Tests-29%2F29%20Passing-17845B" alt="Tests" /></a>
+    <a href="#test-results"><img src="https://img.shields.io/badge/Tests-72%2F72%20Passing-17845B" alt="Tests" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue" alt="License" /></a>
     <img src="https://img.shields.io/badge/Model-NVIDIA%20Nemotron%2070B-D7FF56?labelColor=101A2B" alt="Model" />
     <img src="https://img.shields.io/badge/Platform-Nebius%20Token%20Factory-101A2B" alt="Nebius" />
@@ -73,8 +73,8 @@ ProofLedger AI separates mathematical calculation from natural language reasonin
 
 ### 1. Clone & Install Dependencies
 ```powershell
-git clone https://github.com/your-username/proofledger-ai.git
-cd proofledger-ai
+git clone https://github.com/pavankumar9d-rgb/NVIDIA-HACKATHON.git
+cd NVIDIA-HACKATHON
 pnpm install
 ```
 
@@ -112,7 +112,7 @@ pnpm run dev
 
 ## 4. Test Results & Quality Gates
 
-The test suite contains **29 automated tests** covering arithmetic precision, matching rules, Zod schemas, provenance guards, and formula injection escaping:
+The test suite contains **72 automated tests** across 7 test suites covering arithmetic precision, matching rules, Zod schemas, provenance guards, duplicate detection, export consistency, and formula injection escaping:
 
 ```powershell
 pnpm test
@@ -122,22 +122,24 @@ pnpm test
 ```
  RUN  v5.0.5 C:/Users/saipa/OneDrive/Desktop/nvidia hackathon
 
- ✓ tests/privacy-security.test.ts (6 tests) 34ms
- ✓ tests/reconciliation.test.ts (6 tests) 61ms
- ✓ tests/money.test.ts (7 tests) 198ms
- ✓ tests/ai-safety.test.ts (6 tests) 19ms
- ✓ tests/server-api.test.ts (4 tests) 1031ms
+ ✓ tests/money.test.ts (13 tests)
+ ✓ tests/reconciliation.test.ts (12 tests)
+ ✓ tests/analytics.test.ts (2 tests)
+ ✓ tests/privacy-security.test.ts (17 tests)
+ ✓ tests/export-consistency.test.ts (7 tests)
+ ✓ tests/ai-safety.test.ts (6 tests)
+ ✓ tests/server-api.test.ts (15 tests)
 
- Test Files  5 passed (5)
-      Tests  29 passed (29)
-   Duration  18.15s
+ Test Files  7 passed (7)
+      Tests  72 passed (72)
 ```
 
-### Production Build & Typecheck:
+### Quality Linters & Production Build:
 ```powershell
-pnpm run build
+pnpm run lint        # Oxlint: 0 warnings, 0 errors across 33 files
+pnpm run typecheck   # tsc --noEmit: zero type errors
+pnpm run build       # Vite build: production client bundle generated in ~7.6s
 ```
-*Output: `✓ built in 3.82s` with zero TypeScript or bundling errors.*
 
 ---
 
@@ -145,21 +147,26 @@ pnpm run build
 
 1. Open `http://localhost:5173`.
 2. Notice the top bar: **"Northstar Studio — September Close"** synthetic dataset is loaded automatically.
-3. The KPI header computes:
-   - **Net Bank Position:** ₹4,76,380.00 (29 rows)
-   - **Net Ledger Position:** ₹4,94,880.00 (27 rows)
-   - **Confirmed Matches:** 23 pairs (₹9,58,500.00 matched)
-   - **Unresolved Net Discrepancy:** -₹18,500.00
-4. Click on exception row **`EXP-AMT-BNK-013-LDG-012`** (Zenith Brand).
-5. Inspect the **Evidence Inspector**:
-   - Bank row shows ₹49,760.00 credited.
-   - Ledger row shows ₹50,000.00 invoiced.
-   - Deterministic delta: -₹240.00 (0 days date lag).
-6. Click **"Investigate Exception"**.
-7. Preview the sanitized JSON payload and check the consent box.
-8. Click **"Proceed with Inference"** to receive the structured hypothesis.
-9. Enter an auditor review note and click **Approve**.
-10. Click **"Export Pack"** to download the formula-safe CSVs, JSON audit log, and executive Markdown report.
+3. The Executive Overview computes verified accounting positions:
+   - **Opening Anchor:** ₹4,50,000.00
+   - **Net Bank Period Movement:** +₹26,380.00 (Inflows: ₹1,61,630.00, Outflows: ₹1,35,250.00)
+   - **Net Ledger Period Movement:** +₹10,950.00 (Inflows: ₹1,42,000.00, Outflows: ₹1,31,050.00)
+   - **Closing Bank Position:** ₹4,76,380.00 (29 rows)
+   - **Closing Ledger Position:** ₹4,60,950.00 (27 rows)
+   - **Closing Variance (Bank - Ledger):** +₹15,430.00
+   - **Confirmed Matches:** 25 pairs (50 rows matched / 56 active rows = 89.3%)
+   - **Actionable Exceptions:** 5 items (6 rows: 1 amount mismatch, 1 duplicate candidate `ATM-00912`, 2 unmatched bank, 1 unmatched ledger)
+   - **Reconciliation Bridge:** Reconciles the ₹15,430.00 closing variance to an exact ₹0.00 residual ledger variance.
+4. Inspect pure SVG charts: Dual-series daily movement & volume composition.
+5. Click on exception row **`EXP-AMT-BNK-013-LDG-012`** (Zenith Brand) or **`EXP-DUP-BNK-018`** (ATM Withdrawal duplicate candidate).
+6. Inspect the sliding **Evidence Drawer**:
+   - For Zenith Brand: Bank row shows ₹49,760.00 credited, Ledger row shows ₹50,000.00 invoiced, deterministic delta: -₹240.00.
+   - For ATM-00912: Highlights identical amount ₹5,000.00 debited consecutively within clearance tolerance.
+7. Click **"Investigate Exception"**.
+8. Preview the sanitized JSON payload and check the consent box.
+9. Click **"Proceed with Inference"** to receive the structured hypothesis (via live Nebius Nemotron-70B when configured, or transparent local deterministic rule in Local Mode).
+10. Enter an auditor review note and click **Approve**, **Reject**, or **Defer**.
+11. Click **"Export Pack"** to download the formula-safe CSVs, JSON audit log, and executive Markdown report.
 
 ---
 

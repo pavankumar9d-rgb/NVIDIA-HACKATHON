@@ -92,10 +92,10 @@ All quality gates were executed directly via PowerShell:
 
 | Verification Command | Purpose | Result | Evidence |
 | :--- | :--- | :--- | :--- |
-| `pnpm test` | Automated Vitest test suite | **PASS** | 6 test files, 59 tests passing (100% green in 6.16s). |
-| `pnpm run lint` | Oxlint fast linter | **PASS** | 0 warnings and 0 errors across 31 files. |
+| `pnpm test` | Automated Vitest test suite | **PASS** | 7 test files, 72 tests passing (100% green in ~8.5s). |
+| `pnpm run lint` | Oxlint fast linter | **PASS** | 0 warnings and 0 errors across 33 files. |
 | `pnpm run typecheck` | Strict compiler typecheck (`tsc --noEmit`) | **PASS** | 0 type errors. |
-| `pnpm run build` | TypeScript typecheck (`tsc -b`) & Vite production bundle | **PASS** | `✓ built in 2.71s` with zero errors or warnings. |
+| `pnpm run build` | TypeScript typecheck (`tsc -b`) & Vite production bundle | **PASS** | `✓ built in ~7.6s` with zero errors or warnings. |
 
 ### Incremental Git Delivery Log:
 1. `dbfd863`: `fix(security): enforce server-side privacy minimization`
@@ -132,6 +132,15 @@ All quality gates were executed directly via PowerShell:
    - Built `OverviewView` with executive close banner, 100% balanced audit reconciliation bridge, and priority triage.
    - Refactored `EvidencePanel` to slide out from right with backdrop and Escape listener.
    - Built `BrandedPreloader` and multi-stage honest asynchronous loading ticker.
+10. `26dd5cb`: `fix(reconciliation): classify evidenced duplicate candidates consistently`
+    - Enhanced duplicate detector for consecutive-date identical amounts/references in intra-source postings (`ATM-00912`).
+    - Populated `candidateTransactions` array with candidate duplicate counterpart for audit clarity.
+    - Updated synthetic expected outcomes to 25 confirmed matches, 5 exceptions (1 amount mismatch, 1 duplicate candidate, 2 unmatched bank, 1 unmatched ledger).
+11. `6840c14`: `fix(reports): align exported financial balances and truthful AI status`
+    - Implemented headless pure export engine in `src/lib/export/index.ts`.
+    - Exported Executive Markdown Report clearly partitions Opening Anchor (₹4,50,000.00), Net Period Movements (Bank +₹26,380.00, Ledger +₹10,950.00), and Closing Balances (Bank ₹4,76,380.00, Ledger ₹4,60,950.00, Closing Variance +₹15,430.00).
+    - Truthful AI model attribution in reports and UI: explicitly labels "Local Deterministic Rule (Local Mode)" when live inference was not called.
+    - Added 7 end-to-end export consistency tests in `tests/export-consistency.test.ts`.
 
 ---
 
@@ -168,7 +177,7 @@ Tested against the 15 attack scenarios documented in `docs/THREAT_MODEL.md`:
 | **Open Source Model** | NVIDIA Nemotron (`nvidia/Llama-3.1-Nemotron-70B-Instruct`) | **PASS (Configured & Adapter Tested)** |
 | **Infrastructure** | Nebius Token Factory / AI Cloud Compute | **PASS (Adapter Built to Spec)** |
 | **Public Source Repo** | Public repository with open-source license | **PASS (MIT License committed)** |
-| **Working Software** | Functional application with working interactions | **PASS (Verified via 57 tests & build)** |
+| **Working Software** | Functional application with working interactions | **PASS (Verified via 72 tests & build)** |
 | **Demonstration Video** | Public video under 3 minutes | **READY (Timestamped script complete)** |
 | **Live API Call Evidence** | Real runtime inference call to Nebius Token Factory | **NOT VERIFIED (Pending user key input)** |
 
