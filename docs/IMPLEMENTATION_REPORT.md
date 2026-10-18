@@ -92,11 +92,12 @@ All quality gates were executed directly via PowerShell:
 
 | Verification Command | Purpose | Result | Evidence |
 | :--- | :--- | :--- | :--- |
-| `pnpm test` | Automated Vitest test suite | **PASS** | 5 test files, 57 tests passing (100% green in 11.49s). |
-| `pnpm run build` | TypeScript typecheck (`tsc -b`) & Vite production bundle | **PASS** | `✓ built in 1.94s` with zero errors or warnings. |
-| `pnpm run typecheck` | Strict compiler typecheck | **PASS** | 0 type errors. |
+| `pnpm test` | Automated Vitest test suite | **PASS** | 6 test files, 59 tests passing (100% green in 6.16s). |
+| `pnpm run lint` | Oxlint fast linter | **PASS** | 0 warnings and 0 errors across 31 files. |
+| `pnpm run typecheck` | Strict compiler typecheck (`tsc --noEmit`) | **PASS** | 0 type errors. |
+| `pnpm run build` | TypeScript typecheck (`tsc -b`) & Vite production bundle | **PASS** | `✓ built in 2.71s` with zero errors or warnings. |
 
-### Incremental Security Remediation Git Delivery:
+### Incremental Git Delivery Log:
 1. `dbfd863`: `fix(security): enforce server-side privacy minimization`
    - Server-side independent narration sanitization (`serverSanitizeNarration`) with NFKC Unicode normalization, zero-width space stripping, Indian phone vs account regex lookarounds, 200-char cap.
    - Strict Zod validation on incoming payloads (`.strict()`) blocking unpermitted properties.
@@ -118,6 +119,19 @@ All quality gates were executed directly via PowerShell:
    - Process-level live call budget cap (`MAX_LIVE_CALLS_PER_PROCESS = 50`, returning `429 LIVE_BUDGET_EXHAUSTED`).
    - Dynamic sliding-window rate limiter with active cleanup.
    - 15s timeout and 600 max tokens upstream safeguards.
+6. `069638d`: `fix(lint): resolve 53 IDE problems, useless regex escapes, and button types`
+   - Fixed 53 lint errors across 10 files including useless regex escapes, redundant variable initializers, and explicit button types.
+7. `7e7bc08`: `fix(metrics): distinguish closing balances from net transaction movement`
+   - Upgraded `ReconciliationSummary` to compute certified opening balances, period net movements, and closing positions.
+   - Added `NormalizationResult` in CSV parser to recognize opening balance statement rows.
+   - Created `src/lib/reconciliation/analytics.ts` and `tests/analytics.test.ts`.
+8. `aa12bd5`: `feat(ui): add data-driven SVG reconciliation charts`
+   - Created pure-SVG dual series `DailyMovementChart` and interactive segmented `ReconciliationCompositionChart` with zero external dependencies.
+9. `80d455d`: `feat(ui): overhaul executive overview, full-width grid, and drawer interaction`
+   - Implemented 4-view executive workflow (`overview`, `workspace`, `privacy`, `audit`).
+   - Built `OverviewView` with executive close banner, 100% balanced audit reconciliation bridge, and priority triage.
+   - Refactored `EvidencePanel` to slide out from right with backdrop and Escape listener.
+   - Built `BrandedPreloader` and multi-stage honest asynchronous loading ticker.
 
 ---
 

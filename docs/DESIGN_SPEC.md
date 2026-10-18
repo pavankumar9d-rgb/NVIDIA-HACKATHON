@@ -82,55 +82,103 @@ The visual language combines the rigor of an institutional trading terminal with
 
 ## 4. Information Architecture & Layout Structure
 
-### 4.1 Master 3-Zone Layout
+### 4.1 Master 4-View Architecture
+ProofLedger AI provides a structured 4-view executive workflow rather than a cramped single-screen console:
+
 ```
-+-----------------------------------------------------------------------------------------------+
-| NAVIGATION RAIL (64px / 220px collapsible)                                                    |
-| Brand Mark | Workspace Selector | Step Indicators | Privacy Pill | Help | Node Status        |
-+-----------------------------------------------------------------------------------------------+
-| TOP BAR: Session Context ("Northstar Studio — Sep 2026") | Status Chip | Load Demo | Reconcile |
-+-------------------------------------------------------------------+---------------------------+
-| MAIN WORKSPACE (Flex 1)                                            | EVIDENCE PANEL (420px)    |
-| - Stage Progress Ribbon (Sources -> Match -> Triage -> Review)   | Selected Exception Title  |
-| - Summary Metrics Row (Total Bank, Total Ledger, Match %, Delta)  | Source Bank vs Ledger Row |
-| - Filter & Search Toolbar (All, Confirmed, Exceptions, Ambiguous) | Deterministic Signals     |
-| - Split Transaction Table (Sticky headers, amount alignment)      | Privacy Consent & Preview |
-|                                                                   | AI Nemotron Hypothesis    |
-|                                                                   | Operator Decision Actions |
-+-------------------------------------------------------------------+---------------------------+
++----------------------------------------------------------------------------------------------------------------+
+| NAVIGATION RAIL (Deep Midnight Navy #101A2B)                                                                   |
+| [Brand Mark] | [Overview] | [Investigation Desk (badge)] | [Privacy Boundary] | [Audit Trail] | [Gateway Pill]  |
++----------------------------------------------------------------------------------------------------------------+
+| TOP BAR: Session Context ("Northstar Studio — Sep 2026") | Status Chip | Load Demo | Reconcile | Export Pack    |
++----------------------------------------------------------------------------------------------------------------+
+| VIEW 1: EXECUTIVE OVERVIEW (Default Landing)                                                                   |
+| - Executive Close Status Banner (Closing variance, match rate, active exceptions, export shortcut)             |
+| - Core Financial Position Cards:                                                                               |
+|   * Closing Bank Balance (₹4,76,380.00) vs Net Inflow (+₹26,380.00, Opening: ₹4,50,000.00)                    |
+|   * Closing Ledger Balance (₹4,60,950.00) vs Net Inflow (+₹10,950.00, Opening: ₹4,50,000.00)                 |
+|   * Confirmed Match Rate (89.3% volume, 23 pairs)                                                             |
+|   * Unresolved Net Variance (+₹15,430.00, 5 exceptions)                                                        |
+| - Pure SVG Visual Analytics:                                                                                   |
+|   * Daily Cash & Ledger Movement Trend (Dual-series line chart with area gradient fill & hover tooltips)       |
+|   * Reconciliation Volume Composition (Proportional segmented bar: Confirmed, Unmatched, Fee/Timing delta)   |
+| - 100% Balanced Audit Reconciliation Bridge (Step-by-step mathematical bridge from Bank to Ledger)            |
+| - Priority Exception Triage Queue (Top items by variance with one-click deep-link to Investigation Desk)        |
++----------------------------------------------------------------------------------------------------------------+
+| VIEW 2: INVESTIGATION DESK (100% Full-Width Grid + Sliding Drawer)                                             |
+| - Full-width split transaction grid with search, multi-axis filter pills, and column sort                      |
+| - Sliding Evidence Drawer (Slides from right, 540px width, semi-transparent backdrop, ESC dismiss)             |
+|   * Source Bank vs Ledger Row cards with raw & sanitized details                                               |
+|   * Deterministic connector node (Amount delta, Date tolerance delta, Reference match)                         |
+|   * Privacy boundary consent checkbox & exact JSON payload preview                                             |
+|   * NVIDIA Nemotron 70B structured hypothesis & human review controls (Approve, Reject, Defer)                |
++----------------------------------------------------------------------------------------------------------------+
+| VIEW 3: PRIVACY & DATA SOVEREIGNTY BOUNDARY                                                                    |
+| - Interactive PII redaction testbed, outbound packet inspector, and live inference gateway controls           |
++----------------------------------------------------------------------------------------------------------------+
+| VIEW 4: AUDIT TRAIL & COMPLIANCE LOG                                                                           |
+| - Append-only chronological timeline of matches, AI hypotheses, auditor notes, and formula-safe export pack    |
++----------------------------------------------------------------------------------------------------------------+
 ```
 
 ---
 
 ## 5. Signature Component Specifications
 
-### 5.1 Evidence Trail Component
-The signature visual interaction of ProofLedger AI. It represents the forensic chain of evidence connecting two disparate transaction records:
-1. **Bank Source Card:** Left card with bank logo chip, account ref, ISO timestamp, signed amount in bold JetBrains Mono.
-2. **Deterministic Connector Node:** Central diamond showing computed deltas:
-   - Date diff pill (e.g. `+2 days: Timing Lag`).
-   - Amount variance pill (e.g. `Exact 0.00` or `Δ -₹240.00`).
-   - Reference token match badge (`100% Hash Match`).
-3. **Ledger Source Card:** Right card with accounting account tag, journal ref, and internal debit/credit allocation.
-4. **AI Reasoning Card:** Emerges upon user consent. Outlines structured hypothesis, citing source row IDs.
-5. **Decision Bar:** Three tactile buttons:
-   - `[Approve Hypothesis]` (Emerald border/hover)
-   - `[Reject]` (Subtle vermilion)
-   - `[Defer / Need Info]` (Neutral amber)
+### 5.1 Financial Metrics & Canonical Balance Hierarchy
+ProofLedger AI strictly enforces standard accounting terminology to prevent operator confusion:
+- **Opening Balance Anchor:** The certified period opening cash position (`₹4,50,000.00` in the demo dataset).
+- **Net Period Movement:** The algebraic sum of all credits less debits during the statement window (`Bank: +₹26,380.00`, `Ledger: +₹10,950.00`).
+- **Closing Position:** The true ending balance (`Opening Balance + Net Movement`):
+  $$\text{Closing Bank Balance} = ₹4,50,000.00 + ₹26,380.00 = ₹4,76,380.00$$
+  $$\text{Closing Ledger Balance} = ₹4,50,000.00 + ₹10,950.00 = ₹4,60,950.00$$
+- **Unresolved Net Variance:** The closing delta requiring reconciliation:
+  $$\Delta = ₹4,76,380.00 - ₹4,60,950.00 = +₹15,430.00$$
+- **Mathematical Reconciliation Bridge:**
+  A step-by-step audit schedule that bridges Bank Ending Balance to Ledger Ending Balance with zero leakage:
+  $$\begin{aligned}
+    \text{Bank Closing Balance} &= ₹4,76,380.00 \\
+    \text{Less: Unpresented Cheque (CHQ-771829)} &= -₹18,500.00 \\
+    \text{Less: Unrecorded Bank Interest (HDFC-INT-Q2)} &= -₹3,420.00 \\
+    \text{Plus: Gateway Fee Variance (NEFT-339102)} &= +₹240.00 \\
+    \text{Plus: Unrecorded Service Charge (HDFC-SVC-09)} &= +₹1,250.00 \\
+    \text{Plus: Duplicate Bank Debit (ATM-00912)} &= +₹5,000.00 \\
+    \hline
+    \textbf{Reconciled Ledger Balance} &= \mathbf{₹4,60,950.00} \quad (\Delta = ₹0.00)
+  \end{aligned}$$
 
-### 5.2 Transaction Data Grid
-- **Row Height:** 44px (Compact financial density).
-- **Zebra Striping:** None; uses fine `#DDE3DA` 1px border with a soft `#F8FAF6` hover highlight.
-- **Selected State:** Left 3px accent bar in `#111827`, soft background tint.
-- **Numbers:** Always right-aligned, monospaced font with aligned decimal points.
-- **Status Pills:** Compact 20px pill with dot indicator (Green for Confirmed, Red for Exception, Yellow for Ambiguous).
+### 5.2 Responsive Pure-SVG Data Charts
+ProofLedger AI builds all charts using pure React and responsive SVG with zero third-party chart libraries:
+- **`DailyMovementChart.tsx`**:
+  - Dual-series continuous line and area gradient chart plotting daily bank inflows/outflows versus ledger vouchers.
+  - Dynamic min/max scaling with rounded grid ticks and zero-line baseline.
+  - Interactive day hover cursor with pinned card displaying Bank vs Ledger daily amounts and daily variance.
+  - Built with accessibility: SVG `<title>`, `<desc>`, and ARIA attributes for screen readers.
+- **`ReconciliationCompositionChart.tsx`**:
+  - Horizontal stacked percentage bar with proportional segments: Confirmed Matched Volume, Bank Exceptions, Ledger Exceptions, and Timing/Fee Variance.
+  - Click-to-filter interaction: Clicking a segment directly navigates to the Investigation Desk filtered by that category.
+  - Micro-cards displaying volume share, rupee totals, and count breakdown.
 
-### 5.3 Privacy Payload Preview Dialog
-Before transmitting any exception to Nebius Token Factory:
-- An elegant modal displays the exact JSON payload.
-- Sensitive fields (bank account numbers, user names, phone numbers) are visibly struck through with `<del>` and replaced with `[REDACTED]`.
-- Explicit checkbox: *"I consent to sending this sanitized 4-field exception packet to Nebius Token Factory (NVIDIA Nemotron 70B)."*
-- Action buttons: `[Confirm & Investigate]` in Chartreuse vs `[Cancel / Stay Local]` in quiet muted border.
+### 5.3 Sliding Investigation Drawer (`EvidencePanel.tsx`)
+Replaces the static 33% layout column with an overlay drawer:
+- **Dimensions:** Full-width on mobile; fixed 480px–540px width on desktop.
+- **Backdrop:** Semi-transparent scrim (`bg-slate-900/40 backdrop-blur-sm`) with click-to-dismiss.
+- **Keyboard Navigation:** Native `Escape` key listener closes the drawer.
+- **Variance Banner:** Contrasts the specific exception variance against the macro statement variance.
+- **Deterministic Signals:** Visual badge chips for date clearance lag, amount delta in minor units, and reference match score.
+- **Privacy Preview:** Expandable inspection showing the exact outbound redacted JSON payload.
+- **Operator Review Controls:** One-click Approve, Reject, or Defer with optional auditor notes.
+
+### 5.4 Branded Preloader & Transparent Progress Feedback
+- **Branded Preloader (`BrandedPreloader.tsx`):**
+  - Renders during initial session load with pulsing geometric shield mark and subtle progress bar.
+  - Auto-dismisses upon mount with smooth fade-out.
+- **Multi-Stage Asynchronous Progress Feedback:**
+  - Real-time status ticker during reconciliation and AI investigation:
+    1. *"Sanitizing payload & hashing tokens..."*
+    2. *"Evaluating clearance date tolerance..."*
+    3. *"Computing mathematical reconciliation bridge..."*
+    4. *"Finalizing audit schedule..."*
 
 ---
 
@@ -138,5 +186,5 @@ Before transmitting any exception to Nebius Token Factory:
 
 - **Duration:** 120ms to 180ms transitions. Never exceed 250ms for utility actions.
 - **Easing:** `cubic-bezier(0.16, 1, 0.3, 1)` (snappy spring deceleration).
-- **Loading State:** Subtle pulse animation on skeleton bars; zero endless spinners.
+- **Drawer Transition:** Smooth translateX slide-in with 200ms ease-out.
 - **Motion Reduction:** Media query `@media (prefers-reduced-motion: reduce)` disables all transforms and sets durations to `0ms`.
