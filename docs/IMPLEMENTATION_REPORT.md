@@ -145,7 +145,7 @@ All quality gates were executed directly via PowerShell:
     - Express serves built Vite frontend from `dist/` with safe SPA client-side fallback.
     - Unmatched `/api/*` requests return 404 JSON, preventing SPA swallowing.
     - Server binds on `PORT` and `0.0.0.0` for external reachability.
-    - Committed `render.yaml` Blueprint for Render free plan (`corepack enable && pnpm install --frozen-lockfile && pnpm run build`, `pnpm run server`, `/api/health`).
+    - Committed `render.yaml` Blueprint for Render free plan (`corepack pnpm install --frozen-lockfile && corepack pnpm run build`, `corepack pnpm run server`, `/api/health`).
     - Origin verification supports comma-delimited `APP_ALLOWED_ORIGIN` and `RENDER_EXTERNAL_URL`.
     - Moved `tsx` to `dependencies` for runtime execution.
     - Added 5 production serving and routing tests to `tests/server-api.test.ts`.

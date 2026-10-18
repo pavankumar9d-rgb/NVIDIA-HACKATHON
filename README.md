@@ -169,8 +169,8 @@ If creating the service manually:
    - **Branch:** `main`
    - **Root Directory:** Leave blank (root of repo)
    - **Runtime:** `Node`
-   - **Build Command:** `corepack enable && pnpm install --frozen-lockfile && pnpm run build`
-   - **Start Command:** `pnpm run server`
+   - **Build Command:** `corepack pnpm install --frozen-lockfile && corepack pnpm run build`
+   - **Start Command:** `corepack pnpm run server`
    - **Instance Type:** `Free`
 5. Open **Advanced** settings:
    - **Health Check Path:** `/api/health`
