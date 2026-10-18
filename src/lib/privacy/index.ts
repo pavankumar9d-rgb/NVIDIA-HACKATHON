@@ -12,46 +12,76 @@ export interface RedactionRule {
 }
 
 export const DEFAULT_REDACTION_RULES: RedactionRule[] = [
-  // 1. Long Bank Account Numbers (11 to 18 contiguous digits)
-  {
-    name: 'BankAccount',
-    pattern: /\b\d{11,18}\b/g,
-    replacement: '[ACCT-REDACTED]',
-  },
-  // 2. 10-digit Indian Mobile Numbers (optionally prefixed with +91- or +91 )
-  {
-    name: 'PhoneNumber',
-    pattern: /\b(?:\+91[\-\s])?[6-9]\d{9}\b/g,
-    replacement: '[PHONE-REDACTED]',
-  },
-  // 3. Indian UPI Handles (e.g. user@oksbi, payment@icici, 9876543210@paytm)
-  {
-    name: 'UPI_ID',
-    pattern: /[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}/g,
-    replacement: '[UPI-REDACTED]',
-  },
-  // 4. Short Bank Accounts (9 to 10 digits)
-  {
-    name: 'BankAccount',
-    pattern: /\b\d{9,10}\b/g,
-    replacement: '[ACCT-REDACTED]',
-  },
-  // 5. Email Addresses
-  {
-    name: 'Email',
-    pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
-    replacement: '[EMAIL-REDACTED]',
-  },
-  // 6. 16-digit Card numbers
+  // 1. Payment Cards (16 digits formatted or contiguous)
   {
     name: 'PaymentCard',
     pattern: /\b(?:\d{4}[-\s]?){3}\d{4}\b/g,
     replacement: '[CARD-REDACTED]',
   },
+  // 2. Indian PAN Card (5 letters, 4 digits, 1 letter, e.g. ABCDE1234F)
+  {
+    name: 'PAN_Card',
+    pattern: /\b[A-Z]{5}[0-9]{4}[A-Z]\b/g,
+    replacement: '[PAN-REDACTED]',
+  },
+  // 3. Indian Aadhaar Number (12 digits, often formatted as 4-4-4)
+  {
+    name: 'Aadhaar',
+    pattern: /\b\d{4}\s\d{4}\s\d{4}\b/g,
+    replacement: '[AADHAAR-REDACTED]',
+  },
+  // 4. Formatted Bank Accounts with hyphens or spaces (e.g. 1234-5678-9012 or 1234 5678 9012)
+  {
+    name: 'BankAccount',
+    pattern: /\b\d{3,5}[-\s]\d{3,5}[-\s]\d{3,6}\b/g,
+    replacement: '[ACCT-REDACTED]',
+  },
+  // 5. 10-digit Indian Mobile Numbers with optional +91 and spaces/hyphens
+  {
+    name: 'PhoneNumber',
+    pattern: /(?<!\d)(?:\+91[\-\s]?)?[6-9](?:[\-\s]?\d){9}(?!\d)/g,
+    replacement: '[PHONE-REDACTED]',
+  },
+  // 6. Long Bank Account Numbers (11 to 18 contiguous digits)
+  {
+    name: 'BankAccount',
+    pattern: /\b\d{11,18}\b/g,
+    replacement: '[ACCT-REDACTED]',
+  },
+  // 7. Indian UPI Handles (e.g. user@oksbi, payment@icici, 9876543210@paytm)
+  {
+    name: 'UPI_ID',
+    pattern: /[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}/g,
+    replacement: '[UPI-REDACTED]',
+  },
+  // 8. Email Addresses
+  {
+    name: 'Email',
+    pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+    replacement: '[EMAIL-REDACTED]',
+  },
+  // 9. Short Bank Accounts (9 to 10 contiguous digits)
+  {
+    name: 'BankAccount',
+    pattern: /\b\d{9,10}\b/g,
+    replacement: '[ACCT-REDACTED]',
+  },
 ];
 
 /**
+ * Normalizes text by removing zero-width characters and normalizing Unicode forms (NFKC).
+ */
+export function normalizeTextForPrivacy(text: string): string {
+  if (!text) return '';
+  return text
+    .normalize('NFKC')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .trim();
+}
+
+/**
  * Scrubs a text narration string using the redaction rules.
+ * Automatically normalizes Unicode and strips zero-width evasion characters.
  */
 export function sanitizeNarration(text: string): {
   sanitized: string;
@@ -59,7 +89,7 @@ export function sanitizeNarration(text: string): {
 } {
   if (!text) return { sanitized: '', redactedCategories: [] };
 
-  let current = text;
+  let current = normalizeTextForPrivacy(text);
   const redactedCategories = new Set<string>();
 
   for (const rule of DEFAULT_REDACTION_RULES) {
@@ -69,10 +99,25 @@ export function sanitizeNarration(text: string): {
     }
   }
 
+  // Cap sanitized narration to reasonable maximum length (200 characters)
+  if (current.length > 200) {
+    current = `${current.slice(0, 197)}...`;
+  }
+
   return {
     sanitized: current,
     redactedCategories: Array.from(redactedCategories),
   };
+}
+
+/**
+ * Server-side independent sanitization for transaction descriptions.
+ * The server NEVER trusts client-claimed "sanitizedDescription".
+ */
+export function serverSanitizeNarration(input: unknown): string {
+  if (typeof input !== 'string') return '';
+  const { sanitized } = sanitizeNarration(input);
+  return sanitized;
 }
 
 /**

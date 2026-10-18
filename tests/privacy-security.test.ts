@@ -21,12 +21,60 @@ describe('Privacy, Redaction & Security Enforcement', () => {
     expect(redactedCategories).toContain('UPI_ID');
   });
 
-  it('redacts 10-digit Indian phone numbers', () => {
-    const raw = 'Immediate settlement to contact 9876543210';
+  it('redacts 10-digit Indian phone numbers with prefixes, spaces, and hyphens', () => {
+    const raw1 = 'Immediate settlement to contact 9876543210';
+    expect(sanitizeNarration(raw1).sanitized).toContain('[PHONE-REDACTED]');
+
+    const raw2 = 'Call vendor on +91 98765 43210 for GST invoice';
+    expect(sanitizeNarration(raw2).sanitized).toContain('[PHONE-REDACTED]');
+
+    const raw3 = 'Support hotline: +91-98765-43210';
+    expect(sanitizeNarration(raw3).sanitized).toContain('[PHONE-REDACTED]');
+  });
+
+  it('redacts Indian PAN card identifiers', () => {
+    const raw = 'TDS deducted under PAN ABCDE1234F for vendor';
     const { sanitized, redactedCategories } = sanitizeNarration(raw);
+    expect(sanitized).toContain('[PAN-REDACTED]');
+    expect(sanitized).not.toContain('ABCDE1234F');
+    expect(redactedCategories).toContain('PAN_Card');
+  });
+
+  it('redacts Indian Aadhaar card numbers with spaces', () => {
+    const raw = 'Beneficiary KYC Aadhaar 1234 5678 9012 verified';
+    const { sanitized, redactedCategories } = sanitizeNarration(raw);
+    expect(sanitized).toContain('[AADHAAR-REDACTED]');
+    expect(sanitized).not.toContain('1234 5678 9012');
+    expect(redactedCategories).toContain('Aadhaar');
+  });
+
+  it('redacts bank account numbers formatted with spaces or hyphens', () => {
+    const raw = 'Direct deposit to A/C 1234-5678-9012';
+    const { sanitized, redactedCategories } = sanitizeNarration(raw);
+    expect(sanitized).toContain('[ACCT-REDACTED]');
+    expect(sanitized).not.toContain('1234-5678-9012');
+    expect(redactedCategories).toContain('BankAccount');
+  });
+
+  it('normalizes fullwidth Unicode numbers and redacts them', () => {
+    // Fullwidth digits "１２３４５６７８９０１２" (12 digits)
+    const raw = 'Payment to １２３４５６７８９０１２';
+    const { sanitized } = sanitizeNarration(raw);
+    expect(sanitized).toContain('[ACCT-REDACTED]');
+  });
+
+  it('strips zero-width evasion characters before applying redactions', () => {
+    // Injected zero-width space \u200B inside phone number
+    const raw = 'Call +91\u200B9876543210';
+    const { sanitized } = sanitizeNarration(raw);
     expect(sanitized).toContain('[PHONE-REDACTED]');
-    expect(sanitized).not.toContain('9876543210');
-    expect(redactedCategories).toContain('PhoneNumber');
+  });
+
+  it('caps excessively long transaction descriptions to prevent prompt bloat', () => {
+    const veryLong = 'Invoice details for September: ' + 'A'.repeat(300);
+    const { sanitized } = sanitizeNarration(veryLong);
+    expect(sanitized.length).toBeLessThanOrEqual(200);
+    expect(sanitized.endsWith('...')).toBe(true);
   });
 
   it('neutralizes spreadsheet formula injection prefixes in exported CSV cells (CWE-1236)', () => {
