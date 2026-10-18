@@ -30,7 +30,7 @@ export type ConfidenceLevel = z.infer<typeof ConfidenceLevelEnum>;
  */
 export const EvidenceItemSchema = z
   .object({
-    id: z.string().regex(/^(BNK|LDG)-[a-zA-Z0-9_\-]+$/, 'Row ID must follow BNK-* or LDG-* format').max(50),
+    id: z.string().regex(/^(BNK|LDG)-[-a-zA-Z0-9_]+$/, 'Row ID must follow BNK-* or LDG-* format').max(50),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD format'),
     amountRupees: z.string().regex(/^\d+(?:\.\d{1,2})?$/, 'Amount must be decimal rupees with up to 2 decimal places').max(20),
     direction: z.enum(['debit', 'credit']),
@@ -47,7 +47,7 @@ export type EvidenceItem = z.infer<typeof EvidenceItemSchema>;
  */
 export const InvestigationRequestSchema = z
   .object({
-    exceptionId: z.string().regex(/^EXP-[a-zA-Z0-9_\-]+$/, 'Exception ID must follow EXP-* format').max(50),
+    exceptionId: z.string().regex(/^EXP-[-a-zA-Z0-9_]+$/, 'Exception ID must follow EXP-* format').max(50),
     exceptionType: z.string().min(1).max(50),
     amountDeltaRupees: z.string().regex(/^[+-]?\d+(?:\.\d{1,2})?$/, 'Amount delta must be decimal rupees').max(20),
     dateDeltaDays: z.number().int().min(-3650).max(3650),
@@ -72,7 +72,7 @@ export const InvestigationResultSchema = z
     exceptionId: z.string().min(1).max(50),
     classification: ExceptionClassificationEnum,
     summary: z.string().min(5).max(500),
-    evidenceRowIds: z.array(z.string().regex(/^(BNK|LDG)-[a-zA-Z0-9_\-]+$/)).max(20),
+    evidenceRowIds: z.array(z.string().regex(/^(BNK|LDG)-[-a-zA-Z0-9_]+$/)).max(20),
     evidenceExplanation: z.string().min(5).max(1000),
     missingEvidence: z.array(z.string().max(200)).default([]),
     recommendedAction: z.string().min(5).max(500),

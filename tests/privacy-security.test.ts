@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeNarration, buildMinimizedExceptionPayload } from '../src/lib/privacy';
+import { sanitizeNarration } from '../src/lib/privacy';
 import { sanitizeCellForCSV, exportToSafeCSV, parseCSVString } from '../src/lib/csv';
 import fs from 'fs';
 import path from 'path';

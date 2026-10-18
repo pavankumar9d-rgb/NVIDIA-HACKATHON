@@ -163,6 +163,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
             </p>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="p-1 rounded-md text-[#9CA3AF] hover:text-[#111827] hover:bg-[#EEF1EB]"
           >
@@ -187,6 +188,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#111827]">1. Bank Statement</span>
               <button
+                type="button"
                 onClick={() => downloadTemplate(SAMPLE_BANK_CSV_TEMPLATE, 'bank_statement_template.csv')}
                 className="text-[11px] text-[#2563EB] hover:underline flex items-center gap-1"
                 title="Download sample format"
@@ -225,6 +227,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#111827]">2. Accounting Ledger</span>
               <button
+                type="button"
                 onClick={() => downloadTemplate(SAMPLE_LEDGER_CSV_TEMPLATE, 'accounting_ledger_template.csv')}
                 className="text-[11px] text-[#2563EB] hover:underline flex items-center gap-1"
                 title="Download sample format"
@@ -266,12 +269,14 @@ export const ImportModal: React.FC<ImportModalProps> = ({
           </span>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={onClose}
               className="px-4 py-1.5 rounded-md border border-[#DDE3DA] text-xs font-semibold text-[#4B5563] hover:bg-[#F6F7F2]"
             >
               Cancel
             </button>
             <button
+              type="button"
               disabled={!canProceed}
               onClick={handleConfirmImport}
               className="px-4 py-1.5 rounded-md bg-[#D7FF56] hover:bg-[#C9F540] text-[#111827] text-xs font-bold disabled:opacity-50 cursor-pointer shadow-xs"

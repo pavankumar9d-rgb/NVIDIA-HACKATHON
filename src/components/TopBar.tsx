@@ -60,6 +60,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
       <div className="flex items-center gap-2">
         <button
+          type="button"
           onClick={onLoadDemo}
           className="px-3 py-1.5 rounded-md border border-[#DDE3DA] bg-[#F6F7F2] hover:bg-[#EEF1EB] text-[#111827] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
           title="Load 32-row synthetic scenario for Northstar Studio"
@@ -69,6 +70,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         </button>
 
         <button
+          type="button"
           onClick={onOpenImport}
           className="px-3 py-1.5 rounded-md border border-[#DDE3DA] bg-white hover:bg-[#F6F7F2] text-[#111827] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
           title="Import Bank Statement CSV and Ledger CSV"
@@ -79,6 +81,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {hasData && (
           <button
+            type="button"
             onClick={onRunReconciliation}
             className="px-3.5 py-1.5 rounded-md bg-[#D7FF56] hover:bg-[#C9F540] text-[#111827] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs border border-[#BDDE3D]"
             title="Run deterministic 1-to-1 match algorithms"
@@ -90,6 +93,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {isReconciled && (
           <button
+            type="button"
             onClick={onOpenExport}
             className="px-3 py-1.5 rounded-md border border-[#DDE3DA] bg-white hover:bg-[#F6F7F2] text-[#111827] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
             title="Download audit package with formula-injection escaping"
@@ -101,6 +105,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {hasData && (
           <button
+            type="button"
             onClick={onResetSession}
             className="p-1.5 rounded-md border border-[#DDE3DA] hover:bg-rose-50 hover:text-rose-600 text-[#6B7280] transition-colors cursor-pointer"
             title="Reset active session (clears memory)"

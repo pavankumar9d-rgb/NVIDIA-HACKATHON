@@ -324,6 +324,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
             </p>
 
             <button
+              type="button"
               onClick={() => setShowConsentModal(true)}
               disabled={isAILoading}
               className="w-full py-2 px-3 rounded-lg bg-[#D7FF56] hover:bg-[#C9F540] text-[#111827] text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
@@ -370,6 +371,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
 
         <div className="grid grid-cols-3 gap-2">
           <button
+            type="button"
             onClick={() => onReviewDecision(exception.exceptionId, 'APPROVED', reviewNote)}
             className="py-1.5 px-2 rounded-md bg-[#E8F5EE] hover:bg-[#D5EFE0] text-[#17845B] border border-[#A7D7BC] text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
             title="Accept hypothesis for this period close"
@@ -379,6 +381,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
           </button>
 
           <button
+            type="button"
             onClick={() => onReviewDecision(exception.exceptionId, 'REJECTED', reviewNote)}
             className="py-1.5 px-2 rounded-md bg-[#FDEDEA] hover:bg-[#FCD9D3] text-[#D75E4C] border border-[#F3BDB4] text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
             title="Reject hypothesis as ungrounded"
@@ -388,6 +391,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
           </button>
 
           <button
+            type="button"
             onClick={() => onReviewDecision(exception.exceptionId, 'DEFERRED', reviewNote)}
             className="py-1.5 px-2 rounded-md bg-[#FEF3C7] hover:bg-[#FDE68A] text-[#D97706] border border-[#FDE68A] text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
             title="Defer for external voucher confirmation"
@@ -442,12 +446,14 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#DDE3DA]">
               <button
+                type="button"
                 onClick={() => setShowConsentModal(false)}
                 className="px-4 py-1.5 rounded-md border border-[#DDE3DA] text-xs font-semibold text-[#4B5563] hover:bg-[#F6F7F2]"
               >
                 Cancel / Stay Local
               </button>
               <button
+                type="button"
                 disabled={!consentChecked || isAILoading}
                 onClick={async () => {
                   setShowConsentModal(false);

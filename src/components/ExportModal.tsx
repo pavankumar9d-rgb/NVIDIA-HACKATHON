@@ -34,6 +34,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 }) => {
   const [activeExportTab, setActiveExportTab] = useState<'csv_reconciled' | 'csv_exceptions' | 'json_audit' | 'markdown'>('markdown');
 
+  const [generatedDate] = useState(() => new Date());
+  const generatedTimestampIso = generatedDate.toISOString();
+  const generatedDateFormatted = generatedDate.toLocaleDateString('en-IN', { dateStyle: 'full' });
+
   if (!isOpen || !summary) return null;
 
   const generateReconciledCSV = () => {
@@ -106,7 +110,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       {
         proofLedgerAuditMetadata: {
           sessionName,
-          generatedAt: new Date().toISOString(),
+          generatedAt: generatedTimestampIso,
           currency: 'INR',
           formulaInjectionSafe: true,
           deterministicEngine: 'ProofLedger Integer Paise Core v1.0',
@@ -142,7 +146,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     return `# ProofLedger AI — Reconciliation & Audit Report
 
 **Session:** ${sessionName}  
-**Date Generated:** ${new Date().toLocaleDateString('en-IN', { dateStyle: 'full' })}  
+**Date Generated:** ${generatedDateFormatted}  
 **Engine:** ProofLedger AI Deterministic Core + NVIDIA Nemotron-70B  
 **Currency:** INR (₹) — Calculated in Decimal-Safe Integer Minor Units (Paise)  
 
@@ -250,13 +254,14 @@ ${exceptions
               Download verifiable audit artifacts with formula-injection neutralization.
             </p>
           </div>
-          <button onClick={onClose} className="p-1 rounded-md text-[#9CA3AF] hover:text-[#111827]">
+          <button type="button" onClick={onClose} className="p-1 rounded-md text-[#9CA3AF] hover:text-[#111827]">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="flex items-center gap-2 border-b border-[#DDE3DA] pb-2 text-xs">
           <button
+            type="button"
             onClick={() => setActiveExportTab('markdown')}
             className={`px-3 py-1.5 rounded-md font-semibold flex items-center gap-1.5 transition-colors ${
               activeExportTab === 'markdown'
@@ -269,6 +274,7 @@ ${exceptions
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveExportTab('csv_reconciled')}
             className={`px-3 py-1.5 rounded-md font-semibold flex items-center gap-1.5 transition-colors ${
               activeExportTab === 'csv_reconciled'
@@ -281,6 +287,7 @@ ${exceptions
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveExportTab('csv_exceptions')}
             className={`px-3 py-1.5 rounded-md font-semibold flex items-center gap-1.5 transition-colors ${
               activeExportTab === 'csv_exceptions'
@@ -293,6 +300,7 @@ ${exceptions
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveExportTab('json_audit')}
             className={`px-3 py-1.5 rounded-md font-semibold flex items-center gap-1.5 transition-colors ${
               activeExportTab === 'json_audit'
@@ -323,12 +331,14 @@ ${exceptions
           </span>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={onClose}
               className="px-4 py-1.5 rounded-md border border-[#DDE3DA] text-xs font-semibold text-[#4B5563] hover:bg-[#F6F7F2]"
             >
               Close
             </button>
             <button
+              type="button"
               onClick={handleDownload}
               className="px-4 py-1.5 rounded-md bg-[#D7FF56] hover:bg-[#C9F540] text-[#111827] text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
             >

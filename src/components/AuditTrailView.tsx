@@ -43,6 +43,7 @@ export const AuditTrailView: React.FC<AuditTrailViewProps> = ({
         </div>
 
         <button
+          type="button"
           onClick={onOpenExport}
           className="px-4 py-2 rounded-lg bg-[#D7FF56] hover:bg-[#C9F540] text-[#111827] text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs border border-[#BDDE3D]"
         >

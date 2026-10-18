@@ -9,8 +9,7 @@ import {
 import { parseCSVString, validateAndNormalizeRows } from '../src/lib/csv';
 import { 
   SYNTHETIC_BANK_CSV, 
-  SYNTHETIC_LEDGER_CSV, 
-  EXPECTED_DEMO_OUTCOMES 
+  SYNTHETIC_LEDGER_CSV 
 } from '../src/data/syntheticDemo';
 
 describe('Deterministic Reconciliation Engine', () => {

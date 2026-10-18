@@ -175,7 +175,7 @@ export function validateAndNormalizeRows(
     const parsedDate = new Date(rawDate);
     if (isNaN(parsedDate.getTime())) {
       // Try parsing DD/MM/YYYY or DD-MM-YYYY
-      const parts = rawDate.split(/[\/\-]/);
+      const parts = rawDate.split(/[/-]/);
       if (parts.length === 3 && parts[2].length === 4) {
         normalizedDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
       } else {

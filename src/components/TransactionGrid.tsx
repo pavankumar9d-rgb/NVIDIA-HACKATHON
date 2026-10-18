@@ -118,6 +118,7 @@ export const TransactionGrid: React.FC<TransactionGridProps> = ({
       <div className="p-3 border-b border-[#DDE3DA] flex flex-col sm:flex-row items-center justify-between gap-2 bg-[#FAFBF9]">
         <div className="flex items-center gap-1 overflow-x-auto w-full sm:w-auto">
           <button
+            type="button"
             onClick={() => setFilterTab('exceptions')}
             className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
               filterTab === 'exceptions'
@@ -128,6 +129,7 @@ export const TransactionGrid: React.FC<TransactionGridProps> = ({
             Exceptions ({exceptions.length})
           </button>
           <button
+            type="button"
             onClick={() => setFilterTab('matches')}
             className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
               filterTab === 'matches'
@@ -138,6 +140,7 @@ export const TransactionGrid: React.FC<TransactionGridProps> = ({
             Matches ({matches.length})
           </button>
           <button
+            type="button"
             onClick={() => setFilterTab('all')}
             className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
               filterTab === 'all'

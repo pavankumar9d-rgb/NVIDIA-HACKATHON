@@ -44,6 +44,7 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
 
         <nav className="p-2 md:p-3 space-y-1">
           <button
+            type="button"
             onClick={() => onSelectTab('workspace')}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs md:text-sm font-medium transition-colors ${
               currentTab === 'workspace'
@@ -57,6 +58,7 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
           </button>
 
           <button
+            type="button"
             onClick={() => onSelectTab('privacy')}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs md:text-sm font-medium transition-colors ${
               currentTab === 'privacy'
@@ -70,6 +72,7 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
           </button>
 
           <button
+            type="button"
             onClick={() => onSelectTab('audit')}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs md:text-sm font-medium transition-colors ${
               currentTab === 'audit'

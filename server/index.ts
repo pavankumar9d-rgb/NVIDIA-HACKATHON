@@ -372,7 +372,7 @@ Analyze whether this is a timing lag, surcharge fee, duplicate, or unrecorded tr
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(`[ProofLedger Server] Listening on http://localhost:${PORT}`);
-    console.log(`[ProofLedger Server] CORS Origin allowed: ${ALLOWED_ORIGIN}`);
+    console.log(`[ProofLedger Server] CORS Origin allowed: ${process.env.APP_ALLOWED_ORIGIN || 'http://localhost:5173'}`);
     console.log(`[ProofLedger Server] Live AI Enabled: ${process.env.ALLOW_LIVE_AI === 'true'}`);
   });
 }

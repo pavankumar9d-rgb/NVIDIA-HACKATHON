@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { NavigationRail } from './components/NavigationRail';
 import { TopBar } from './components/TopBar';
 import { WorkflowRibbon } from './components/WorkflowRibbon';
@@ -69,7 +69,7 @@ export const App: React.FC = () => {
   }, []);
 
   // Load the Northstar Studio synthetic dataset
-  const loadSyntheticDemo = async () => {
+  const loadSyntheticDemo = useCallback(async () => {
     const parsedBank = await parseCSVString(SYNTHETIC_BANK_CSV);
     const { validRows: bankValid } = validateAndNormalizeRows(parsedBank.rows, parsedBank.detectedMapping, 'BNK');
 
@@ -117,11 +117,12 @@ export const App: React.FC = () => {
     if (result.exceptions.length > 0) {
       setSelectedItem({ type: 'exception', id: result.exceptions[0].exceptionId });
     }
-  };
+  }, []);
 
   useEffect(() => {
-    loadSyntheticDemo();
-  }, []);
+    // oxlint-disable-next-line react/set-state-in-effect
+    void loadSyntheticDemo();
+  }, [loadSyntheticDemo]);
 
   const handleRunReconciliation = () => {
     if (bankRows.length === 0 || ledgerRows.length === 0) return;

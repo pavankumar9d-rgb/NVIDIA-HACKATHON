@@ -39,7 +39,7 @@ export const DEFAULT_REDACTION_RULES: RedactionRule[] = [
   // 5. 10-digit Indian Mobile Numbers with optional +91 and spaces/hyphens
   {
     name: 'PhoneNumber',
-    pattern: /(?<!\d)(?:\+91[\-\s]?)?[6-9](?:[\-\s]?\d){9}(?!\d)/g,
+    pattern: /(?<!\d)(?:\+91[-\s]?)?[6-9](?:[-\s]?\d){9}(?!\d)/g,
     replacement: '[PHONE-REDACTED]',
   },
   // 6. Long Bank Account Numbers (11 to 18 contiguous digits)
