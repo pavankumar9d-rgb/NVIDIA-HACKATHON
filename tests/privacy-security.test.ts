@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { sanitizeNarration, buildMinimizedExceptionPayload } from '../src/lib/privacy';
-import { sanitizeCellForCSV, exportToSafeCSV } from '../src/lib/csv';
+import { sanitizeCellForCSV, exportToSafeCSV, parseCSVString } from '../src/lib/csv';
 import fs from 'fs';
 import path from 'path';
 
@@ -84,6 +84,56 @@ describe('Privacy, Redaction & Security Enforcement', () => {
     expect(sanitizeCellForCSV('+SUM(A1:A10)')).toBe("\"'+SUM(A1:A10)\"");
     expect(sanitizeCellForCSV('-123 malicious text')).toBe("\"'-123 malicious text\"");
     expect(sanitizeCellForCSV('@SUM(1+1)')).toBe("\"'@SUM(1+1)\"");
+  });
+
+  it('neutralizes formula injection with leading whitespace, tabs, and pipes', () => {
+    // Attackers pad formulas with spaces or tabs to evade naive prefix checks
+    expect(sanitizeCellForCSV('   =SUM(1+1)')).toBe("\"'   =SUM(1+1)\"");
+    expect(sanitizeCellForCSV('\t@SUM(100,200)')).toBe("\"'\t@SUM(100,200)\"");
+    expect(sanitizeCellForCSV('|calc.exe')).toBe("\"'|calc.exe\"");
+    expect(sanitizeCellForCSV('%windir%\\system32')).toBe("\"'%windir%\\system32\"");
+  });
+
+  it('escapes user auditor notes and explanations in exportToSafeCSV', () => {
+    const records = [
+      {
+        id: 'EXP-001',
+        note: '=cmd|"/C calc"!A0',
+        description: 'Vendor payment +SUM(A1)',
+        amount: '-500.00',
+      },
+    ];
+    const csv = exportToSafeCSV(records, [
+      { key: 'id', label: 'ID' },
+      { key: 'note', label: 'Reviewer Note' },
+      { key: 'description', label: 'Description' },
+      { key: 'amount', label: 'Amount', isNumeric: true },
+    ]);
+
+    expect(csv).toContain("\"'=cmd|\"\"/C calc\"\"!A0\"");
+    expect(csv).toContain("\"Vendor payment +SUM(A1)\"");
+    expect(csv).toContain('-500.00'); // Preserved as numeric
+  });
+
+  it('strips UTF-8 BOM from CSV text before parsing', async () => {
+    const bomCSV = '\uFEFFDate,Description,Amount\n2026-09-01,Test Entry,1000.00';
+    const parsed = await parseCSVString(bomCSV);
+    expect(parsed.headers[0]).toBe('Date'); // Not '\uFEFFDate'
+    expect(parsed.errors.length).toBe(0);
+    expect(parsed.rows.length).toBe(1);
+  });
+
+  it('gracefully rejects empty CSV inputs', async () => {
+    const parsed = await parseCSVString('   \n  \n');
+    expect(parsed.errors.length).toBeGreaterThan(0);
+    expect(parsed.errors[0]).toContain('CSV input is empty');
+  });
+
+  it('gracefully rejects CSV files exceeding maximum size limit (5 MB)', async () => {
+    const oversizedCSV = 'Date,Description,Amount\n' + '2026-09-01,Test,10.00\n'.repeat(250000);
+    const parsed = await parseCSVString(oversizedCSV);
+    expect(parsed.errors.length).toBeGreaterThan(0);
+    expect(parsed.errors[0]).toContain('exceeds maximum size limit of 5 MB');
   });
 
   it('preserves legitimate negative and positive numbers in numeric columns', () => {

@@ -44,25 +44,65 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   const handleBankFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setBankFileName(file.name);
-    const text = await file.text();
 
-    const parsed = await parseCSVString(text);
-    const { validRows, invalidRows } = validateAndNormalizeRows(parsed.rows, parsed.detectedMapping, 'BNK');
-    setBankValidatedRows(validRows);
-    setBankErrors(invalidRows.flatMap((r) => r.validationErrors));
+    if (!file.name.toLowerCase().endsWith('.csv') && !file.name.toLowerCase().endsWith('.txt')) {
+      setBankErrors(['Invalid file format. Please upload a standard CSV file (.csv).']);
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setBankErrors(['File size exceeds 5 MB maximum limit. Please split your bank statement into smaller periods.']);
+      return;
+    }
+
+    setBankFileName(file.name);
+    try {
+      const text = await file.text();
+      const parsed = await parseCSVString(text);
+      if (parsed.errors.length > 0 && parsed.rows.length === 0) {
+        setBankErrors(parsed.errors);
+        setBankValidatedRows([]);
+        return;
+      }
+
+      const { validRows, invalidRows } = validateAndNormalizeRows(parsed.rows, parsed.detectedMapping, 'BNK');
+      setBankValidatedRows(validRows);
+      setBankErrors([...parsed.errors, ...invalidRows.flatMap((r) => r.validationErrors)]);
+    } catch {
+      setBankErrors(['Failed to read or parse bank statement file.']);
+    }
   };
 
   const handleLedgerFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setLedgerFileName(file.name);
-    const text = await file.text();
 
-    const parsed = await parseCSVString(text);
-    const { validRows, invalidRows } = validateAndNormalizeRows(parsed.rows, parsed.detectedMapping, 'LDG');
-    setLedgerValidatedRows(validRows);
-    setLedgerErrors(invalidRows.flatMap((r) => r.validationErrors));
+    if (!file.name.toLowerCase().endsWith('.csv') && !file.name.toLowerCase().endsWith('.txt')) {
+      setLedgerErrors(['Invalid file format. Please upload a standard CSV file (.csv).']);
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setLedgerErrors(['File size exceeds 5 MB maximum limit. Please split your accounting ledger into smaller periods.']);
+      return;
+    }
+
+    setLedgerFileName(file.name);
+    try {
+      const text = await file.text();
+      const parsed = await parseCSVString(text);
+      if (parsed.errors.length > 0 && parsed.rows.length === 0) {
+        setLedgerErrors(parsed.errors);
+        setLedgerValidatedRows([]);
+        return;
+      }
+
+      const { validRows, invalidRows } = validateAndNormalizeRows(parsed.rows, parsed.detectedMapping, 'LDG');
+      setLedgerValidatedRows(validRows);
+      setLedgerErrors([...parsed.errors, ...invalidRows.flatMap((r) => r.validationErrors)]);
+    } catch {
+      setLedgerErrors(['Failed to read or parse accounting ledger file.']);
+    }
   };
 
   const downloadTemplate = (content: string, filename: string) => {

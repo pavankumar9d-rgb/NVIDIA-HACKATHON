@@ -82,12 +82,42 @@ export function detectColumnMapping(headers: string[]): ColumnMapping {
   };
 }
 
+export const MAX_CSV_BYTES = 5 * 1024 * 1024; // 5 MB ceiling
+export const MAX_CSV_ROWS = 10_000; // 10,000 row ceiling to prevent browser main thread freeze
+
 /**
- * In-browser parsing of CSV string or File using PapaParse.
+ * In-browser parsing of CSV string using PapaParse with strict size & structure guards.
  */
 export function parseCSVString(csvText: string): Promise<RawParseResult> {
   return new Promise((resolve) => {
-    Papa.parse<Record<string, string>>(csvText, {
+    // 1. Enforce byte length bounds before parsing
+    if (!csvText || !csvText.trim()) {
+      resolve({
+        headers: [],
+        rows: [],
+        detectedMapping: detectColumnMapping([]),
+        errors: ['CSV input is empty. Please provide a valid CSV file with header and transaction rows.'],
+      });
+      return;
+    }
+
+    if (csvText.length > MAX_CSV_BYTES) {
+      resolve({
+        headers: [],
+        rows: [],
+        detectedMapping: detectColumnMapping([]),
+        errors: [`CSV file exceeds maximum size limit of 5 MB (${(csvText.length / (1024 * 1024)).toFixed(2)} MB uploaded).`],
+      });
+      return;
+    }
+
+    // 2. Strip UTF-8 Byte Order Mark (BOM: \uFEFF) to prevent header name corruption
+    let cleanText = csvText;
+    if (cleanText.charCodeAt(0) === 0xfeff) {
+      cleanText = cleanText.slice(1);
+    }
+
+    Papa.parse<Record<string, string>>(cleanText, {
       header: true,
       skipEmptyLines: 'greedy',
       transformHeader: (header) => header.trim(),
@@ -95,9 +125,21 @@ export function parseCSVString(csvText: string): Promise<RawParseResult> {
         const headers = results.meta.fields || [];
         const detectedMapping = detectColumnMapping(headers);
         const errors = results.errors.map((e) => `Line ${e.row}: ${e.message}`);
+
+        // 3. Enforce maximum row count bound
+        if (results.data.length > MAX_CSV_ROWS) {
+          errors.push(
+            `CSV row count exceeds maximum limit of 10,000 rows (${results.data.length} rows detected). Please split the dataset.`
+          );
+        }
+
+        if (headers.length === 0) {
+          errors.push('No detectable header columns found in CSV.');
+        }
+
         resolve({
           headers,
-          rows: results.data,
+          rows: results.data.length > MAX_CSV_ROWS ? results.data.slice(0, MAX_CSV_ROWS) : results.data,
           detectedMapping,
           errors,
         });
@@ -215,26 +257,29 @@ export function validateAndNormalizeRows(
 
 /**
  * Formula Injection Escaper (CWE-1236 Prevention).
- * If a text cell begins with dangerous prefixes (=, +, -, @, \t, \r),
- * prepends an apostrophe (') so Microsoft Excel/LibreOffice treats it purely as text.
- * Leaves legitimate signed numbers untouched.
+ * If a text cell begins with dangerous prefixes (=, +, -, @, \t, \r, |, %),
+ * even if preceded by whitespace, prepends an apostrophe (') so spreadsheet software
+ * (Microsoft Excel, LibreOffice Calc, Google Sheets) treats it strictly as literal text.
+ * Leaves legitimate signed financial figures in numeric columns untouched.
  */
 export function sanitizeCellForCSV(val: any, isNumericColumn = false): string {
   if (val === null || val === undefined) return '""';
   const str = String(val);
 
-  // If this is a numeric column with a valid number (e.g. -500.00), preserve it
+  // If this is an explicit numeric column with a valid financial number (e.g. -500.00, +1250.00), preserve it
   if (isNumericColumn && /^[+-]?\d+(?:\.\d+)?$/.test(str.trim())) {
     return str.trim();
   }
 
   let escaped = str;
-  const dangerousPrefixes = ['=', '+', '-', '@', '\t', '\r'];
-  if (dangerousPrefixes.some((p) => escaped.startsWith(p))) {
+  const trimmedLeading = str.replace(/^[\s\uFEFF\xA0]+/, '');
+  const dangerousPrefixes = ['=', '+', '-', '@', '\t', '\r', '|', '%'];
+
+  if (dangerousPrefixes.some((p) => trimmedLeading.startsWith(p))) {
     escaped = `'${escaped}`;
   }
 
-  // Escape inner double quotes
+  // Escape inner double quotes per RFC 4180
   return `"${escaped.replace(/"/g, '""')}"`;
 }
 
