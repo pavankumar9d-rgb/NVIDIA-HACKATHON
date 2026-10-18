@@ -3,7 +3,7 @@
 **Product:** ProofLedger AI  
 **Track:** Best Apps & Agents (Nebius × NVIDIA Global AI Hackathon 2026)  
 **Test Framework:** Vitest v5.0.5 + jsdom  
-**Status:** 77 of 77 Tests Passing (100% Green across 7 Test Suites)  
+**Status:** 80 of 80 Tests Passing (100% Green across 7 Test Suites)  
 **Last Verified:** October 18, 2026  
 
 ---
@@ -20,8 +20,8 @@ ProofLedger AI implements automated verification across seven critical domains:
 | `tests/privacy-security.test.ts` | Server-side narration sanitization, regex lookarounds for phone vs account, Unicode normalization, whitespace formula injection neutralization (CWE-1236), `.env.example` secret hygiene. | 17 | **PASS** |
 | `tests/export-consistency.test.ts` | Markdown, JSON, and CSV export parity with Executive Overview; distinction of opening anchor, period net movement, and closing balances; truthful Local Mode attribution. | 7 | **PASS** |
 | `tests/ai-safety.test.ts` | Zod runtime schema conformance, rejection of invalid classifications, citation provenance verification (blocking hallucinated row IDs), explicit user consent enforcement, prompt injection neutralization. | 6 | **PASS** |
-| `tests/server-api.test.ts` | Express gateway health check, `/api/ai/status` key leak prevention, `/api/investigate` consent requirement, truthful `LOCAL_MODE` fallback, rate limiting, Render origin protection, static serving, SPA routing, and API 404 guard. | 20 | **PASS** |
-| **Total** | **Comprehensive Full-Stack Coverage** | **77** | **100% PASS** |
+| `tests/server-api.test.ts` | Express gateway health check, `/api/ai/status` key leak prevention, `/api/investigate` consent requirement, truthful `LOCAL_MODE` fallback, rate limiting, Render origin protection, static serving, SPA routing, API 404 guard, and production loopback restriction. | 23 | **PASS** |
+| **Total** | **Comprehensive Full-Stack Coverage** | **80** | **100% PASS** |
 
 ---
 
@@ -41,11 +41,11 @@ pnpm test
  ✓ tests/privacy-security.test.ts (17 tests)
  ✓ tests/export-consistency.test.ts (7 tests)
  ✓ tests/ai-safety.test.ts (6 tests)
- ✓ tests/server-api.test.ts (20 tests)
+ ✓ tests/server-api.test.ts (23 tests)
 
  Test Files  7 passed (7)
-      Tests  77 passed (77)
-   Duration  8.46s
+      Tests  80 passed (80)
+   Duration  7.07s
 ```
 
 ### 2.2 Production Build & Bundle Verification

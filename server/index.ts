@@ -33,17 +33,49 @@ function getMaxLiveCalls(): number {
   return parseInt(process.env.MAX_LIVE_CALLS_PER_PROCESS || '50', 10);
 }
 
-function isOriginAllowed(origin: string | undefined): boolean {
+/**
+ * Browser Origin validation guard (defense-in-depth against unauthorized browser clients).
+ * NOTE: Origin checking is browser boundary enforcement, NOT caller authentication.
+ * In production, only explicitly configured origins and RENDER_EXTERNAL_URL are permitted.
+ * Wildcard ('*') origins are strictly rejected across all environments.
+ */
+export function isOriginAllowed(origin: string | undefined): boolean {
   if (!origin) return true;
-  const rawConfigured = process.env.APP_ALLOWED_ORIGIN || 'http://localhost:5173';
-  const configuredList = rawConfigured.split(',').map((o) => o.trim()).filter(Boolean);
-  if (process.env.RENDER_EXTERNAL_URL) {
-    configuredList.push(process.env.RENDER_EXTERNAL_URL.trim());
+
+  const trimmedOrigin = origin.trim();
+  // Reject wildcard origin requests
+  if (trimmedOrigin === '*' || trimmedOrigin.length === 0) {
+    return false;
   }
-  if (configuredList.includes(origin)) {
+
+  const isProduction = process.env.NODE_ENV === 'production';
+  const rawConfigured = process.env.APP_ALLOWED_ORIGIN || (isProduction ? '' : 'http://localhost:5173');
+
+  // Strip wildcard entries to reject insecure wildcard configuration
+  const configuredList = rawConfigured
+    .split(',')
+    .map((o) => o.trim())
+    .filter((o) => Boolean(o) && o !== '*');
+
+  if (process.env.RENDER_EXTERNAL_URL) {
+    const renderUrl = process.env.RENDER_EXTERNAL_URL.trim();
+    if (renderUrl && renderUrl !== '*') {
+      configuredList.push(renderUrl);
+    }
+  }
+
+  // Exact match against explicitly permitted origins
+  if (configuredList.includes(trimmedOrigin)) {
     return true;
   }
-  return origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:');
+
+  // In production, permit ONLY exact configured origins and RENDER_EXTERNAL_URL
+  if (isProduction) {
+    return false;
+  }
+
+  // In development and test environments, permit local loopback origins
+  return trimmedOrigin.startsWith('http://localhost:') || trimmedOrigin.startsWith('http://127.0.0.1:');
 }
 
 let liveCallsCount = 0;

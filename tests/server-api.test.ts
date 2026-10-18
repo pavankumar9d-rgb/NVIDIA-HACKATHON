@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import app, { resetLiveCallsBudgetForTesting } from '../server/index';
+import app, { resetLiveCallsBudgetForTesting, isOriginAllowed } from '../server/index';
 import type { Server } from 'http';
 
 describe('Server API Endpoints & Gateway Security', () => {
@@ -747,6 +747,90 @@ describe('Server API Endpoints & Gateway Security', () => {
       expect(res.headers.get('access-control-allow-origin')).toBe('https://proofledger-ai.onrender.com');
     } finally {
       process.env.RENDER_EXTERNAL_URL = originalRenderUrl;
+    }
+  });
+
+  it('in production, rejects unconfigured localhost origins on HTTP endpoints and accepts exact Render origin', async () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalAllowedOrigin = process.env.APP_ALLOWED_ORIGIN;
+    const originalRenderUrl = process.env.RENDER_EXTERNAL_URL;
+
+    process.env.NODE_ENV = 'production';
+    process.env.APP_ALLOWED_ORIGIN = 'https://proofledger-prod.onrender.com';
+    delete process.env.RENDER_EXTERNAL_URL;
+
+    try {
+      // 1. Unconfigured localhost must be rejected by CORS in production
+      const corsRes = await fetch(`${baseUrl}/api/health`, {
+        headers: { Origin: 'http://localhost:5173' },
+      });
+      expect(corsRes.status).toBe(200);
+      expect(corsRes.headers.get('access-control-allow-origin')).toBeNull();
+
+      // 2. Unconfigured localhost must be blocked by originValidator with 403 FORBIDDEN_ORIGIN
+      const postRes = await fetch(`${baseUrl}/api/investigate`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          Origin: 'http://localhost:5173',
+        },
+        body: JSON.stringify({ exceptionId: 'EXP-1' }),
+      });
+      expect(postRes.status).toBe(403);
+      const postBody = await postRes.json();
+      expect(postBody.code).toBe('FORBIDDEN_ORIGIN');
+
+      // 3. Configured Render origin must be accepted
+      const validRes = await fetch(`${baseUrl}/api/health`, {
+        headers: { Origin: 'https://proofledger-prod.onrender.com' },
+      });
+      expect(validRes.status).toBe(200);
+      expect(validRes.headers.get('access-control-allow-origin')).toBe('https://proofledger-prod.onrender.com');
+
+      // 4. Unit checks for isOriginAllowed in production
+      expect(isOriginAllowed('http://localhost:5173')).toBe(false);
+      expect(isOriginAllowed('http://127.0.0.1:3000')).toBe(false);
+      expect(isOriginAllowed('https://proofledger-prod.onrender.com')).toBe(true);
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv;
+      process.env.APP_ALLOWED_ORIGIN = originalAllowedOrigin;
+      process.env.RENDER_EXTERNAL_URL = originalRenderUrl;
+    }
+  });
+
+  it('strictly rejects wildcard origin configuration across all environments', () => {
+    const originalAllowedOrigin = process.env.APP_ALLOWED_ORIGIN;
+    const originalNodeEnv = process.env.NODE_ENV;
+
+    try {
+      process.env.APP_ALLOWED_ORIGIN = '*';
+      process.env.NODE_ENV = 'production';
+      expect(isOriginAllowed('*')).toBe(false);
+      expect(isOriginAllowed('https://malicious.com')).toBe(false);
+
+      process.env.NODE_ENV = 'development';
+      expect(isOriginAllowed('*')).toBe(false);
+    } finally {
+      process.env.APP_ALLOWED_ORIGIN = originalAllowedOrigin;
+      process.env.NODE_ENV = originalNodeEnv;
+    }
+  });
+
+  it('in development, permits localhost and 127.0.0.1 loopback origins', () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalAllowedOrigin = process.env.APP_ALLOWED_ORIGIN;
+
+    try {
+      process.env.NODE_ENV = 'development';
+      process.env.APP_ALLOWED_ORIGIN = 'http://localhost:5173';
+
+      expect(isOriginAllowed('http://localhost:5173')).toBe(true);
+      expect(isOriginAllowed('http://localhost:3000')).toBe(true);
+      expect(isOriginAllowed('http://127.0.0.1:4173')).toBe(true);
+      expect(isOriginAllowed('https://unauthorized-domain.com')).toBe(false);
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv;
+      process.env.APP_ALLOWED_ORIGIN = originalAllowedOrigin;
     }
   });
 });

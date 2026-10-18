@@ -8,7 +8,7 @@
   </p>
   <p>
     <a href="#quickstart"><img src="https://img.shields.io/badge/Status-Built%20%26%20Tested-17845B" alt="Status" /></a>
-    <a href="#test-results"><img src="https://img.shields.io/badge/Tests-77%2F77%20Passing-17845B" alt="Tests" /></a>
+    <a href="#test-results"><img src="https://img.shields.io/badge/Tests-80%2F80%20Passing-17845B" alt="Tests" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue" alt="License" /></a>
     <img src="https://img.shields.io/badge/Model-NVIDIA%20Nemotron%2070B-D7FF56?labelColor=101A2B" alt="Model" />
     <img src="https://img.shields.io/badge/Platform-Nebius%20Token%20Factory-101A2B" alt="Nebius" />
@@ -112,7 +112,7 @@ pnpm run dev
 
 ## 4. Test Results & Quality Gates
 
-The test suite contains **77 automated tests** across 7 test suites covering arithmetic precision, matching rules, Zod schemas, provenance guards, duplicate detection, export consistency, production static serving, SPA fallback routing, and formula injection escaping:
+The test suite contains **80 automated tests** across 7 test suites covering arithmetic precision, matching rules, Zod schemas, provenance guards, duplicate detection, export consistency, production static serving, SPA fallback routing, and formula injection escaping:
 
 ```powershell
 pnpm test
@@ -128,10 +128,10 @@ pnpm test
  ✓ tests/privacy-security.test.ts (17 tests)
  ✓ tests/export-consistency.test.ts (7 tests)
  ✓ tests/ai-safety.test.ts (6 tests)
- ✓ tests/server-api.test.ts (20 tests)
+ ✓ tests/server-api.test.ts (23 tests)
 
  Test Files  7 passed (7)
-      Tests  77 passed (77)
+      Tests  80 passed (80)
 ```
 
 ### Quality Linters & Production Build:

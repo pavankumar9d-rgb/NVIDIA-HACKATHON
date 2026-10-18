@@ -92,7 +92,7 @@ All quality gates were executed directly via PowerShell:
 
 | Verification Command | Purpose | Result | Evidence |
 | :--- | :--- | :--- | :--- |
-| `pnpm test` | Automated Vitest test suite | **PASS** | 7 test files, 77 tests passing (100% green in ~8.5s). |
+| `pnpm test` | Automated Vitest test suite | **PASS** | 7 test files, 80 tests passing (100% green in ~7.1s). |
 | `pnpm run lint` | Oxlint fast linter | **PASS** | 0 warnings and 0 errors across 33 files. |
 | `pnpm run typecheck` | Strict compiler typecheck (`tsc --noEmit`) | **PASS** | 0 type errors. |
 | `pnpm run build` | TypeScript typecheck (`tsc -b`) & Vite production bundle | **PASS** | `✓ built in ~6.5s` with zero errors or warnings. |
@@ -141,7 +141,7 @@ All quality gates were executed directly via PowerShell:
     - Exported Executive Markdown Report clearly partitions Opening Anchor (₹4,50,000.00), Net Period Movements (Bank +₹26,380.00, Ledger +₹10,950.00), and Closing Balances (Bank ₹4,76,380.00, Ledger ₹4,60,950.00, Closing Variance +₹15,430.00).
     - Truthful AI model attribution in reports and UI: explicitly labels "Local Deterministic Rule (Local Mode)" when live inference was not called.
     - Added 7 end-to-end export consistency tests in `tests/export-consistency.test.ts`.
-12. `build(deploy)`: `prepare full-stack node web service for Render free plan`
+12. `9062cd5`: `build(deploy): prepare full-stack node web service for Render free plan`
     - Express serves built Vite frontend from `dist/` with safe SPA client-side fallback.
     - Unmatched `/api/*` requests return 404 JSON, preventing SPA swallowing.
     - Server binds on `PORT` and `0.0.0.0` for external reachability.
@@ -149,6 +149,12 @@ All quality gates were executed directly via PowerShell:
     - Origin verification supports comma-delimited `APP_ALLOWED_ORIGIN` and `RENDER_EXTERNAL_URL`.
     - Moved `tsx` to `dependencies` for runtime execution.
     - Added 5 production serving and routing tests to `tests/server-api.test.ts`.
+13. `fix(security): restrict localhost origins to development and add robots.txt`
+    - Restricted loopback origins (`localhost`, `127.0.0.1`) to non-production environments (`process.env.NODE_ENV !== 'production'`).
+    - Sanitized origin configuration by explicitly stripping wildcard `*` across all environments.
+    - Added 3 new origin security tests in `tests/server-api.test.ts` (bringing suite to 23 tests, 80 total).
+    - Added `public/robots.txt` disallowing `/api/` crawler indexing.
+    - Optimized Vitest configuration with `pool: 'threads'` for fast, deterministic Windows test execution.
 
 ---
 
@@ -185,7 +191,7 @@ Tested against the 15 attack scenarios documented in `docs/THREAT_MODEL.md`:
 | **Open Source Model** | NVIDIA Nemotron (`nvidia/Llama-3.1-Nemotron-70B-Instruct`) | **PASS (Configured & Adapter Tested)** |
 | **Infrastructure** | Nebius Token Factory / AI Cloud Compute | **PASS (Adapter Built to Spec)** |
 | **Public Source Repo** | Public repository with open-source license | **PASS (MIT License committed)** |
-| **Working Software** | Functional application with working interactions | **PASS (Verified via 77 tests & build)** |
+| **Working Software** | Functional application with working interactions | **PASS (Verified via 80 tests & build)** |
 | **Demonstration Video** | Public video under 3 minutes | **READY (Timestamped script complete)** |
 | **Live API Call Evidence** | Real runtime inference call to Nebius Token Factory | **NOT VERIFIED (Pending user key input)** |
 
