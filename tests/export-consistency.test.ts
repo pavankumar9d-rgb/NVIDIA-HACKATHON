@@ -253,6 +253,9 @@ describe('Export Consistency & Truthful AI Reporting', () => {
     expect(parsed.financialSummary.duplicateCandidateCount).toBe(1);
     expect(parsed.financialSummary.confirmedMatchCount).toBe(25);
 
+    // Verify match rate is unambiguous with row counts and confirmed pair count
+    expect(parsed.financialSummary.matchRate).toBe('89.3% (50 matched rows / 56 active rows; 25 confirmed pairs)');
+
     // Verify bridge in JSON is balanced
     expect(parsed.reconciliationBridge.isBalanced).toBe(true);
     expect(parsed.reconciliationBridge.unresolvedVariancePaise).toBe(1543000);
@@ -273,5 +276,174 @@ describe('Export Consistency & Truthful AI Reporting', () => {
     const lines = reconciledCSV.trim().split('\n');
     // Header + 25 match rows = 26 lines
     expect(lines.length).toBe(26);
+  });
+
+  it('generates fresh export timestamp that succeeds investigation and review events', async () => {
+    const { recon } = await getDemoReconciliation();
+
+    const inferredAt = '2026-10-18T16:34:41.974Z';
+    const reviewedAt = '2026-10-18T16:36:53.491Z';
+    const exportCreatedAt = new Date('2026-10-18T16:38:00.000Z');
+
+    const exceptionsWithHistory = [...recon.exceptions];
+    exceptionsWithHistory[0] = {
+      ...exceptionsWithHistory[0],
+      aiHypothesis: {
+        classification: 'BANK_FEE_OR_SURCHARGE',
+        summary: 'Possible payment gateway or processing fee deduction',
+        evidenceRowIds: ['BNK-012', 'LDG-012'],
+        evidenceExplanation: 'Deterministic delta is ₹240.00',
+        missingEvidence: ['Tax invoice settlement voucher'],
+        recommendedAction: 'Verify vendor tax invoice',
+        confidence: 'MEDIUM',
+        uncertaintyNotes: 'Hypothesis requiring voucher verification.',
+        inferredAt,
+        model: 'ProofLedger Local Deterministic Rule',
+      },
+      reviewDecision: {
+        status: 'APPROVED',
+        reviewer: 'Priya Sharma (Finance Lead)',
+        timestamp: reviewedAt,
+        note: 'Gateway settlement advice verified; fee confirmed.',
+      },
+    };
+
+    // 1. Explicit export time passed
+    const jsonStr = generateAuditJSON({
+      sessionName: 'Northstar Studio — September Close',
+      summary: recon.summary,
+      matches: recon.matches,
+      exceptions: exceptionsWithHistory,
+      generatedDate: exportCreatedAt,
+    });
+    const parsed = JSON.parse(jsonStr);
+
+    const generatedAtDate = new Date(parsed.proofLedgerAuditMetadata.generatedAt);
+    const inferredAtDate = new Date(inferredAt);
+    const reviewedAtDate = new Date(reviewedAt);
+
+    expect(generatedAtDate.getTime()).toBeGreaterThan(inferredAtDate.getTime());
+    expect(generatedAtDate.getTime()).toBeGreaterThan(reviewedAtDate.getTime());
+    expect(parsed.proofLedgerAuditMetadata.generatedAt).toBe('2026-10-18T16:38:00.000Z');
+
+    // 2. Default export time (omitted generatedDate): produces current timestamp, not a frozen past session start
+    const beforeCall = Date.now();
+    const liveExportJSON = JSON.parse(generateAuditJSON({
+      sessionName: 'Northstar Studio — September Close',
+      summary: recon.summary,
+      matches: recon.matches,
+      exceptions: exceptionsWithHistory,
+    }));
+    const afterCall = Date.now();
+    const liveGeneratedTime = new Date(liveExportJSON.proofLedgerAuditMetadata.generatedAt).getTime();
+    expect(liveGeneratedTime).toBeGreaterThanOrEqual(beforeCall);
+    expect(liveGeneratedTime).toBeLessThanOrEqual(afterCall);
+  });
+
+  it('labels unverified causes as hypotheses requiring verification in bridge items', async () => {
+    const { recon } = await getDemoReconciliation();
+
+    const jsonStr = generateAuditJSON({
+      sessionName: 'Northstar Studio — September Close',
+      summary: recon.summary,
+      matches: recon.matches,
+      exceptions: recon.exceptions,
+    });
+    const parsed = JSON.parse(jsonStr);
+
+    const bridgeItems = parsed.reconciliationBridge.items as Array<{
+      id: string;
+      exceptionType: string;
+      explanation: string;
+    }>;
+
+    // Find the ₹240 amount mismatch bridge item
+    const amountMismatchItem = bridgeItems.find((i) => i.exceptionType === 'AMOUNT_MISMATCH');
+    expect(amountMismatchItem).toBeDefined();
+
+    // Must NOT state gateway fee as settled accounting fact
+    expect(amountMismatchItem?.explanation).not.toBe(
+      'Gateway/processing fee difference between invoiced amount and settled bank credit.'
+    );
+    // Must clearly state that it is a possible cause requiring verification
+    expect(amountMismatchItem?.explanation).toContain('Possible gateway/processing fee difference');
+    expect(amountMismatchItem?.explanation).toContain('requires verification');
+
+    // Duplicate candidate bridge item must also indicate suspected/verification
+    const dupItem = bridgeItems.find((i) => i.exceptionType === 'DUPLICATE_CANDIDATE');
+    expect(dupItem).toBeDefined();
+    expect(dupItem?.explanation).toContain('Suspected duplicate');
+    expect(dupItem?.explanation).toContain('requires');
+  });
+
+  it('maintains cross-format consistency across JSON, Markdown, and CSV exports', async () => {
+    const { recon } = await getDemoReconciliation();
+
+    const reviewedExceptions = [...recon.exceptions];
+    reviewedExceptions[0] = {
+      ...reviewedExceptions[0],
+      reviewDecision: {
+        status: 'APPROVED',
+        reviewer: 'Priya Sharma (Finance Lead)',
+        timestamp: '2026-10-18T16:36:53.491Z',
+        note: 'Confirmed ₹240 gateway fee against settlement slip.',
+      },
+    };
+
+    const exportTime = new Date('2026-10-18T16:40:00.000Z');
+
+    const jsonStr = generateAuditJSON({
+      sessionName: 'Northstar Studio — September Close',
+      summary: recon.summary,
+      matches: recon.matches,
+      exceptions: reviewedExceptions,
+      generatedDate: exportTime,
+    });
+    const parsed = JSON.parse(jsonStr);
+
+    const md = generateMarkdownReport({
+      sessionName: 'Northstar Studio — September Close',
+      summary: recon.summary,
+      matches: recon.matches,
+      exceptions: reviewedExceptions,
+      generatedDate: exportTime,
+    });
+
+    const exceptionsCSV = generateExceptionsCSV(reviewedExceptions);
+    const reconciledCSV = generateReconciledCSV(recon.matches);
+
+    // 1. Financial balances and closing variance consistency
+    expect(parsed.financialSummary.openingAnchorBalance).toBe('₹4,50,000.00');
+    expect(md).toContain('₹4,50,000.00');
+
+    expect(parsed.financialSummary.netBankPeriodMovement).toBe('+₹26,380.00');
+    expect(md).toContain('+₹26,380.00');
+
+    expect(parsed.financialSummary.netLedgerPeriodMovement).toBe('+₹10,950.00');
+    expect(md).toContain('+₹10,950.00');
+
+    expect(parsed.financialSummary.closingVariance).toBe('+₹15,430.00');
+    expect(md).toContain('+₹15,430.00');
+
+    // 2. Match-rate definition consistency
+    expect(parsed.financialSummary.matchRate).toBe('89.3% (50 matched rows / 56 active rows; 25 confirmed pairs)');
+    expect(md).toContain('50 rows matched out of 56 active statement rows');
+    expect(md).toContain('89.3%');
+
+    // 3. Human review decision consistency
+    expect(parsed.exceptionsAndResolutions[0].humanReviewDecision.status).toBe('APPROVED');
+    expect(md).toContain('APPROVED');
+    expect(md).toContain('Confirmed ₹240 gateway fee against settlement slip.');
+    expect(exceptionsCSV).toContain('APPROVED');
+    expect(exceptionsCSV).toContain('Confirmed ₹240 gateway fee against settlement slip.');
+
+    // 4. Local mode / live inference status consistency
+    expect(parsed.proofLedgerAuditMetadata.sessionAIStatus).toContain('LOCAL_MODE');
+    expect(parsed.proofLedgerAuditMetadata.liveInferenceUsed).toBe(false);
+    expect(md).toContain('LOCAL_MODE');
+
+    // 5. Reconciled CSV row count matches 25 confirmed pairs
+    const csvMatchLines = reconciledCSV.trim().split('\n');
+    expect(csvMatchLines.length - 1).toBe(25); // 25 rows excluding header
   });
 });

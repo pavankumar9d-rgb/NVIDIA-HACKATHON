@@ -131,7 +131,7 @@ The table below reconciles certified opening anchors, gross period transaction f
 
 ### Reconciliation Performance Metrics:
 - **Confirmed 1-to-1 Matches:** ${matches.length} pairs (${matchedRowCount} rows matched out of ${totalActiveRows} active statement rows = **${rowMatchPercentage}%** row match rate)
-- **Matched Financial Volume:** **${formatPaise(summary.matchedAmountPaise)}** (${summary.matchPercentage}% of matched volume)
+- **Matched Financial Volume:** **${formatPaise(summary.matchedAmountPaise)}** (across ${matches.length} confirmed matched pairs)
 - **Closing Discrepancy Variance:** **${formatPaise(summary.unresolvedVariancePaise, { showSign: true })}** across ${exceptions.length} exceptions
 - **Review Decisions Status:** ${approvedCount} Approved, ${rejectedCount} Rejected, ${deferredCount} Deferred, ${pendingCount} Pending Review
 
@@ -215,6 +215,8 @@ export function generateAuditJSON(options: ExportReportOptions): string {
   }
 
   const bridge = getReconciliationBridge(summary, exceptions);
+  const totalActiveRows = summary.bankRowCount + summary.ledgerRowCount;
+  const matchedRowCount = matches.length * 2;
 
   return JSON.stringify(
     {
@@ -243,7 +245,7 @@ export function generateAuditJSON(options: ExportReportOptions): string {
         closingVariance: formatPaise(summary.unresolvedVariancePaise, { showSign: true }),
         matchedAmount: formatPaise(summary.matchedAmountPaise),
         confirmedMatchCount: summary.confirmedMatchCount,
-        matchRate: `${summary.matchPercentage}% (${matches.length} pairs / ${summary.bankRowCount + summary.ledgerRowCount} active rows)`,
+        matchRate: `${summary.matchPercentage}% (${matchedRowCount} matched rows / ${totalActiveRows} active rows; ${matches.length} confirmed pairs)`,
         unresolvedExceptionCount: summary.exceptionCount,
         duplicateCandidateCount: summary.duplicateCandidateCount,
       },

@@ -310,7 +310,7 @@ export function getReconciliationBridge(
     if (e.type === 'AMOUNT_MISMATCH') {
       // Bank received less or more than ledger recorded
       impactPaise = e.amountDeltaPaise; // Bank - Ledger
-      explanation = 'Gateway/processing fee difference between invoiced amount and settled bank credit.';
+      explanation = 'Possible gateway/processing fee difference between invoiced amount and settled bank credit; requires verification against settlement voucher.';
     } else if (e.type === 'UNMATCHED_BANK') {
       // In bank, not yet booked in ledger
       // If credit (+ in bank), increases bank over ledger
@@ -337,10 +337,10 @@ export function getReconciliationBridge(
       const absAmount = (e.bankTransaction || e.ledgerTransaction)?.amountPaise ?? 0;
       if (isBank) {
         impactPaise = isCredit ? absAmount : -absAmount;
-        explanation = 'Suspected duplicate bank charge debited twice.';
+        explanation = 'Suspected duplicate bank charge debited twice; requires confirmation before adjustment.';
       } else {
         impactPaise = isCredit ? -absAmount : absAmount;
-        explanation = 'Suspected duplicate entry in general ledger.';
+        explanation = 'Suspected duplicate voucher entry in general ledger; requires verification.';
       }
     } else if (e.type === 'AMBIGUOUS_MATCH') {
       impactPaise = e.amountDeltaPaise;

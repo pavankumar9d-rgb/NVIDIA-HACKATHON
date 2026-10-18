@@ -8,7 +8,7 @@
   </p>
   <p>
     <a href="#quickstart"><img src="https://img.shields.io/badge/Status-Built%20%26%20Tested-17845B" alt="Status" /></a>
-    <a href="#test-results"><img src="https://img.shields.io/badge/Tests-80%2F80%20Passing-17845B" alt="Tests" /></a>
+    <a href="#test-results"><img src="https://img.shields.io/badge/Tests-83%2F83%20Passing-17845B" alt="Tests" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue" alt="License" /></a>
     <img src="https://img.shields.io/badge/Model-NVIDIA%20Nemotron%2070B-D7FF56?labelColor=101A2B" alt="Model" />
     <img src="https://img.shields.io/badge/Platform-Nebius%20Token%20Factory-101A2B" alt="Nebius" />
@@ -126,12 +126,12 @@ pnpm test
  ✓ tests/reconciliation.test.ts (12 tests)
  ✓ tests/analytics.test.ts (2 tests)
  ✓ tests/privacy-security.test.ts (17 tests)
- ✓ tests/export-consistency.test.ts (7 tests)
+ ✓ tests/export-consistency.test.ts (10 tests)
  ✓ tests/ai-safety.test.ts (6 tests)
  ✓ tests/server-api.test.ts (23 tests)
 
  Test Files  7 passed (7)
-      Tests  80 passed (80)
+      Tests  83 passed (83)
 ```
 
 ### Quality Linters & Production Build:

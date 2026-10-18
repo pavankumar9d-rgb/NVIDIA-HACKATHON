@@ -474,15 +474,17 @@ export const App: React.FC = () => {
         onImportComplete={handleCustomImport}
       />
 
-      <ExportModal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        matches={reconciliationResult?.matches || []}
-        exceptions={reconciliationResult?.exceptions || []}
-        summary={reconciliationResult?.summary || null}
-        sessionName={sessionName}
-        aiStatus={aiStatus}
-      />
+      {isExportModalOpen && (
+        <ExportModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          matches={reconciliationResult?.matches || []}
+          exceptions={reconciliationResult?.exceptions || []}
+          summary={reconciliationResult?.summary || null}
+          sessionName={sessionName}
+          aiStatus={aiStatus}
+        />
+      )}
     </div>
   );
 };

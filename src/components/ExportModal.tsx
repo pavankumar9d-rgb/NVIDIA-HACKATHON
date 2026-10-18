@@ -44,11 +44,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   aiStatus,
 }) => {
   const [activeExportTab, setActiveExportTab] = useState<'csv_reconciled' | 'csv_exceptions' | 'json_audit' | 'markdown'>('markdown');
-  const [generatedDate] = useState(() => new Date());
+  const [exportTimestamp, setExportTimestamp] = useState(() => new Date());
 
   if (!isOpen || !summary) return null;
 
-  const getActiveContent = () => {
+  const getActiveContent = (date: Date = exportTimestamp) => {
     switch (activeExportTab) {
       case 'csv_reconciled':
         return generateReconciledCSV(matches);
@@ -60,7 +60,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           summary,
           matches,
           exceptions,
-          generatedDate,
+          generatedDate: date,
           aiStatus,
         });
       case 'markdown':
@@ -69,16 +69,18 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           summary,
           matches,
           exceptions,
-          generatedDate,
+          generatedDate: date,
           aiStatus,
         });
     }
   };
 
   const handleDownload = () => {
+    const downloadDate = new Date();
+    setExportTimestamp(downloadDate);
     let filename = '';
     let mimeType = '';
-    const content = getActiveContent();
+    const content = getActiveContent(downloadDate);
 
     switch (activeExportTab) {
       case 'csv_reconciled':
