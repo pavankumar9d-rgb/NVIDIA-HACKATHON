@@ -1,0 +1,39 @@
+{
+  "scenarioName": "Northstar Studio — September Close",
+  "currency": "INR",
+  "bankCount": 29,
+  "ledgerCount": 27,
+  "confirmedMatches": 23,
+  "expectedExceptions": [
+    {
+      "type": "AMOUNT_MISMATCH",
+      "reference": "NEFT-339102",
+      "amountDeltaPaise": -24000,
+      "summary": "Gateway / handling fee deduction of ₹240.00"
+    },
+    {
+      "type": "UNMATCHED_BANK",
+      "reference": "HDFC-SVC-09",
+      "amountPaise": 125000,
+      "summary": "Bank service fee unrecorded in ledger"
+    },
+    {
+      "type": "UNMATCHED_BANK",
+      "reference": "HDFC-INT-Q2",
+      "amountPaise": 342000,
+      "summary": "Interest income unrecorded in ledger"
+    },
+    {
+      "type": "UNMATCHED_LEDGER",
+      "reference": "CHQ-771829",
+      "amountPaise": 1850000,
+      "summary": "Outstanding unpresented vendor cheque"
+    },
+    {
+      "type": "DUPLICATE_CANDIDATE",
+      "reference": "ATM-00912",
+      "amountPaise": 500000,
+      "summary": "ATM cash withdrawal duplicate candidate"
+    }
+  ]
+}

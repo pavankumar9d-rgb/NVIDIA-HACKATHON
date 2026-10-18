@@ -1,0 +1,36 @@
+# Logs & Diagnostics
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Node dependencies & builds
+node_modules
+dist
+dist-ssr
+coverage
+
+# Environment & Secrets (NEVER COMMIT)
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+credentials.json
+
+# Local user data & temporary files
+tmp/
+temp/
+*.csv.private
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" width="320" height="80" fill="none">
+  <!-- Step 1: Bank Record -->
+  <rect x="8" y="16" width="68" height="48" rx="6" fill="#FFFFFF" stroke="#DDE3DA" stroke-width="1.5" />
+  <rect x="14" y="24" width="28" height="6" rx="2" fill="#101A2B" />
+  <rect x="14" y="34" width="46" height="4" rx="2" fill="#E4E9E0" />
+  <rect x="14" y="44" width="36" height="6" rx="2" fill="#17845B" opacity="0.3" />
+  
+  <!-- Connector 1 -->
+  <path d="M76 40H94" stroke="#CBD5C5" stroke-width="2" stroke-linecap="round" stroke-dasharray="2 2" />
+  
+  <!-- Step 2: Deterministic Signals -->
+  <rect x="94" y="12" width="60" height="56" rx="6" fill="#EEF1EB" stroke="#CBD5C5" stroke-width="1.5" />
+  <circle cx="124" cy="28" r="7" fill="#101A2B" />
+  <path d="M121 28L123 30L127 26" stroke="#D7FF56" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+  <rect x="102" y="42" width="44" height="4" rx="2" fill="#4B5563" />
+  <rect x="106" y="50" width="36" height="4" rx="2" fill="#D75E4C" />
+  
+  <!-- Connector 2 -->
+  <path d="M154 40H172" stroke="#CBD5C5" stroke-width="2" stroke-linecap="round" stroke-dasharray="2 2" />
+  
+  <!-- Step 3: Nemotron AI Hypothesis -->
+  <rect x="172" y="12" width="64" height="56" rx="6" fill="#101A2B" stroke="#2A384F" stroke-width="1.5" />
+  <rect x="180" y="20" width="28" height="6" rx="2" fill="#D7FF56" />
+  <rect x="180" y="32" width="48" height="4" rx="2" fill="#4B5E7E" />
+  <rect x="180" y="40" width="40" height="4" rx="2" fill="#4B5E7E" />
+  <rect x="180" y="50" width="32" height="6" rx="2" fill="#17845B" />
+
+  <!-- Connector 3 -->
+  <path d="M236 40H254" stroke="#CBD5C5" stroke-width="2" stroke-linecap="round" />
+
+  <!-- Step 4: Human Review & Audit -->
+  <rect x="254" y="16" width="58" height="48" rx="6" fill="#E8F5EE" stroke="#17845B" stroke-width="1.5" />
+  <circle cx="283" cy="32" r="8" fill="#17845B" />
+  <path d="M279 32L282 35L287 29" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+  <rect x="264" y="46" width="38" height="6" rx="2" fill="#17845B" opacity="0.4" />
+</svg>

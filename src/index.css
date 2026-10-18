@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --canvas: #F6F7F2;
+    --surface-main: #FFFFFF;
+    --surface-soft: #EEF1EB;
+    --surface-muted: #E4E9E0;
+    --surface-nav: #101A2B;
+    --border: #DDE3DA;
+    --border-subtle: #EDF1EA;
+    --ink-primary: #111827;
+    --ink-secondary: #4B5563;
+    --ink-muted: #6B7280;
+    --accent-chartreuse: #D7FF56;
+    --verified-emerald: #17845B;
+    --verified-bg: #E8F5EE;
+    --risk-vermilion: #D75E4C;
+    --risk-bg: #FDEDEA;
+    --info-blue: #2563EB;
+    --info-bg: #EFF6FF;
+    --warning-amber: #D97706;
+    --warning-bg: #FEF3C7;
+  }
+
+  body {
+    background-color: var(--canvas);
+    color: var(--ink-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+  }
+
+  /* Accessible monospaced font for figures and codes */
+  .font-mono-num {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-feature-settings: "tnum" 1, "zero" 1;
+  }
+}
+
+/* Custom scrollbars for clean financial tables */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F1F4EE;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5C5;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-delay: -1ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    background-attachment: initial !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+  }
+}
