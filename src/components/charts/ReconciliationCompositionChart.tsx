@@ -124,3 +124,4 @@ export const ReconciliationCompositionChart: React.FC<ReconciliationCompositionC
     </div>
   );
 };
+

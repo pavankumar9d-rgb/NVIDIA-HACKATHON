@@ -248,3 +248,4 @@ export const DailyMovementChart: React.FC<DailyMovementChartProps> = ({ data }) 
     </div>
   );
 };
+
