@@ -99,16 +99,22 @@ export interface ReconciliationSummary {
   exceptionCount: number;
   
   // Financial metrics in paise
+  openingBankBalancePaise: number;
+  closingBankBalancePaise: number;
   totalBankInflowPaise: number;
   totalBankOutflowPaise: number;
-  netBankTotalPaise: number;
+  netBankMovementPaise: number;
+  netBankTotalPaise: number; // backward compatibility alias for netBankMovementPaise
 
+  openingLedgerBalancePaise: number;
+  closingLedgerBalancePaise: number;
   totalLedgerInflowPaise: number;
   totalLedgerOutflowPaise: number;
-  netLedgerTotalPaise: number;
+  netLedgerMovementPaise: number;
+  netLedgerTotalPaise: number; // backward compatibility alias for netLedgerMovementPaise
 
   matchedAmountPaise: number;
-  unresolvedVariancePaise: number; // Math difference between bank and ledger net totals
+  unresolvedVariancePaise: number; // Math difference between bank and ledger closing balances
   matchPercentage: number; // 0 - 100%
   
   // Breakdown of exceptions
@@ -171,16 +177,22 @@ export function normalizeReference(ref?: string): string {
   return ref.toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 
+export interface ReconciliationOptions {
+  maxDateToleranceDays?: number;
+  descriptionSimilarityThreshold?: number;
+  openingBankBalancePaise?: number;
+  closingBankBalancePaise?: number;
+  openingLedgerBalancePaise?: number;
+  closingLedgerBalancePaise?: number;
+}
+
 /**
  * Primary Deterministic Reconciliation Engine
  */
 export function runReconciliation(
   bankRows: CanonicalTransaction[],
   ledgerRows: CanonicalTransaction[],
-  options: {
-    maxDateToleranceDays?: number;
-    descriptionSimilarityThreshold?: number;
-  } = {}
+  options: ReconciliationOptions = {}
 ): ReconciliationResult {
   const { maxDateToleranceDays = 4, descriptionSimilarityThreshold = 0.6 } = options;
 
@@ -454,14 +466,22 @@ export function runReconciliation(
   // 7. Calculate Comprehensive Financial Summary
   const bankCredits = sumPaise(bankRows.filter((r) => r.direction === 'credit').map((r) => r.amountPaise));
   const bankDebits = sumPaise(bankRows.filter((r) => r.direction === 'debit').map((r) => r.amountPaise));
-  const netBankTotalPaise = bankCredits - bankDebits;
+  const netBankMovementPaise = bankCredits - bankDebits;
+  const netBankTotalPaise = netBankMovementPaise;
 
   const ledgerCredits = sumPaise(ledgerRows.filter((r) => r.direction === 'credit').map((r) => r.amountPaise));
   const ledgerDebits = sumPaise(ledgerRows.filter((r) => r.direction === 'debit').map((r) => r.amountPaise));
-  const netLedgerTotalPaise = ledgerCredits - ledgerDebits;
+  const netLedgerMovementPaise = ledgerCredits - ledgerDebits;
+  const netLedgerTotalPaise = netLedgerMovementPaise;
+
+  const openingBankBalancePaise = options.openingBankBalancePaise ?? 0;
+  const closingBankBalancePaise = options.closingBankBalancePaise ?? (openingBankBalancePaise + netBankMovementPaise);
+
+  const openingLedgerBalancePaise = options.openingLedgerBalancePaise ?? openingBankBalancePaise;
+  const closingLedgerBalancePaise = options.closingLedgerBalancePaise ?? (openingLedgerBalancePaise + netLedgerMovementPaise);
 
   const matchedAmountPaise = sumPaise(matches.map((m) => m.bankTransaction.amountPaise));
-  const unresolvedVariancePaise = netBankTotalPaise - netLedgerTotalPaise;
+  const unresolvedVariancePaise = closingBankBalancePaise - closingLedgerBalancePaise;
 
   const totalRows = bankRows.length + ledgerRows.length;
   const matchPercentage = totalRows > 0 ? Number(((matches.length * 2 / totalRows) * 100).toFixed(1)) : 0;
@@ -471,11 +491,17 @@ export function runReconciliation(
     ledgerRowCount: ledgerRows.length,
     confirmedMatchCount: matches.length,
     exceptionCount: exceptions.length,
+    openingBankBalancePaise,
+    closingBankBalancePaise,
     totalBankInflowPaise: bankCredits,
     totalBankOutflowPaise: bankDebits,
+    netBankMovementPaise,
     netBankTotalPaise,
+    openingLedgerBalancePaise,
+    closingLedgerBalancePaise,
     totalLedgerInflowPaise: ledgerCredits,
     totalLedgerOutflowPaise: ledgerDebits,
+    netLedgerMovementPaise,
     netLedgerTotalPaise,
     matchedAmountPaise,
     unresolvedVariancePaise,

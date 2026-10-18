@@ -148,21 +148,45 @@ export function parseCSVString(csvText: string): Promise<RawParseResult> {
   });
 }
 
+export interface NormalizationResult {
+  validRows: ValidatedCSVRow[];
+  invalidRows: ValidatedCSVRow[];
+  detectedOpeningBalancePaise?: number;
+  detectedClosingBalancePaise?: number;
+}
+
 /**
  * Validates and transforms raw rows into normalized financial rows.
  * Collects any invalid dates or corrupted amounts without silently dropping rows.
+ * Also detects opening balance anchor rows and ending balances when present.
  */
 export function validateAndNormalizeRows(
   rows: Record<string, string>[],
   mapping: ColumnMapping,
   _sourcePrefix?: 'BNK' | 'LDG'
-): { validRows: ValidatedCSVRow[]; invalidRows: ValidatedCSVRow[] } {
+): NormalizationResult {
   const validRows: ValidatedCSVRow[] = [];
   const invalidRows: ValidatedCSVRow[] = [];
+  let detectedOpeningBalancePaise: number | undefined;
+  let detectedClosingBalancePaise: number | undefined;
 
   rows.forEach((row, idx) => {
     const rowNum = idx + 2; // 1-indexed, header is row 1
     const validationErrors: string[] = [];
+
+    // Description
+    const description = row[mapping.descriptionCol]?.trim() || '';
+
+    // Check if this is an Opening Balance anchor row
+    const isOpeningRow = /opening\s*balance|initial\s*balance|balance\s*b\/?f/i.test(description);
+    if (isOpeningRow && mapping.balanceCol && row[mapping.balanceCol]) {
+      try {
+        detectedOpeningBalancePaise = parseToPaise(row[mapping.balanceCol]);
+        return; // Handled as opening balance anchor, not a transaction row
+      } catch {
+        // Continue standard validation if corrupted
+      }
+    }
 
     // Date extraction
     const rawDate = row[mapping.dateCol]?.trim() || '';
@@ -185,8 +209,6 @@ export function validateAndNormalizeRows(
       normalizedDate = parsedDate.toISOString().split('T')[0];
     }
 
-    // Description
-    const description = row[mapping.descriptionCol]?.trim() || '';
     if (!description) {
       validationErrors.push('Empty transaction description');
     }
@@ -230,6 +252,15 @@ export function validateAndNormalizeRows(
       validationErrors.push(`Corrupted monetary amount: ${err.message}`);
     }
 
+    // Track running / ending balance if balance column is mapped
+    if (mapping.balanceCol && row[mapping.balanceCol] && row[mapping.balanceCol].trim() !== '') {
+      try {
+        detectedClosingBalancePaise = parseToPaise(row[mapping.balanceCol]);
+      } catch {
+        // Ignore unparseable running balance
+      }
+    }
+
     const reference = mapping.referenceCol ? row[mapping.referenceCol]?.trim() : undefined;
     const signedAmountPaise = direction === 'debit' ? -amountPaise : amountPaise;
 
@@ -252,7 +283,7 @@ export function validateAndNormalizeRows(
     }
   });
 
-  return { validRows, invalidRows };
+  return { validRows, invalidRows, detectedOpeningBalancePaise, detectedClosingBalancePaise };
 }
 
 /**
