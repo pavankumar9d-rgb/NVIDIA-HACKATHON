@@ -28,7 +28,40 @@ describe('Monetary Arithmetic Engine (Decimal-Safe Integer Paise)', () => {
   });
 
   it('rejects invalid monetary strings with multiple decimals', () => {
-    expect(() => parseToPaise('12.34.56')).toThrow('Invalid monetary format');
+    expect(() => parseToPaise('12.34.56')).toThrow('Invalid monetary format with multiple decimal');
+  });
+
+  it('rejects malformed strings with invalid characters (Codex finding regression: "12x3.456")', () => {
+    expect(() => parseToPaise('12x3.456')).toThrow('Malformed monetary amount');
+    expect(() => parseToPaise('₹100abc')).toThrow('Malformed monetary amount');
+    expect(() => parseToPaise('123#45')).toThrow('Malformed monetary amount');
+  });
+
+  it('rejects unsupported precision beyond 2 decimal places for INR', () => {
+    expect(() => parseToPaise('12.345')).toThrow('Unsupported monetary precision');
+    expect(() => parseToPaise('₹100.456')).toThrow('Unsupported monetary precision');
+    expect(() => parseToPaise('0.001')).toThrow('Unsupported monetary precision');
+  });
+
+  it('rejects malformed comma grouping in integer numbers', () => {
+    expect(() => parseToPaise('1,2,34.00')).toThrow('Malformed number grouping');
+    expect(() => parseToPaise(',100.00')).toThrow('Malformed number grouping');
+    expect(() => parseToPaise('100,00.00')).toThrow('Malformed number grouping');
+  });
+
+  it('parses valid Indian and international comma groupings correctly', () => {
+    expect(parseToPaise('₹1,25,000.50')).toBe(12500050); // Indian format: 1,25,000
+    expect(parseToPaise('₹12,34,567.80')).toBe(123456780);
+    expect(parseToPaise('125,000.50')).toBe(12500050); // Western format: 125,000
+    expect(parseToPaise('1,000,000.00')).toBe(100000000);
+  });
+
+  it('rejects numbers that exceed safe integer limits', () => {
+    expect(() => parseToPaise('9999999999999999.00')).toThrow('exceeds safe integer limit');
+  });
+
+  it('enforces safe integer boundary during summation', () => {
+    expect(() => sumPaise([Number.MAX_SAFE_INTEGER, 100])).toThrow('exceeded safe integer limit');
   });
 
   it('formats integer paise into clean Indian currency strings', () => {
