@@ -1,5 +1,6 @@
 import React from 'react';
 import { 
+  LayoutDashboard,
   Layers, 
   ShieldCheck, 
   FileText, 
@@ -7,8 +8,9 @@ import {
 } from 'lucide-react';
 
 interface NavigationRailProps {
-  currentTab: 'workspace' | 'privacy' | 'audit';
-  onSelectTab: (tab: 'workspace' | 'privacy' | 'audit') => void;
+  currentTab: 'overview' | 'workspace' | 'privacy' | 'audit';
+  onSelectTab: (tab: 'overview' | 'workspace' | 'privacy' | 'audit') => void;
+  exceptionCount?: number;
   aiStatus: {
     configured: boolean;
     allowLiveAI: boolean;
@@ -20,6 +22,7 @@ interface NavigationRailProps {
 export const NavigationRail: React.FC<NavigationRailProps> = ({
   currentTab,
   onSelectTab,
+  exceptionCount = 0,
   aiStatus,
 }) => {
   return (
@@ -45,22 +48,43 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
         <nav className="p-2 md:p-3 space-y-1">
           <button
             type="button"
+            onClick={() => onSelectTab('overview')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs md:text-sm font-medium transition-colors cursor-pointer ${
+              currentTab === 'overview'
+                ? 'bg-[#1C2D48] text-white font-semibold'
+                : 'text-slate-300 hover:bg-[#16233B] hover:text-white'
+            }`}
+            title="Executive Overview"
+          >
+            <LayoutDashboard className="w-4 h-4 text-[#D7FF56]" />
+            <span className="hidden md:inline">Overview</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => onSelectTab('workspace')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs md:text-sm font-medium transition-colors ${
+            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs md:text-sm font-medium transition-colors cursor-pointer ${
               currentTab === 'workspace'
                 ? 'bg-[#1C2D48] text-white font-semibold'
                 : 'text-slate-300 hover:bg-[#16233B] hover:text-white'
             }`}
             title="Investigation Workspace"
           >
-            <Layers className="w-4 h-4 text-[#D7FF56]" />
-            <span className="hidden md:inline">Investigation Desk</span>
+            <div className="flex items-center gap-3">
+              <Layers className="w-4 h-4 text-sky-400" />
+              <span className="hidden md:inline">Investigation Desk</span>
+            </div>
+            {exceptionCount > 0 && (
+              <span className="hidden md:inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold font-mono bg-rose-500/20 text-rose-300 border border-rose-500/40 rounded-full">
+                {exceptionCount}
+              </span>
+            )}
           </button>
 
           <button
             type="button"
             onClick={() => onSelectTab('privacy')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs md:text-sm font-medium transition-colors ${
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs md:text-sm font-medium transition-colors cursor-pointer ${
               currentTab === 'privacy'
                 ? 'bg-[#1C2D48] text-white font-semibold'
                 : 'text-slate-300 hover:bg-[#16233B] hover:text-white'
@@ -74,14 +98,14 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
           <button
             type="button"
             onClick={() => onSelectTab('audit')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs md:text-sm font-medium transition-colors ${
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs md:text-sm font-medium transition-colors cursor-pointer ${
               currentTab === 'audit'
                 ? 'bg-[#1C2D48] text-white font-semibold'
                 : 'text-slate-300 hover:bg-[#16233B] hover:text-white'
             }`}
             title="Audit Log & History"
           >
-            <FileText className="w-4 h-4 text-sky-400" />
+            <FileText className="w-4 h-4 text-amber-400" />
             <span className="hidden md:inline">Audit Trail</span>
           </button>
         </nav>

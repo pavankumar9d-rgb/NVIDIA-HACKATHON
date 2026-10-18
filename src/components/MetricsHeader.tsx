@@ -31,47 +31,59 @@ export const MetricsHeader: React.FC<MetricsHeaderProps> = ({ summary }) => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <div className="bg-white rounded-xl border border-[#DDE3DA] p-4 shadow-2xs hover:border-[#BDC8B7] transition-all">
           <div className="flex items-center justify-between text-[#6B7280] text-xs font-medium mb-1">
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1.5 font-semibold text-[#111827]">
               <Building2 className="w-4 h-4 text-[#2563EB]" />
-              Net Bank Position
+              Closing Bank Balance
             </span>
             <span className="font-mono text-[11px] bg-[#EEF1EB] px-1.5 py-0.5 rounded text-[#4B5563]">
               {summary.bankRowCount} rows
             </span>
           </div>
           <div className="text-xl md:text-2xl font-bold font-mono text-[#111827] tracking-tight">
-            {formatPaise(summary.netBankTotalPaise)}
+            {formatPaise(summary.closingBankBalancePaise)}
           </div>
-          <div className="text-[11px] text-[#6B7280] mt-1 flex items-center justify-between">
-            <span>In: {formatPaise(summary.totalBankInflowPaise)}</span>
-            <span>Out: {formatPaise(summary.totalBankOutflowPaise)}</span>
+          <div className="text-[11px] text-[#6B7280] mt-1 flex flex-col gap-0.5">
+            <div className="flex items-center justify-between">
+              <span>Net: <span className="font-mono font-medium text-[#111827]">{formatPaise(summary.netBankMovementPaise, { showSign: true })}</span></span>
+              <span className="text-[10px] text-[#9CA3AF]">Open: {formatPaise(summary.openingBankBalancePaise)}</span>
+            </div>
+            <div className="text-[10px] text-[#9CA3AF] flex items-center justify-between">
+              <span>In: {formatPaise(summary.totalBankInflowPaise)}</span>
+              <span>Out: {formatPaise(summary.totalBankOutflowPaise)}</span>
+            </div>
           </div>
         </div>
 
         <div className="bg-white rounded-xl border border-[#DDE3DA] p-4 shadow-2xs hover:border-[#BDC8B7] transition-all">
           <div className="flex items-center justify-between text-[#6B7280] text-xs font-medium mb-1">
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1.5 font-semibold text-[#111827]">
               <BookOpen className="w-4 h-4 text-[#101A2B]" />
-              Net Ledger Position
+              Closing Ledger Balance
             </span>
             <span className="font-mono text-[11px] bg-[#EEF1EB] px-1.5 py-0.5 rounded text-[#4B5563]">
               {summary.ledgerRowCount} rows
             </span>
           </div>
           <div className="text-xl md:text-2xl font-bold font-mono text-[#111827] tracking-tight">
-            {formatPaise(summary.netLedgerTotalPaise)}
+            {formatPaise(summary.closingLedgerBalancePaise)}
           </div>
-          <div className="text-[11px] text-[#6B7280] mt-1 flex items-center justify-between">
-            <span>In: {formatPaise(summary.totalLedgerInflowPaise)}</span>
-            <span>Out: {formatPaise(summary.totalLedgerOutflowPaise)}</span>
+          <div className="text-[11px] text-[#6B7280] mt-1 flex flex-col gap-0.5">
+            <div className="flex items-center justify-between">
+              <span>Net: <span className="font-mono font-medium text-[#111827]">{formatPaise(summary.netLedgerMovementPaise, { showSign: true })}</span></span>
+              <span className="text-[10px] text-[#9CA3AF]">Open: {formatPaise(summary.openingLedgerBalancePaise)}</span>
+            </div>
+            <div className="text-[10px] text-[#9CA3AF] flex items-center justify-between">
+              <span>In: {formatPaise(summary.totalLedgerInflowPaise)}</span>
+              <span>Out: {formatPaise(summary.totalLedgerOutflowPaise)}</span>
+            </div>
           </div>
         </div>
 
         <div className="bg-white rounded-xl border border-[#DDE3DA] p-4 shadow-2xs hover:border-[#BDC8B7] transition-all">
           <div className="flex items-center justify-between text-[#6B7280] text-xs font-medium mb-1">
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1.5 font-semibold text-[#111827]">
               <CheckCircle className="w-4 h-4 text-[#17845B]" />
-              Confirmed Matches
+              Confirmed Match Rate
             </span>
             <span className="font-mono text-[11px] font-bold text-[#17845B] bg-[#E8F5EE] px-1.5 py-0.5 rounded">
               {summary.matchPercentage}%
@@ -80,8 +92,9 @@ export const MetricsHeader: React.FC<MetricsHeaderProps> = ({ summary }) => {
           <div className="text-xl md:text-2xl font-bold font-mono text-[#17845B] tracking-tight">
             {summary.confirmedMatchCount} pairs
           </div>
-          <div className="text-[11px] text-[#6B7280] mt-1 font-mono">
-            Matched: {formatPaise(summary.matchedAmountPaise)}
+          <div className="text-[11px] text-[#6B7280] mt-1 flex items-center justify-between">
+            <span className="font-mono">Volume: {formatPaise(summary.matchedAmountPaise)}</span>
+            <span className="text-[10px] text-[#9CA3AF] font-mono">{summary.confirmedMatchCount * 2} / {summary.bankRowCount + summary.ledgerRowCount} rows</span>
           </div>
         </div>
 
@@ -93,7 +106,7 @@ export const MetricsHeader: React.FC<MetricsHeaderProps> = ({ summary }) => {
           <div className="flex items-center justify-between text-xs font-medium mb-1">
             <span className="flex items-center gap-1.5 font-semibold text-[#111827]">
               <Scale className={`w-4 h-4 ${isVarianceZero ? 'text-[#17845B]' : 'text-[#D75E4C]'}`} />
-              Net Variance Discrepancy
+              Unresolved Net Variance
             </span>
             <span className="text-[10px] text-[#6B7280] font-mono">Bank - Ledger</span>
           </div>
@@ -107,7 +120,7 @@ export const MetricsHeader: React.FC<MetricsHeaderProps> = ({ summary }) => {
               <span className="text-[#17845B] font-medium">Zero closing discrepancy</span>
             ) : (
               <span className="text-[#D75E4C] font-medium">
-                {summary.exceptionCount} exceptions explain variance
+                {summary.exceptionCount} exceptions bridge closing variance
               </span>
             )}
           </div>

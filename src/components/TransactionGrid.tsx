@@ -14,6 +14,7 @@ interface TransactionGridProps {
   exceptions: ReconciliationException[];
   selectedItem: { type: 'match' | 'exception'; id: string } | null;
   onSelectItem: (item: { type: 'match' | 'exception'; id: string }) => void;
+  externalFilter?: string;
 }
 
 export const TransactionGrid: React.FC<TransactionGridProps> = ({
@@ -21,9 +22,24 @@ export const TransactionGrid: React.FC<TransactionGridProps> = ({
   exceptions,
   selectedItem,
   onSelectItem,
+  externalFilter,
 }) => {
-  const [filterTab, setFilterTab] = useState<'all' | 'exceptions' | 'matches' | 'bank_only' | 'ledger_only'>('exceptions');
+  const [userFilterTab, setUserFilterTab] = useState<'all' | 'exceptions' | 'matches' | 'bank_only' | 'ledger_only' | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const filterTab: 'all' | 'exceptions' | 'matches' | 'bank_only' | 'ledger_only' = 
+    userFilterTab ?? (
+      externalFilter === 'MATCHES'
+        ? 'matches'
+        : externalFilter === 'UNMATCHED_BANK'
+        ? 'bank_only'
+        : externalFilter === 'UNMATCHED_LEDGER'
+        ? 'ledger_only'
+        : externalFilter === 'ALL'
+        ? 'all'
+        : 'exceptions'
+    );
+  const setFilterTab = (tab: 'all' | 'exceptions' | 'matches' | 'bank_only' | 'ledger_only') => setUserFilterTab(tab);
 
   const displayRows: Array<{
     kind: 'match' | 'exception';

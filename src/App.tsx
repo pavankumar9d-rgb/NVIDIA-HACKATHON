@@ -2,17 +2,19 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { NavigationRail } from './components/NavigationRail';
 import { TopBar } from './components/TopBar';
 import { WorkflowRibbon } from './components/WorkflowRibbon';
-import { MetricsHeader } from './components/MetricsHeader';
+import { OverviewView } from './components/OverviewView';
 import { TransactionGrid } from './components/TransactionGrid';
 import { EvidencePanel } from './components/EvidencePanel';
 import { ImportModal } from './components/ImportModal';
 import { ExportModal } from './components/ExportModal';
 import { PrivacyDrawer } from './components/PrivacyDrawer';
 import { AuditTrailView } from './components/AuditTrailView';
+import { BrandedPreloader } from './components/BrandedPreloader';
 import type { 
   CanonicalTransaction, 
   ReconciliationResult, 
-  ReconciliationException 
+  ReconciliationException,
+  ReconciliationOptions
 } from './lib/reconciliation';
 import { runReconciliation } from './lib/reconciliation';
 import { parseCSVString, validateAndNormalizeRows } from './lib/csv';
@@ -23,18 +25,26 @@ import {
 } from './data/syntheticDemo';
 
 export const App: React.FC = () => {
-  const [currentTab, setCurrentTab] = useState<'workspace' | 'privacy' | 'audit'>('workspace');
+  const [currentTab, setCurrentTab] = useState<'overview' | 'workspace' | 'privacy' | 'audit'>('overview');
   const [sessionName, setSessionName] = useState('Northstar Studio — September Close');
   const [isSynthetic, setIsSynthetic] = useState(true);
+  const [isAppReady, setIsAppReady] = useState(false);
+  const [activeTableFilter, setActiveTableFilter] = useState<string | undefined>(undefined);
 
   const [bankRows, setBankRows] = useState<CanonicalTransaction[]>([]);
   const [ledgerRows, setLedgerRows] = useState<CanonicalTransaction[]>([]);
+  const [sessionBalances, setSessionBalances] = useState<ReconciliationOptions>({
+    openingBankBalancePaise: 45000000,
+    closingBankBalancePaise: 47638000,
+    openingLedgerBalancePaise: 45000000,
+  });
   const [reconciliationResult, setReconciliationResult] = useState<ReconciliationResult | null>(null);
   const [selectedItem, setSelectedItem] = useState<{ type: 'match' | 'exception'; id: string } | null>(null);
 
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isAILoading, setIsAILoading] = useState(false);
+  const [aiInvestigationStep, setAiInvestigationStep] = useState<string | null>(null);
 
   const [aiStatus, setAiStatus] = useState({
     configured: false,
@@ -71,7 +81,11 @@ export const App: React.FC = () => {
   // Load the Northstar Studio synthetic dataset
   const loadSyntheticDemo = useCallback(async () => {
     const parsedBank = await parseCSVString(SYNTHETIC_BANK_CSV);
-    const { validRows: bankValid } = validateAndNormalizeRows(parsedBank.rows, parsedBank.detectedMapping, 'BNK');
+    const { 
+      validRows: bankValid, 
+      detectedOpeningBalancePaise: bOpen, 
+      detectedClosingBalancePaise: bClose 
+    } = validateAndNormalizeRows(parsedBank.rows, parsedBank.detectedMapping, 'BNK');
 
     const parsedLedger = await parseCSVString(SYNTHETIC_LEDGER_CSV);
     const { validRows: ledgerValid } = validateAndNormalizeRows(parsedLedger.rows, parsedLedger.detectedMapping, 'LDG');
@@ -106,17 +120,25 @@ export const App: React.FC = () => {
       rawRow: r.raw,
     }));
 
+    const balances: ReconciliationOptions = {
+      openingBankBalancePaise: bOpen ?? 45000000,
+      closingBankBalancePaise: bClose ?? 47638000,
+      openingLedgerBalancePaise: bOpen ?? 45000000,
+    };
+
     setBankRows(bCanonical);
     setLedgerRows(lCanonical);
+    setSessionBalances(balances);
     setSessionName('Northstar Studio — September Close');
     setIsSynthetic(true);
 
-    const result = runReconciliation(bCanonical, lCanonical);
+    const result = runReconciliation(bCanonical, lCanonical, balances);
     setReconciliationResult(result);
 
     if (result.exceptions.length > 0) {
       setSelectedItem({ type: 'exception', id: result.exceptions[0].exceptionId });
     }
+    setIsAppReady(true);
   }, []);
 
   useEffect(() => {
@@ -126,7 +148,7 @@ export const App: React.FC = () => {
 
   const handleRunReconciliation = () => {
     if (bankRows.length === 0 || ledgerRows.length === 0) return;
-    const result = runReconciliation(bankRows, ledgerRows);
+    const result = runReconciliation(bankRows, ledgerRows, sessionBalances);
     setReconciliationResult(result);
   };
 
@@ -190,6 +212,7 @@ export const App: React.FC = () => {
   ) => {
     if (!consentGranted) return;
     setIsAILoading(true);
+    setAiInvestigationStep('Masking sensitive account identifiers & personal data...');
 
     try {
       const payload = {
@@ -229,6 +252,8 @@ export const App: React.FC = () => {
         consentGranted: true,
       };
 
+      setAiInvestigationStep('Requesting Nemotron-70B forensic hypothesis via Nebius...');
+
       const response = await fetch('/api/investigate', {
         method: 'POST',
         headers: { 
@@ -237,6 +262,8 @@ export const App: React.FC = () => {
         },
         body: JSON.stringify(payload),
       });
+
+      setAiInvestigationStep('Validating structured response against schema contract...');
 
       const data = await response.json();
 
@@ -300,6 +327,7 @@ export const App: React.FC = () => {
       console.error('Failed to run AI investigation:', err);
     } finally {
       setIsAILoading(false);
+      setAiInvestigationStep(null);
     }
   };
 
@@ -320,9 +348,17 @@ export const App: React.FC = () => {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#F6F7F2] text-[#111827]">
+      <BrandedPreloader isReady={isAppReady} />
+
       <NavigationRail
         currentTab={currentTab}
-        onSelectTab={setCurrentTab}
+        onSelectTab={(tab) => {
+          setCurrentTab(tab);
+          if (tab === 'overview') {
+            setActiveTableFilter(undefined);
+          }
+        }}
+        exceptionCount={reconciliationResult?.summary.exceptionCount || 0}
         aiStatus={aiStatus}
       />
 
@@ -339,41 +375,72 @@ export const App: React.FC = () => {
           isReconciled={Boolean(reconciliationResult)}
         />
 
-        <WorkflowRibbon
-          currentStage={
-            !reconciliationResult
-              ? 'sources'
-              : pendingReviewCount > 0
-              ? 'triage'
-              : approvedCount > 0
-              ? 'review'
-              : 'export'
-          }
-          hasData={bankRows.length > 0}
-          isReconciled={Boolean(reconciliationResult)}
-          pendingReviewCount={pendingReviewCount}
-          approvedCount={approvedCount}
-        />
+        {currentTab === 'overview' && (
+          <OverviewView
+            sessionName={sessionName}
+            isSynthetic={isSynthetic}
+            bankRows={bankRows}
+            ledgerRows={ledgerRows}
+            reconciliationResult={reconciliationResult}
+            onNavigateToWorkspace={(exceptionId, filterType) => {
+              setCurrentTab('workspace');
+              if (exceptionId) {
+                setSelectedItem({ type: 'exception', id: exceptionId });
+              }
+              if (filterType) {
+                setActiveTableFilter(filterType);
+              }
+            }}
+            onOpenExport={() => setIsExportModalOpen(true)}
+          />
+        )}
 
         {currentTab === 'workspace' && (
-          <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-            <div className="flex-1 flex flex-col overflow-y-auto">
-              <MetricsHeader summary={reconciliationResult?.summary || null} />
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <WorkflowRibbon
+              currentStage={
+                !reconciliationResult
+                  ? 'sources'
+                  : pendingReviewCount > 0
+                  ? 'triage'
+                  : approvedCount > 0
+                  ? 'review'
+                  : 'export'
+              }
+              hasData={bankRows.length > 0}
+              isReconciled={Boolean(reconciliationResult)}
+              pendingReviewCount={pendingReviewCount}
+              approvedCount={approvedCount}
+            />
 
-              <div className="flex-1 px-4 md:px-6 pb-6 overflow-hidden">
-                <TransactionGrid
-                  matches={reconciliationResult?.matches || []}
-                  exceptions={reconciliationResult?.exceptions || []}
-                  selectedItem={selectedItem}
-                  onSelectItem={setSelectedItem}
-                />
+            {/* AI Investigation Progress Banner if loading */}
+            {isAILoading && (
+              <div className="bg-[#101A2B] text-white px-4 md:px-6 py-2.5 flex items-center justify-between text-xs animate-in slide-in-from-top duration-150 shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-3.5 h-3.5 border-2 border-[#D7FF56] border-t-transparent rounded-full animate-spin" />
+                  <span className="font-semibold text-[#D7FF56]">Nemotron Investigation:</span>
+                  <span className="text-slate-300">{aiInvestigationStep || 'Processing forensic evidence...'}</span>
+                </div>
+                <span className="text-[11px] font-mono text-slate-400">NVIDIA Llama-3.1-Nemotron-70B-Instruct</span>
               </div>
+            )}
+
+            <div className="flex-1 px-4 md:px-6 py-4 overflow-hidden flex flex-col">
+              <TransactionGrid
+                matches={reconciliationResult?.matches || []}
+                exceptions={reconciliationResult?.exceptions || []}
+                selectedItem={selectedItem}
+                onSelectItem={setSelectedItem}
+                externalFilter={activeTableFilter}
+              />
             </div>
 
             <EvidencePanel
               selectedItem={selectedItem}
               match={selectedMatch}
               exception={selectedException}
+              totalVariancePaise={reconciliationResult?.summary.unresolvedVariancePaise}
+              onClose={() => setSelectedItem(null)}
               onReviewDecision={handleReviewDecision}
               aiStatus={aiStatus}
               onRunAIInvestigation={handleRunAIInvestigation}

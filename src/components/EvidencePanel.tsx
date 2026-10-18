@@ -21,6 +21,8 @@ interface EvidencePanelProps {
   selectedItem: { type: 'match' | 'exception'; id: string } | null;
   match?: ReconciliationMatch;
   exception?: ReconciliationException;
+  totalVariancePaise?: number;
+  onClose?: () => void;
   onReviewDecision: (
     exceptionId: string,
     decision: 'APPROVED' | 'REJECTED' | 'DEFERRED',
@@ -43,6 +45,8 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
   selectedItem,
   match,
   exception,
+  totalVariancePaise,
+  onClose,
   onReviewDecision,
   aiStatus,
   onRunAIInvestigation,
@@ -52,110 +56,148 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
   const [consentChecked, setConsentChecked] = useState(false);
   const [reviewNote, setReviewNote] = useState('');
 
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (showConsentModal) {
+          setShowConsentModal(false);
+        } else {
+          onClose?.();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose, showConsentModal]);
+
   if (!selectedItem) {
-    return (
-      <div className="w-full lg:w-[420px] bg-white border-l border-[#DDE3DA] p-6 flex flex-col items-center justify-center text-center text-[#6B7280]">
-        <img src="/assets/empty-ledger.svg" alt="Select record" className="w-36 h-28 mb-3 opacity-60" />
-        <h3 className="font-semibold text-sm text-[#111827]">Evidence Inspector</h3>
-        <p className="text-xs mt-1 text-[#6B7280] max-w-[240px]">
-          Click any transaction or exception row to inspect its forensic chain of evidence.
-        </p>
-      </div>
-    );
+    return null;
   }
 
   // Handle Confirmed Match display
   if (match) {
     return (
-      <div className="w-full lg:w-[420px] bg-white border-l border-[#DDE3DA] p-5 flex flex-col h-full overflow-y-auto space-y-4">
-        <div className="border-b border-[#DDE3DA] pb-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-bold text-[#17845B] bg-[#E8F5EE] px-2 py-0.5 rounded border border-[#A7D7BC]">
-              CONFIRMED MATCH (1-to-1)
-            </span>
-            <span className="text-xs font-mono text-[#6B7280]">
-              Score: {match.confidenceScore}/100
-            </span>
-          </div>
-          <h2 className="text-base font-bold text-[#111827] mt-1.5">
-            Forensic Match Provenance
-          </h2>
-          <p className="text-xs text-[#6B7280]">
-            Deterministic engine confirmed this pair via {match.tier === 'EXACT_REF_AMOUNT' ? 'exact reference and amount' : 'date tolerance window'}.
-          </p>
-        </div>
-
-        {/* Source Records Comparison */}
-        <div className="space-y-3">
-          <div className="bg-[#F8FAF6] border border-[#DDE3DA] rounded-lg p-3">
-            <div className="flex items-center justify-between text-xs font-semibold text-[#111827] mb-1">
-              <span className="flex items-center gap-1.5">
-                <Building2 className="w-3.5 h-3.5 text-[#2563EB]" />
-                Bank Statement Row ({match.bankTransaction.id})
-              </span>
-              <span className="font-mono text-[#17845B]">
-                {formatPaise(match.bankTransaction.amountPaise)}
+      <>
+        <div 
+          className="fixed inset-0 bg-[#101A2B]/40 backdrop-blur-[2px] z-40 transition-opacity"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+        <aside 
+          className="fixed inset-y-0 right-0 z-50 w-full sm:w-[480px] lg:w-[540px] bg-white shadow-2xl border-l border-[#CBD5C5] flex flex-col h-full overflow-hidden animate-in slide-in-from-right duration-200"
+          role="dialog"
+          aria-label="Forensic Match Evidence"
+          aria-modal="true"
+        >
+          <div className="p-4 border-b border-[#DDE3DA] flex items-center justify-between bg-[#F9FAF8] shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-sm text-[#111827]">Evidence Inspector</span>
+              <span className="text-[11px] font-mono bg-[#E8F5EE] text-[#17845B] border border-[#A7D7BC] px-2 py-0.5 rounded font-semibold">
+                {match.matchId}
               </span>
             </div>
-            <div className="text-xs text-[#4B5563] font-mono mb-1">
-              Date: {match.bankTransaction.date} | Ref: {match.bankTransaction.reference || 'None'}
-            </div>
-            <div className="text-xs text-[#111827]">{match.bankTransaction.sanitizedDescription}</div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#111827] hover:bg-[#EEF1EB] transition-colors cursor-pointer"
+              title="Close panel (Esc)"
+              aria-label="Close panel"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
-          <div className="bg-[#F8FAF6] border border-[#DDE3DA] rounded-lg p-3">
-            <div className="flex items-center justify-between text-xs font-semibold text-[#111827] mb-1">
-              <span className="flex items-center gap-1.5">
-                <BookOpen className="w-3.5 h-3.5 text-[#101A2B]" />
-                Accounting Ledger Row ({match.ledgerTransaction.id})
-              </span>
-              <span className="font-mono text-[#17845B]">
-                {formatPaise(match.ledgerTransaction.amountPaise)}
-              </span>
+          <div className="flex-1 overflow-y-auto p-5 space-y-4">
+            <div className="border-b border-[#DDE3DA] pb-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-bold text-[#17845B] bg-[#E8F5EE] px-2 py-0.5 rounded border border-[#A7D7BC]">
+                  CONFIRMED MATCH (1-to-1)
+                </span>
+                <span className="text-xs font-mono text-[#6B7280]">
+                  Score: {match.confidenceScore}/100
+                </span>
+              </div>
+              <h2 className="text-base font-bold text-[#111827] mt-1.5">
+                Forensic Match Provenance
+              </h2>
+              <p className="text-xs text-[#6B7280]">
+                Deterministic engine confirmed this pair via {match.tier === 'EXACT_REF_AMOUNT' ? 'exact reference and amount' : 'date tolerance window'}.
+              </p>
             </div>
-            <div className="text-xs text-[#4B5563] font-mono mb-1">
-              Date: {match.ledgerTransaction.date} | Ref: {match.ledgerTransaction.reference || 'None'}
-            </div>
-            <div className="text-xs text-[#111827]">{match.ledgerTransaction.sanitizedDescription}</div>
-          </div>
-        </div>
 
-        {/* Mathematical Proof Signals */}
-        <div className="bg-white border border-[#DDE3DA] rounded-lg p-3 space-y-2 text-xs">
-          <div className="font-semibold text-[#111827] flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5 text-[#17845B]" />
-            Deterministic Proof Signals:
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-[11px]">
-            <div className="bg-[#EEF1EB] p-2 rounded">
-              <span className="text-[#6B7280]">Date Lag:</span>{' '}
-              <span className="font-mono font-semibold text-[#111827]">
-                {match.dateDeltaDays === 0 ? 'Same Day (0d)' : `${match.dateDeltaDays} days`}
-              </span>
-            </div>
-            <div className="bg-[#EEF1EB] p-2 rounded">
-              <span className="text-[#6B7280]">Amount Variance:</span>{' '}
-              <span className="font-mono font-semibold text-[#17845B]">₹0.00 Exact</span>
-            </div>
-            <div className="bg-[#EEF1EB] p-2 rounded">
-              <span className="text-[#6B7280]">Reference Match:</span>{' '}
-              <span className="font-mono font-semibold text-[#111827]">
-                {match.signals.referenceMatch ? '100% Hash Match' : 'Unmatched Ref'}
-              </span>
-            </div>
-            <div className="bg-[#EEF1EB] p-2 rounded">
-              <span className="text-[#6B7280]">Description Similarity:</span>{' '}
-              <span className="font-mono font-semibold text-[#111827]">
-                {(match.signals.descriptionSimilarity * 100).toFixed(0)}% Jaccard
-              </span>
-            </div>
-          </div>
-        </div>
+            {/* Source Records Comparison */}
+            <div className="space-y-3">
+              <div className="bg-[#F8FAF6] border border-[#DDE3DA] rounded-lg p-3">
+                <div className="flex items-center justify-between text-xs font-semibold text-[#111827] mb-1">
+                  <span className="flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5 text-[#2563EB]" />
+                    Bank Statement Row ({match.bankTransaction.id})
+                  </span>
+                  <span className="font-mono text-[#17845B]">
+                    {formatPaise(match.bankTransaction.amountPaise)}
+                  </span>
+                </div>
+                <div className="text-xs text-[#4B5563] font-mono mb-1">
+                  Date: {match.bankTransaction.date} | Ref: {match.bankTransaction.reference || 'None'}
+                </div>
+                <div className="text-xs text-[#111827]">{match.bankTransaction.sanitizedDescription}</div>
+              </div>
 
-        <div className="text-[11px] text-[#6B7280] italic bg-[#FAFBF9] p-2.5 rounded border border-[#EDF1EA]">
-          This record cleared automated matching with 1-to-1 consumption. No AI inference was required.
-        </div>
-      </div>
+              <div className="bg-[#F8FAF6] border border-[#DDE3DA] rounded-lg p-3">
+                <div className="flex items-center justify-between text-xs font-semibold text-[#111827] mb-1">
+                  <span className="flex items-center gap-1.5">
+                    <BookOpen className="w-3.5 h-3.5 text-[#101A2B]" />
+                    Accounting Ledger Row ({match.ledgerTransaction.id})
+                  </span>
+                  <span className="font-mono text-[#17845B]">
+                    {formatPaise(match.ledgerTransaction.amountPaise)}
+                  </span>
+                </div>
+                <div className="text-xs text-[#4B5563] font-mono mb-1">
+                  Date: {match.ledgerTransaction.date} | Ref: {match.ledgerTransaction.reference || 'None'}
+                </div>
+                <div className="text-xs text-[#111827]">{match.ledgerTransaction.sanitizedDescription}</div>
+              </div>
+            </div>
+
+            {/* Mathematical Proof Signals */}
+            <div className="bg-white border border-[#DDE3DA] rounded-lg p-3 space-y-2 text-xs">
+              <div className="font-semibold text-[#111827] flex items-center gap-1">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#17845B]" />
+                Deterministic Proof Signals:
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div className="bg-[#EEF1EB] p-2 rounded">
+                  <span className="text-[#6B7280]">Date Lag:</span>{' '}
+                  <span className="font-mono font-semibold text-[#111827]">
+                    {match.dateDeltaDays === 0 ? 'Same Day (0d)' : `${match.dateDeltaDays} days`}
+                  </span>
+                </div>
+                <div className="bg-[#EEF1EB] p-2 rounded">
+                  <span className="text-[#6B7280]">Amount Variance:</span>{' '}
+                  <span className="font-mono font-semibold text-[#17845B]">₹0.00 Exact</span>
+                </div>
+                <div className="bg-[#EEF1EB] p-2 rounded">
+                  <span className="text-[#6B7280]">Reference Match:</span>{' '}
+                  <span className="font-mono font-semibold text-[#111827]">
+                    {match.signals.referenceMatch ? '100% Hash Match' : 'Unmatched Ref'}
+                  </span>
+                </div>
+                <div className="bg-[#EEF1EB] p-2 rounded">
+                  <span className="text-[#6B7280]">Description Similarity:</span>{' '}
+                  <span className="font-mono font-semibold text-[#111827]">
+                    {(match.signals.descriptionSimilarity * 100).toFixed(0)}% Jaccard
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-[11px] text-[#6B7280] italic bg-[#FAFBF9] p-2.5 rounded border border-[#EDF1EA]">
+              This record cleared automated matching with 1-to-1 consumption. No AI inference was required.
+            </div>
+          </div>
+        </aside>
+      </>
     );
   }
 
@@ -197,23 +239,71 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
   });
 
   return (
-    <div className="w-full lg:w-[420px] bg-white border-l border-[#DDE3DA] p-5 flex flex-col h-full overflow-y-auto space-y-4">
-      <div className="border-b border-[#DDE3DA] pb-3">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-mono font-bold text-[#D75E4C] bg-[#FDEDEA] px-2 py-0.5 rounded border border-[#F3BDB4]">
-            {exception.type}
-          </span>
-          <span className="text-[11px] font-mono text-[#6B7280]">
-            ID: {exception.exceptionId}
-          </span>
+    <>
+      <div 
+        className="fixed inset-0 bg-[#101A2B]/40 backdrop-blur-[2px] z-40 transition-opacity"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <aside 
+        className="fixed inset-y-0 right-0 z-50 w-full sm:w-[480px] lg:w-[540px] bg-white shadow-2xl border-l border-[#CBD5C5] flex flex-col h-full overflow-hidden animate-in slide-in-from-right duration-200"
+        role="dialog"
+        aria-label="Exception Investigation Drawer"
+        aria-modal="true"
+      >
+        <div className="p-4 border-b border-[#DDE3DA] flex items-center justify-between bg-[#F9FAF8] shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-sm text-[#111827]">Evidence Inspector</span>
+            <span className="text-[11px] font-mono bg-[#FDEDEA] text-[#D75E4C] border border-[#F3BDB4] px-2 py-0.5 rounded font-semibold">
+              {exception.exceptionId}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#111827] hover:bg-[#EEF1EB] transition-colors cursor-pointer"
+            title="Close panel (Esc)"
+            aria-label="Close panel"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <h2 className="text-base font-bold text-[#111827] mt-1.5">
-          {exception.title}
-        </h2>
-        <p className="text-xs text-[#4B5563] mt-1">
-          {exception.description}
-        </p>
-      </div>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          <div className="border-b border-[#DDE3DA] pb-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono font-bold text-[#D75E4C] bg-[#FDEDEA] px-2 py-0.5 rounded border border-[#F3BDB4]">
+                {exception.type}
+              </span>
+              <span className="text-[11px] font-mono text-[#6B7280]">
+                ID: {exception.exceptionId}
+              </span>
+            </div>
+            <h2 className="text-base font-bold text-[#111827] mt-1.5">
+              {exception.title}
+            </h2>
+            <p className="text-xs text-[#4B5563] mt-1">
+              {exception.description}
+            </p>
+          </div>
+
+          {/* Variance Context Comparison Banner */}
+          <div className="bg-[#FAFBF9] border border-[#DDE3DA] rounded-lg p-3 text-xs flex items-center justify-between">
+            <div>
+              <span className="text-[#6B7280]">Row Discrepancy:</span>{' '}
+              <strong className="font-mono text-[#D75E4C] text-sm">
+                {formatPaise(exception.amountDeltaPaise, { showSign: true })}
+              </strong>
+            </div>
+            {totalVariancePaise !== undefined && (
+              <div className="text-right">
+                <span className="text-[#6B7280] text-[11px]">Total Net Variance:</span>{' '}
+                <strong className="font-mono text-[#111827] text-xs">
+                  {formatPaise(totalVariancePaise, { showSign: true })}
+                </strong>
+              </div>
+            )}
+          </div>
 
       <div className="space-y-2.5">
         <div className="text-xs font-semibold text-[#111827] flex items-center justify-between">
@@ -401,6 +491,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
           </button>
         </div>
       </div>
+      </div>
 
       {showConsentModal && (
         <div className="fixed inset-0 bg-[#101A2B]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
@@ -467,6 +558,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
           </div>
         </div>
       )}
-    </div>
+      </aside>
+    </>
   );
 };
