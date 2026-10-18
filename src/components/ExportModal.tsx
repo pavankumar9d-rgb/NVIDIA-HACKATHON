@@ -4,8 +4,12 @@ import type {
   ReconciliationException, 
   ReconciliationSummary 
 } from '../lib/reconciliation';
-import { exportToSafeCSV } from '../lib/csv';
-import { formatPaise } from '../lib/money';
+import { 
+  generateMarkdownReport, 
+  generateAuditJSON, 
+  generateReconciledCSV, 
+  generateExceptionsCSV 
+} from '../lib/export';
 import { 
   Download, 
   FileSpreadsheet, 
@@ -22,6 +26,12 @@ interface ExportModalProps {
   exceptions: ReconciliationException[];
   summary: ReconciliationSummary | null;
   sessionName: string;
+  aiStatus?: {
+    configured: boolean;
+    allowLiveAI: boolean;
+    model?: string;
+    mode?: string;
+  };
 }
 
 export const ExportModal: React.FC<ExportModalProps> = ({
@@ -31,183 +41,37 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   exceptions,
   summary,
   sessionName,
+  aiStatus,
 }) => {
   const [activeExportTab, setActiveExportTab] = useState<'csv_reconciled' | 'csv_exceptions' | 'json_audit' | 'markdown'>('markdown');
-
   const [generatedDate] = useState(() => new Date());
-  const generatedTimestampIso = generatedDate.toISOString();
-  const generatedDateFormatted = generatedDate.toLocaleDateString('en-IN', { dateStyle: 'full' });
 
   if (!isOpen || !summary) return null;
-
-  const generateReconciledCSV = () => {
-    const rows = matches.map((m) => ({
-      match_id: m.matchId,
-      date: m.bankTransaction.date,
-      bank_id: m.bankTransaction.id,
-      ledger_id: m.ledgerTransaction.id,
-      reference: m.bankTransaction.reference || m.ledgerTransaction.reference || '',
-      description: m.bankTransaction.sanitizedDescription,
-      amount_rupees: (m.bankTransaction.amountPaise / 100).toFixed(2),
-      direction: m.bankTransaction.direction,
-      match_tier: m.tier,
-      confidence_score: m.confidenceScore,
-      date_lag_days: m.dateDeltaDays,
-    }));
-
-    return exportToSafeCSV(rows, [
-      { key: 'match_id', label: 'Match ID' },
-      { key: 'date', label: 'Date' },
-      { key: 'bank_id', label: 'Bank Row' },
-      { key: 'ledger_id', label: 'Ledger Row' },
-      { key: 'reference', label: 'Reference' },
-      { key: 'description', label: 'Narration' },
-      { key: 'amount_rupees', label: 'Amount (INR)', isNumeric: true },
-      { key: 'direction', label: 'Direction' },
-      { key: 'match_tier', label: 'Match Tier' },
-      { key: 'confidence_score', label: 'Confidence', isNumeric: true },
-      { key: 'date_lag_days', label: 'Date Lag (Days)', isNumeric: true },
-    ]);
-  };
-
-  const generateExceptionsCSV = () => {
-    const rows = exceptions.map((e) => {
-      const mainTx = e.bankTransaction || e.ledgerTransaction;
-      return {
-        exception_id: e.exceptionId,
-        type: e.type,
-        bank_id: e.bankTransaction?.id || '—',
-        ledger_id: e.ledgerTransaction?.id || '—',
-        date: mainTx?.date || '',
-        reference: mainTx?.reference || '',
-        description: mainTx?.sanitizedDescription || '',
-        amount_delta_rupees: (e.amountDeltaPaise / 100).toFixed(2),
-        review_status: e.reviewDecision?.status || 'PENDING',
-        reviewer_note: e.reviewDecision?.note || '',
-        ai_classification: e.aiHypothesis?.classification || 'NOT_INFERRED',
-        ai_recommendation: e.aiHypothesis?.recommendedAction || '',
-      };
-    });
-
-    return exportToSafeCSV(rows, [
-      { key: 'exception_id', label: 'Exception ID' },
-      { key: 'type', label: 'Exception Type' },
-      { key: 'bank_id', label: 'Bank Row' },
-      { key: 'ledger_id', label: 'Ledger Row' },
-      { key: 'date', label: 'Date' },
-      { key: 'reference', label: 'Reference' },
-      { key: 'description', label: 'Narration' },
-      { key: 'amount_delta_rupees', label: 'Variance (INR)', isNumeric: true },
-      { key: 'review_status', label: 'Review Decision' },
-      { key: 'reviewer_note', label: 'Reviewer Note' },
-      { key: 'ai_classification', label: 'Nemotron Classification' },
-      { key: 'ai_recommendation', label: 'Recommended Action' },
-    ]);
-  };
-
-  const generateAuditJSON = () => {
-    return JSON.stringify(
-      {
-        proofLedgerAuditMetadata: {
-          sessionName,
-          generatedAt: generatedTimestampIso,
-          currency: 'INR',
-          formulaInjectionSafe: true,
-          deterministicEngine: 'ProofLedger Integer Paise Core v1.0',
-        },
-        financialSummary: {
-          netBankTotal: formatPaise(summary.netBankTotalPaise),
-          netLedgerTotal: formatPaise(summary.netLedgerTotalPaise),
-          matchedAmount: formatPaise(summary.matchedAmountPaise),
-          unresolvedDiscrepancy: formatPaise(summary.unresolvedVariancePaise),
-          matchRate: `${summary.matchPercentage}%`,
-        },
-        confirmedMatches: matches.map((m) => ({
-          matchId: m.matchId,
-          tier: m.tier,
-          confidence: m.confidenceScore,
-          bank: { id: m.bankTransaction.id, date: m.bankTransaction.date, paise: m.bankTransaction.amountPaise },
-          ledger: { id: m.ledgerTransaction.id, date: m.ledgerTransaction.date, paise: m.ledgerTransaction.amountPaise },
-        })),
-        exceptionsAndResolutions: exceptions.map((e) => ({
-          exceptionId: e.exceptionId,
-          type: e.type,
-          variancePaise: e.amountDeltaPaise,
-          aiHypothesis: e.aiHypothesis || null,
-          humanReviewDecision: e.reviewDecision || { status: 'PENDING' },
-        })),
-      },
-      null,
-      2
-    );
-  };
-
-  const generateMarkdownReport = () => {
-    return `# ProofLedger AI — Reconciliation & Audit Report
-
-**Session:** ${sessionName}  
-**Date Generated:** ${generatedDateFormatted}  
-**Engine:** ProofLedger AI Deterministic Core + NVIDIA Nemotron-70B  
-**Currency:** INR (₹) — Calculated in Decimal-Safe Integer Minor Units (Paise)  
-
----
-
-## 1. Executive Summary
-
-| Financial Metric | Amount (INR) | Source / Detail |
-| :--- | :--- | :--- |
-| **Total Bank Net Position** | **${formatPaise(summary.netBankTotalPaise)}** | ${summary.bankRowCount} statements processed |
-| **Total Ledger Net Position** | **${formatPaise(summary.netLedgerTotalPaise)}** | ${summary.ledgerRowCount} journal vouchers |
-| **Confirmed 1-to-1 Matches** | **${formatPaise(summary.matchedAmountPaise)}** | ${summary.confirmedMatchCount} pairs matched (${summary.matchPercentage}%) |
-| **Unresolved Net Discrepancy** | **${formatPaise(summary.unresolvedVariancePaise, { showSign: true })}** | Mathematical variance (Bank - Ledger) |
-
----
-
-## 2. Exception Breakdown & Resolution Status
-
-- **Total Exceptions Identified:** ${exceptions.length}
-  - Missing in Ledger: ${summary.unmatchedBankCount}
-  - Unpresented Cheques (Missing in Bank): ${summary.unmatchedLedgerCount}
-  - Amount Discrepancies / Surcharges: ${summary.amountMismatchCount}
-  - Duplicate Candidates: ${summary.duplicateCandidateCount}
-  - Ambiguous Candidate Ties: ${summary.ambiguousMatchCount}
-
-### Exception Register & Human Audit Decisions:
-
-${exceptions
-  .map(
-    (e, idx) => `### ${idx + 1}. [${e.type}] ${e.exceptionId}: ${e.title}
-- **Variance:** ${formatPaise(e.amountDeltaPaise, { showSign: true })}
-- **Status:** **${e.reviewDecision?.status || 'PENDING REVIEW'}**
-- **Reviewer Note:** ${e.reviewDecision?.note || 'None recorded'}
-- **AI Hypothesis (Nemotron):** ${
-      e.aiHypothesis
-        ? `${e.aiHypothesis.classification} (Confidence: ${e.aiHypothesis.confidence})\n  > "${e.aiHypothesis.summary}"\n  - Recommended: ${e.aiHypothesis.recommendedAction}`
-        : 'Not requested / Local mode'
-    }
-`
-  )
-  .join('\n')}
-
----
-
-## 3. Compliance & Security Statement
-- All calculations were executed client-side in pure integer arithmetic.
-- Zero raw CSV statement data was uploaded to any remote server or persistent storage.
-- All exported CSV cells beginning with dangerous spreadsheet prefixes (\`=\`, \`+\`, \`-\`, \`@\`) have been neutralized to prevent CSV Formula Injection (CWE-1236).
-`;
-  };
 
   const getActiveContent = () => {
     switch (activeExportTab) {
       case 'csv_reconciled':
-        return generateReconciledCSV();
+        return generateReconciledCSV(matches);
       case 'csv_exceptions':
-        return generateExceptionsCSV();
+        return generateExceptionsCSV(exceptions);
       case 'json_audit':
-        return generateAuditJSON();
+        return generateAuditJSON({
+          sessionName,
+          summary,
+          matches,
+          exceptions,
+          generatedDate,
+          aiStatus,
+        });
       case 'markdown':
-        return generateMarkdownReport();
+        return generateMarkdownReport({
+          sessionName,
+          summary,
+          matches,
+          exceptions,
+          generatedDate,
+          aiStatus,
+        });
     }
   };
 

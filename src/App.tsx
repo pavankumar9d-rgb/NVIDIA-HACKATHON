@@ -481,6 +481,7 @@ export const App: React.FC = () => {
         exceptions={reconciliationResult?.exceptions || []}
         summary={reconciliationResult?.summary || null}
         sessionName={sessionName}
+        aiStatus={aiStatus}
       />
     </div>
   );

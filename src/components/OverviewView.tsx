@@ -290,9 +290,15 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                         <span>Ledger: <strong>{exp.ledgerTransaction.id}</strong> ({exp.ledgerTransaction.date})</span>
                       )}
                       {exp.aiHypothesis && (
-                        <span className="text-[#17845B] flex items-center gap-1 font-medium">
+                        <span className={`flex items-center gap-1 font-medium ${
+                          exp.aiHypothesis.model === 'ProofLedger Local Deterministic Rule'
+                            ? 'text-[#4B5563]'
+                            : 'text-[#17845B]'
+                        }`}>
                           <Sparkles className="w-3 h-3" />
-                          Nemotron Inferred
+                          {exp.aiHypothesis.model === 'ProofLedger Local Deterministic Rule'
+                            ? 'Local Inferred'
+                            : 'Nemotron Inferred'}
                         </span>
                       )}
                     </div>

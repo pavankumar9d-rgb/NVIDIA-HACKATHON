@@ -125,7 +125,9 @@ export const AuditTrailView: React.FC<AuditTrailViewProps> = ({
                 <div className="bg-[#101A2B] text-white p-2.5 rounded-lg text-xs space-y-1">
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="text-[#D7FF56] font-semibold">
-                      Nemotron 70B Hypothesis: {e.aiHypothesis.classification}
+                      {e.aiHypothesis.model === 'ProofLedger Local Deterministic Rule'
+                        ? `Local Rule Analysis: ${e.aiHypothesis.classification}`
+                        : `Nemotron 70B Hypothesis: ${e.aiHypothesis.classification}`}
                     </span>
                     <span className="text-slate-400 font-mono">
                       Confidence: {e.aiHypothesis.confidence}
