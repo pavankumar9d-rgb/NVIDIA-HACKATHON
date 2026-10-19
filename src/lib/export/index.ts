@@ -19,7 +19,10 @@ import type {
   ReconciliationSummary
 } from '../reconciliation';
 import { formatProvenanceLabel } from '../reconciliation';
-import { getReconciliationBridge } from '../reconciliation/analytics';
+import { 
+  getReconciliationBridge, 
+  calculateExceptionVarianceContributionPaise 
+} from '../reconciliation/analytics';
 import { exportToSafeCSV } from '../csv';
 import { formatPaise } from '../money';
 
@@ -120,7 +123,7 @@ export function generateMarkdownReport(options: ExportReportOptions): string {
 
 ## 1. Executive Financial Position & Movement Summary
 
-The table below reconciles certified opening anchors, gross period transaction flows, net period cash movements, and closing positions.
+The table below reconciles statement-reported opening anchors, gross period transaction flows, net period cash movements, and closing positions.
 
 | Financial Position & Movement | Bank Statement (INR) | General Ledger (INR) | Variance (Bank - Ledger) | Accounting Description |
 | :--- | :--- | :--- | :--- | :--- |
@@ -131,7 +134,7 @@ The table below reconciles certified opening anchors, gross period transaction f
 | **Closing Balance Position** | **${formatPaise(summary.closingBankBalancePaise)}** | **${formatPaise(summary.closingLedgerBalancePaise)}** | **${formatPaise(summary.unresolvedVariancePaise, { showSign: true })}** | Ending balance (Bank: ${formatProvenanceLabel(summary.bankClosingProvenance)}; Ledger: ${formatProvenanceLabel(summary.ledgerClosingProvenance)}) |
 
 ### Reconciliation Performance Metrics:
-- **Confirmed 1-to-1 Matches:** ${matches.length} pairs (${matchedRowCount} rows matched out of ${totalActiveRows} active statement rows = **${rowMatchPercentage}%** row match rate)
+- **Confirmed 1-to-1 Matches:** ${matches.length} pairs (${matchedRowCount} rows matched out of ${totalActiveRows} active statement rows = **${rowMatchPercentage}%** row match rate; composition evaluates ${matches.length + exceptions.length} reconciliation items: ${matches.length} confirmed pairs + ${exceptions.length} exceptions)
 - **Matched Financial Volume:** **${formatPaise(summary.matchedAmountPaise)}** (across ${matches.length} confirmed matched pairs)
 - **Closing Discrepancy Variance:** **${formatPaise(summary.unresolvedVariancePaise, { showSign: true })}** across ${exceptions.length} exceptions
 - **Balance Provenance Status:**
@@ -157,11 +160,11 @@ The schedule below provides an exact mathematical bridge connecting the **Bank C
 **Numerical Equation:**  
 **${formatPaise(bridge.closingLedgerBalancePaise)} = ${formatPaise(bridge.closingBankBalancePaise)} − ${formatPaise(bridge.bridgedTotalPaise)}**
 
-> **Accounting Interpretation:** Individual bridge items represent signed contributions to the reported **${formatPaise(bridge.bridgedTotalPaise, { showSign: true })}** Bank-minus-Ledger variance. They explain why the ending bank statement balance differs from the general ledger. Because $\text{Variance} = \text{Bank} - \text{Ledger}$, the net variance must be **subtracted** from the Bank Closing Balance to reconcile to the Ledger Closing Balance (or added to the Ledger Closing Balance to reach the Bank Closing Balance). Individual item contributions must **not** be blindly added to the bank closing balance.
+> **Accounting Interpretation:** Individual bridge items represent signed contributions to the reported **${formatPaise(bridge.bridgedTotalPaise, { showSign: true })}** Bank-minus-Ledger variance. They explain why the ending bank statement balance differs from the general ledger. Because Variance = Bank − Ledger, the net variance must be **subtracted** from the Bank Closing Balance to reconcile to the Ledger Closing Balance (or added to the Ledger Closing Balance to reach the Bank Closing Balance). Individual item contributions must **not** be blindly added to the bank closing balance.
 
 | Variance Line Item | Source | Variance Contribution (Bank − Ledger) (INR) | Accounting Explanation |
 | :--- | :--- | :--- | :--- |
-| **Bank Closing Position** | Bank | **${formatPaise(bridge.closingBankBalancePaise)}** | Certified ending bank statement position |
+| **Bank Closing Position** | Bank | **${formatPaise(bridge.closingBankBalancePaise)}** | Statement-reported ending bank statement position |
 ${bridge.bridgeItems.map((item) => `| ${item.label} | ${item.source === 'bank' ? 'Bank' : 'Ledger'} | ${item.formattedImpact} | ${item.explanation} |`).join('\n')}
 | **Net Variance Contribution Sum** | Reconciled | **${formatPaise(bridge.bridgedTotalPaise, { showSign: true })}** | Sum of 5 exception variance contributions (Bank − Ledger) |
 | **Reconciled Ledger Balance** | Ledger | **${formatPaise(bridge.closingLedgerBalancePaise)}** | **${bridge.isBalanced ? 'Bridge Balanced (Zero-Leakage Residual: ₹0.00)' : `Unbalanced Variance (Residual: ${bridge.formattedResidual})`}** |
@@ -198,7 +201,8 @@ ${exceptions
     }
 
     return `### ${idx + 1}. [${e.type}] ${e.exceptionId}: ${e.title}
-- **Financial Variance:** ${formatPaise(e.amountDeltaPaise, { showSign: true })}
+- **Variance Impact (Bank − Ledger):** ${formatPaise(calculateExceptionVarianceContributionPaise(e), { showSign: true })}
+- **Transaction Amount:** ${formatPaise(e.bankTransaction?.amountPaise ?? e.ledgerTransaction?.amountPaise ?? Math.abs(e.amountDeltaPaise))} (${e.bankTransaction?.direction ?? e.ledgerTransaction?.direction ?? 'delta'})
 - **Review Status:** **${e.reviewDecision?.status || 'PENDING REVIEW'}**
 - **Reviewer Note:** ${e.reviewDecision?.note || 'None recorded'}
 ${aiBlock}
@@ -300,10 +304,13 @@ export function generateAuditJSON(options: ExportReportOptions): string {
       })),
       exceptionsAndResolutions: exceptions.map((e) => {
         const aiInfo = getExceptionAIStatus(e);
+        const varianceContributionPaise = calculateExceptionVarianceContributionPaise(e);
         return {
           exceptionId: e.exceptionId,
           type: e.type,
-          variancePaise: e.amountDeltaPaise,
+          varianceContributionPaise,
+          transactionDeltaPaise: e.amountDeltaPaise,
+          variancePaise: varianceContributionPaise,
           aiInferenceStatus: aiInfo.statusCode,
           aiHypothesis: e.aiHypothesis || null,
           humanReviewDecision: e.reviewDecision || { status: 'PENDING' },

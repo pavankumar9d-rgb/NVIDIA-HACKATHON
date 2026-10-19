@@ -317,9 +317,9 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
 
                   <div className="flex items-center gap-4 shrink-0 self-end md:self-auto">
                     <div className="text-right">
-                      <div className="text-xs text-[#6B7280]">Impact Delta</div>
+                      <div className="text-xs text-[#6B7280]">Variance Impact</div>
                       <div className="font-mono font-bold text-sm text-[#111827]">
-                        {exp.formattedDelta}
+                        {exp.formattedVarianceContribution}
                       </div>
                     </div>
 

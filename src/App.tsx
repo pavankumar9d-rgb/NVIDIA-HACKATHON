@@ -402,6 +402,7 @@ export const App: React.FC = () => {
           onResetSession={handleResetSession}
           hasData={bankRows.length > 0}
           isReconciled={Boolean(reconciliationResult)}
+          summary={reconciliationResult?.summary ?? null}
         />
 
         {currentTab === 'overview' && (

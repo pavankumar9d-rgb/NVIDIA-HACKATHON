@@ -5,6 +5,7 @@ import type {
   ReconciliationSummary 
 } from '../lib/reconciliation';
 import { formatPaise } from '../lib/money';
+import { calculateExceptionVarianceContributionPaise } from '../lib/reconciliation/analytics';
 import { 
   FileText, 
   Clock, 
@@ -100,8 +101,8 @@ export const AuditTrailView: React.FC<AuditTrailViewProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2 font-mono">
-                  <span className="text-[#D75E4C] font-semibold">
-                    Δ {formatPaise(e.amountDeltaPaise, { showSign: true })}
+                  <span className="text-[#D75E4C] font-semibold" title="Signed Bank − Ledger variance contribution">
+                    Δ {formatPaise(calculateExceptionVarianceContributionPaise(e), { showSign: true })}
                   </span>
                   <span
                     className={`px-2 py-0.5 rounded text-[10px] font-bold ${

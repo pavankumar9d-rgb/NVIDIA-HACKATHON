@@ -5,8 +5,11 @@ import {
   Sparkles, 
   RotateCcw, 
   Download,
-  CheckCircle2
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
+import type { ReconciliationSummary } from '../lib/reconciliation';
+import { getReconciliationAuditStatus } from '../lib/reconciliation/analytics';
 
 interface TopBarProps {
   sessionName: string;
@@ -18,6 +21,7 @@ interface TopBarProps {
   onResetSession: () => void;
   hasData: boolean;
   isReconciled: boolean;
+  summary?: ReconciliationSummary | null;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -30,7 +34,10 @@ export const TopBar: React.FC<TopBarProps> = ({
   onResetSession,
   hasData,
   isReconciled,
+  summary = null,
 }) => {
+  const auditStatus = isReconciled ? getReconciliationAuditStatus(summary) : null;
+
   return (
     <header className="h-16 bg-white border-b border-[#DDE3DA] px-4 md:px-6 flex items-center justify-between shrink-0 shadow-xs">
       <div className="flex items-center gap-3">
@@ -45,10 +52,19 @@ export const TopBar: React.FC<TopBarProps> = ({
                 Synthetic Fixture
               </span>
             )}
-            {isReconciled && (
+            {auditStatus && auditStatus.status === 'REVIEW_REQUIRED' && (
+              <span 
+                className="bg-amber-50 text-amber-800 border border-amber-300 text-[11px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1"
+                title={auditStatus.explanation}
+              >
+                <AlertCircle className="w-3 h-3 text-amber-600" />
+                Review Required
+              </span>
+            )}
+            {auditStatus && auditStatus.status === 'FULLY_RECONCILED' && (
               <span className="bg-[#E8F5EE] text-[#17845B] border border-[#A7D7BC] text-[11px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3 text-[#17845B]" />
-                Reconciled
+                Fully Reconciled
               </span>
             )}
           </div>

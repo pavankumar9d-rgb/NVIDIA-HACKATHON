@@ -4,6 +4,7 @@ import type {
   ReconciliationException 
 } from '../lib/reconciliation';
 import { formatPaise } from '../lib/money';
+import { calculateExceptionVarianceContributionPaise } from '../lib/reconciliation/analytics';
 import { buildMinimizedExceptionPayload } from '../lib/privacy';
 import { 
   ShieldCheck, 
@@ -290,9 +291,9 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
           {/* Variance Context Comparison Banner */}
           <div className="bg-[#FAFBF9] border border-[#DDE3DA] rounded-lg p-3 text-xs flex items-center justify-between">
             <div>
-              <span className="text-[#6B7280]">Row Discrepancy:</span>{' '}
+              <span className="text-[#6B7280]">Variance Impact (Bank − Ledger):</span>{' '}
               <strong className="font-mono text-[#D75E4C] text-sm">
-                {formatPaise(exception.amountDeltaPaise, { showSign: true })}
+                {formatPaise(calculateExceptionVarianceContributionPaise(exception), { showSign: true })}
               </strong>
             </div>
             {totalVariancePaise !== undefined && (
@@ -309,8 +310,8 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
         <div className="text-xs font-semibold text-[#111827] flex items-center justify-between">
           <span>Forensic Evidence:</span>
           {exception.amountDeltaPaise !== 0 && (
-            <span className="font-mono text-[#D75E4C] font-bold">
-              Δ {formatPaise(exception.amountDeltaPaise, { showSign: true })}
+            <span className="font-mono text-[#D75E4C] font-bold" title="Signed transaction amount delta">
+              Transaction Δ: {formatPaise(exception.amountDeltaPaise, { showSign: true })}
             </span>
           )}
         </div>

@@ -579,7 +579,7 @@ export function runReconciliation(
   const ledgerOpeningProvenance: BalanceProvenance = options.ledgerOpeningProvenance ?? (
     options.hasLedgerOpeningAnchor !== undefined
       ? (options.hasLedgerOpeningAnchor ? 'STATEMENT_DETECTED' : 'UNVERIFIED_BASELINE')
-      : (options.openingLedgerBalancePaise !== undefined ? 'STATEMENT_DETECTED' : 'UNVERIFIED_BASELINE')
+      : 'UNVERIFIED_BASELINE'
   );
   const bankClosingProvenance: BalanceProvenance = options.bankClosingProvenance ?? (
     options.hasBankClosingAnchor !== undefined

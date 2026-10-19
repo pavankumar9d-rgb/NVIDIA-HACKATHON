@@ -237,9 +237,125 @@ export function getReconciliationComposition(
 
 export type ExceptionSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 
+/**
+ * Calculates each exception's signed Bank − Ledger variance contribution for the reconciliation bridge.
+ * 
+ * Mathematical convention:
+ * Closing Variance = Bank Closing Balance − Ledger Closing Balance
+ * 
+ * Sign rules:
+ * - AMOUNT_MISMATCH: Bank Amount − Ledger Amount (e.g. ₹49,760 − ₹50,000 = -₹240)
+ * - UNMATCHED_BANK:
+ *     - Credit (+ in bank, omitted in ledger): +amount (increases bank balance relative to ledger)
+ *     - Debit (- in bank, omitted in ledger): -amount (reduces bank balance relative to ledger)
+ * - UNMATCHED_LEDGER:
+ *     - Debit (expense in ledger, unpresented cheque not yet debited at bank): +amount (bank balance is higher relative to ledger)
+ *     - Credit (income in ledger, uncleared deposit not yet credited at bank): -amount (bank balance is lower relative to ledger)
+ * - DUPLICATE_CANDIDATE:
+ *     - In Bank:
+ *         - Debit (duplicate bank deduction): -amount
+ *         - Credit (duplicate bank receipt): +amount
+ *     - In Ledger:
+ *         - Debit (duplicate ledger expense): +amount
+ *         - Credit (duplicate ledger receipt): -amount
+ * - AMBIGUOUS_MATCH:
+ *     amountDeltaPaise
+ */
+export function calculateExceptionVarianceContributionPaise(
+  e: ReconciliationException
+): number {
+  if (e.type === 'AMOUNT_MISMATCH') {
+    return e.amountDeltaPaise;
+  }
+  if (e.type === 'UNMATCHED_BANK') {
+    const isCredit = e.bankTransaction?.direction === 'credit';
+    const absAmount = e.bankTransaction?.amountPaise ?? 0;
+    return isCredit ? absAmount : -absAmount;
+  }
+  if (e.type === 'UNMATCHED_LEDGER') {
+    const isCredit = e.ledgerTransaction?.direction === 'credit';
+    const absAmount = e.ledgerTransaction?.amountPaise ?? 0;
+    return isCredit ? -absAmount : absAmount;
+  }
+  if (e.type === 'DUPLICATE_CANDIDATE') {
+    const isBank = Boolean(e.bankTransaction);
+    const isCredit = (e.bankTransaction || e.ledgerTransaction)?.direction === 'credit';
+    const absAmount = (e.bankTransaction || e.ledgerTransaction)?.amountPaise ?? 0;
+    if (isBank) {
+      return isCredit ? absAmount : -absAmount;
+    } else {
+      return isCredit ? -absAmount : absAmount;
+    }
+  }
+  if (e.type === 'AMBIGUOUS_MATCH') {
+    return e.amountDeltaPaise;
+  }
+  return e.amountDeltaPaise;
+}
+
+export type AuditReconciliationStatus = 'NOT_STARTED' | 'REVIEW_REQUIRED' | 'FULLY_RECONCILED';
+
+export interface ReconciliationStatusInfo {
+  status: AuditReconciliationStatus;
+  label: 'Not Reconciled' | 'Review Required' | 'Fully Reconciled';
+  hasUnresolvedExceptions: boolean;
+  hasNonZeroVariance: boolean;
+  isBridgeBalanced: boolean;
+  explanation: string;
+}
+
+/**
+ * Determines truthful audit status of the reconciliation session.
+ * A zero bridge residual confirms bridge math integrity, but does NOT imply all transactions matched.
+ * Review is strictly required if unresolved exceptions or closing variance remain.
+ */
+export function getReconciliationAuditStatus(
+  summary: ReconciliationSummary | null,
+  bridge?: ReconciliationBridgeResult | null
+): ReconciliationStatusInfo {
+  if (!summary) {
+    return {
+      status: 'NOT_STARTED',
+      label: 'Not Reconciled',
+      hasUnresolvedExceptions: false,
+      hasNonZeroVariance: false,
+      isBridgeBalanced: false,
+      explanation: 'No reconciliation has been executed yet.',
+    };
+  }
+
+  const hasUnresolvedExceptions = summary.exceptionCount > 0;
+  const hasNonZeroVariance = summary.unresolvedVariancePaise !== 0;
+  const isBridgeBalanced = bridge?.isBalanced ?? false;
+
+  if (hasUnresolvedExceptions || hasNonZeroVariance) {
+    return {
+      status: 'REVIEW_REQUIRED',
+      label: 'Review Required',
+      hasUnresolvedExceptions,
+      hasNonZeroVariance,
+      isBridgeBalanced,
+      explanation: isBridgeBalanced
+        ? 'Reconciliation bridge balances mathematically (₹0.00 residual), but unresolved transaction exceptions and closing variance require human review before close.'
+        : 'Closing balance variance and unresolved exceptions require review.',
+    };
+  }
+
+  return {
+    status: 'FULLY_RECONCILED',
+    label: 'Fully Reconciled',
+    hasUnresolvedExceptions: false,
+    hasNonZeroVariance: false,
+    isBridgeBalanced,
+    explanation: 'All transactions matched with zero exceptions and zero closing discrepancy.',
+  };
+}
+
 export interface PrioritizedException extends ReconciliationException {
   severity: ExceptionSeverity;
   formattedDelta: string;
+  varianceContributionPaise: number;
+  formattedVarianceContribution: string;
   impactOrder: number;
 }
 
@@ -252,6 +368,8 @@ export function getPrioritizedExceptions(
   return [...exceptions]
     .map((e) => {
       const absPaise = Math.abs(e.amountDeltaPaise || e.bankTransaction?.amountPaise || e.ledgerTransaction?.amountPaise || 0);
+      const varianceContributionPaise = calculateExceptionVarianceContributionPaise(e);
+      const formattedVarianceContribution = formatPaise(varianceContributionPaise, { showSign: true });
       
       let severity: ExceptionSeverity = 'LOW';
       if (absPaise >= 1000000) {
@@ -265,7 +383,9 @@ export function getPrioritizedExceptions(
       return {
         ...e,
         severity,
-        formattedDelta: formatPaise(e.amountDeltaPaise || e.bankTransaction?.amountPaise || e.ledgerTransaction?.amountPaise || 0, { showSign: true }),
+        varianceContributionPaise,
+        formattedVarianceContribution,
+        formattedDelta: formattedVarianceContribution,
         impactOrder: absPaise,
       };
     })
@@ -309,47 +429,28 @@ export function getReconciliationBridge(
   const bridgeItems: ReconciliationBridgeItem[] = [];
 
   for (const e of exceptions) {
-    let impactPaise = 0;
+    const impactPaise = calculateExceptionVarianceContributionPaise(e);
     let label = e.title;
     let explanation = e.description;
 
     if (e.type === 'AMOUNT_MISMATCH') {
-      // Bank received less or more than ledger recorded
-      impactPaise = e.amountDeltaPaise; // Bank - Ledger
       explanation = 'Possible gateway/processing fee difference between invoiced amount and settled bank credit; requires verification against settlement voucher.';
     } else if (e.type === 'UNMATCHED_BANK') {
-      // In bank, not yet booked in ledger
-      // If credit (+ in bank), increases bank over ledger
-      // If debit (- in bank), reduces bank relative to ledger
       const isCredit = e.bankTransaction?.direction === 'credit';
-      const absAmount = e.bankTransaction?.amountPaise ?? 0;
-      impactPaise = isCredit ? absAmount : -absAmount;
       explanation = isCredit 
         ? 'Direct bank receipt / interest income unrecorded in ledger; requires confirmation.'
         : 'Bank fee / direct debit charges unposted in accounting ledger; requires verification.';
     } else if (e.type === 'UNMATCHED_LEDGER') {
-      // In ledger, not yet cleared at bank (e.g. unpresented cheques, uncleared deposits)
       const isCredit = e.ledgerTransaction?.direction === 'credit';
-      const absAmount = e.ledgerTransaction?.amountPaise ?? 0;
-      // If debit (expense in ledger), bank has NOT paid yet, so Bank balance is HIGHER by absAmount (+).
-      // If credit (income in ledger), bank has NOT received yet, so Bank balance is LOWER by absAmount (-).
-      impactPaise = isCredit ? -absAmount : absAmount;
       explanation = isCredit
         ? 'Deposits in transit recorded in ledger, pending bank clearance; requires confirmation.'
         : 'Outstanding unpresented vendor payment cheque issued but not yet debited by bank; pending bank clearance.';
     } else if (e.type === 'DUPLICATE_CANDIDATE') {
       const isBank = Boolean(e.bankTransaction);
-      const isCredit = (e.bankTransaction || e.ledgerTransaction)?.direction === 'credit';
-      const absAmount = (e.bankTransaction || e.ledgerTransaction)?.amountPaise ?? 0;
-      if (isBank) {
-        impactPaise = isCredit ? absAmount : -absAmount;
-        explanation = 'Suspected duplicate bank charge debited twice; requires confirmation before adjustment.';
-      } else {
-        impactPaise = isCredit ? -absAmount : absAmount;
-        explanation = 'Suspected duplicate voucher entry in general ledger; requires verification.';
-      }
+      explanation = isBank
+        ? 'Suspected duplicate bank charge debited twice; requires confirmation before adjustment.'
+        : 'Suspected duplicate voucher entry in general ledger; requires verification.';
     } else if (e.type === 'AMBIGUOUS_MATCH') {
-      impactPaise = e.amountDeltaPaise;
       explanation = 'Multiple candidate tie requiring human confirmation.';
     }
 
