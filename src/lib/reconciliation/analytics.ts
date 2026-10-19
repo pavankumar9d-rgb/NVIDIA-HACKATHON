@@ -289,12 +289,18 @@ export interface ReconciliationBridgeResult {
   unresolvedVariancePaise: number;
   bridgeItems: ReconciliationBridgeItem[];
   bridgedTotalPaise: number;
+  residualPaise: number;
+  formattedResidual: string;
   isBalanced: boolean;
+  formula: string;
 }
 
 /**
  * Formulates the mathematical audit bridge explaining the variance between
  * the Bank Closing Balance and the General Ledger Closing Balance.
+ * 
+ * Mathematical Relationship:
+ * Ledger Closing Balance = Bank Closing Balance - Net Bank-minus-Ledger Variance
  */
 export function getReconciliationBridge(
   summary: ReconciliationSummary,
@@ -319,8 +325,8 @@ export function getReconciliationBridge(
       const absAmount = e.bankTransaction?.amountPaise ?? 0;
       impactPaise = isCredit ? absAmount : -absAmount;
       explanation = isCredit 
-        ? 'Direct bank receipt/interest income not yet recorded in books.'
-        : 'Bank fee / direct debit charges unposted in accounting ledger.';
+        ? 'Direct bank receipt / interest income unrecorded in ledger; requires confirmation.'
+        : 'Bank fee / direct debit charges unposted in accounting ledger; requires verification.';
     } else if (e.type === 'UNMATCHED_LEDGER') {
       // In ledger, not yet cleared at bank (e.g. unpresented cheques, uncleared deposits)
       const isCredit = e.ledgerTransaction?.direction === 'credit';
@@ -329,8 +335,8 @@ export function getReconciliationBridge(
       // If credit (income in ledger), bank has NOT received yet, so Bank balance is LOWER by absAmount (-).
       impactPaise = isCredit ? -absAmount : absAmount;
       explanation = isCredit
-        ? 'Deposits in transit recorded in ledger, pending bank clearance.'
-        : 'Outstanding unpresented vendor payment cheque issued but not yet debited by bank.';
+        ? 'Deposits in transit recorded in ledger, pending bank clearance; requires confirmation.'
+        : 'Outstanding unpresented vendor payment cheque issued but not yet debited by bank; pending bank clearance.';
     } else if (e.type === 'DUPLICATE_CANDIDATE') {
       const isBank = Boolean(e.bankTransaction);
       const isCredit = (e.bankTransaction || e.ledgerTransaction)?.direction === 'credit';
@@ -359,7 +365,19 @@ export function getReconciliationBridge(
   }
 
   const bridgedTotalPaise = sumPaise(bridgeItems.map((b) => b.impactPaise));
-  const isBalanced = bridgedTotalPaise === summary.unresolvedVariancePaise;
+  
+  // Strengthened 2-way verification:
+  // 1. Sum of item variance contributions must equal the reported summary variance
+  const matchesReportedVariance = bridgedTotalPaise === summary.unresolvedVariancePaise;
+  
+  // 2. Ledger Closing Balance must equal Bank Closing Balance minus bridged variance
+  // Residual = (Bank Closing - bridgedTotalPaise) - Ledger Closing
+  const residualPaise = (summary.closingBankBalancePaise - bridgedTotalPaise) - summary.closingLedgerBalancePaise;
+  const zeroResidual = residualPaise === 0;
+
+  const isBalanced = matchesReportedVariance && zeroResidual;
+  const formattedResidual = formatPaise(residualPaise, { showSign: true });
+  const formula = 'Ledger Closing Balance = Bank Closing Balance - Net Bank-minus-Ledger Variance';
 
   return {
     openingBankBalancePaise: summary.openingBankBalancePaise,
@@ -368,6 +386,9 @@ export function getReconciliationBridge(
     unresolvedVariancePaise: summary.unresolvedVariancePaise,
     bridgeItems,
     bridgedTotalPaise,
+    residualPaise,
+    formattedResidual,
     isBalanced,
+    formula,
   };
 }

@@ -139,15 +139,24 @@ The table below reconciles certified opening anchors, gross period transaction f
 
 ## 2. Mathematical Audit Reconciliation Bridge
 
-The adjustment schedule below provides an exact mathematical bridge connecting the **Bank Closing Balance** to the **General Ledger Closing Balance**.
+The schedule below provides an exact mathematical bridge connecting the **Bank Closing Balance** to the **General Ledger Closing Balance**.
 
-| Adjustment Item | Source | Adjustment (INR) | Accounting Explanation |
+### Mathematical Reconciliation Formula:
+**Ledger Closing Balance = Bank Closing Balance − Net Bank-minus-Ledger Variance**
+
+**Numerical Equation:**  
+**${formatPaise(bridge.closingLedgerBalancePaise)} = ${formatPaise(bridge.closingBankBalancePaise)} − ${formatPaise(bridge.bridgedTotalPaise)}**
+
+> **Accounting Interpretation:** Individual bridge items represent signed contributions to the reported **${formatPaise(bridge.bridgedTotalPaise, { showSign: true })}** Bank-minus-Ledger variance. They explain why the ending bank statement balance differs from the general ledger. Because $\text{Variance} = \text{Bank} - \text{Ledger}$, the net variance must be **subtracted** from the Bank Closing Balance to reconcile to the Ledger Closing Balance (or added to the Ledger Closing Balance to reach the Bank Closing Balance). Individual item contributions must **not** be blindly added to the bank closing balance.
+
+| Variance Line Item | Source | Variance Contribution (Bank − Ledger) (INR) | Accounting Explanation |
 | :--- | :--- | :--- | :--- |
 | **Bank Closing Position** | Bank | **${formatPaise(bridge.closingBankBalancePaise)}** | Certified ending bank statement position |
 ${bridge.bridgeItems.map((item) => `| ${item.label} | ${item.source === 'bank' ? 'Bank' : 'Ledger'} | ${item.formattedImpact} | ${item.explanation} |`).join('\n')}
-| **Reconciled Ledger Balance** | Ledger | **${formatPaise(bridge.closingLedgerBalancePaise)}** | **${bridge.isBalanced ? 'Bridge Balanced (Zero-Leakage Residual: ₹0.00)' : 'Unbalanced Variance'}** |
+| **Net Variance Contribution Sum** | Reconciled | **${formatPaise(bridge.bridgedTotalPaise, { showSign: true })}** | Sum of 5 exception variance contributions (Bank − Ledger) |
+| **Reconciled Ledger Balance** | Ledger | **${formatPaise(bridge.closingLedgerBalancePaise)}** | **${bridge.isBalanced ? 'Bridge Balanced (Zero-Leakage Residual: ₹0.00)' : `Unbalanced Variance (Residual: ${bridge.formattedResidual})`}** |
 
-> **Audit Status:** The mathematical adjustment bridge reconciles completely with zero leakage (₹0.00 residual delta). However, **${exceptions.length} unresolved exceptions** remain requiring human sign-off and corresponding journal adjustments before final ledger lock.
+> **Audit Status:** ${bridge.isBalanced ? `The mathematical adjustment bridge reconciles completely with zero leakage (₹0.00 residual delta: ${formatPaise(bridge.closingBankBalancePaise)} − ${formatPaise(bridge.bridgedTotalPaise)} = ${formatPaise(bridge.closingLedgerBalancePaise)}).` : `Bridge has an unexplained variance delta of ${bridge.formattedResidual}.`} However, **${exceptions.length} unresolved exceptions** remain requiring human sign-off and corresponding journal adjustments before final ledger lock.
 
 ---
 
@@ -192,7 +201,7 @@ ${aiBlock}
 ## 4. Compliance, Privacy & Security Statement
 - All financial calculations were executed client-side in pure decimal-safe integer minor units (paise).
 - Zero raw CSV statement data was uploaded to any remote server or persistent cloud storage.
-- All exported CSV cells beginning with dangerous spreadsheet characters (\`=\`, \`+\`, \`-\`, \`@\`, \`|\`, \`%\`, \`\\t\`, \`\\r\`) have been neutralized with a leading apostrophe prefix to protect against CSV Formula Injection (CWE-1236).
+- Untrusted text cells beginning with dangerous spreadsheet characters (\`=\`, \`+\`, \`-\`, \`@\`, \`|\`, \`%\`, \`\\t\`, \`\\r\`) have been neutralized with a leading apostrophe prefix to protect against CSV Formula Injection (CWE-1236), while validated financial numeric columns intentionally preserve legitimate signed numeric amounts (e.g., \`-18500.00\`).
 `;
 }
 
@@ -250,11 +259,15 @@ export function generateAuditJSON(options: ExportReportOptions): string {
         duplicateCandidateCount: summary.duplicateCandidateCount,
       },
       reconciliationBridge: {
+        formula: bridge.formula,
+        numericalEquation: `${formatPaise(bridge.closingLedgerBalancePaise)} = ${formatPaise(bridge.closingBankBalancePaise)} - ${formatPaise(bridge.bridgedTotalPaise)}`,
         openingBankBalancePaise: bridge.openingBankBalancePaise,
         closingBankBalancePaise: bridge.closingBankBalancePaise,
         closingLedgerBalancePaise: bridge.closingLedgerBalancePaise,
         unresolvedVariancePaise: bridge.unresolvedVariancePaise,
         bridgedTotalPaise: bridge.bridgedTotalPaise,
+        residualPaise: bridge.residualPaise,
+        formattedResidual: bridge.formattedResidual,
         isBalanced: bridge.isBalanced,
         items: bridge.bridgeItems,
       },

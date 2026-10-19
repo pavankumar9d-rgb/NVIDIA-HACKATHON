@@ -8,7 +8,7 @@
   </p>
   <p>
     <a href="#quickstart"><img src="https://img.shields.io/badge/Status-Built%20%26%20Tested-17845B" alt="Status" /></a>
-    <a href="#test-results"><img src="https://img.shields.io/badge/Tests-86%2F86%20Passing-17845B" alt="Tests" /></a>
+    <a href="#test-results"><img src="https://img.shields.io/badge/Tests-87%2F87%20Passing-17845B" alt="Tests" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue" alt="License" /></a>
     <img src="https://img.shields.io/badge/Model-NVIDIA%20Nemotron%2070B-D7FF56?labelColor=101A2B" alt="Model" />
     <img src="https://img.shields.io/badge/Platform-Nebius%20Token%20Factory-101A2B" alt="Nebius" />
@@ -114,7 +114,7 @@ pnpm run dev
 
 ## 4. Test Results & Quality Gates
 
-The test suite contains **86 automated tests** across 7 test suites covering arithmetic precision, matching rules, Zod schemas, provenance guards, duplicate detection, export consistency, UTF-8 BOM encoding, ISO date formatting, bridge sign conventions, production static serving, SPA fallback routing, and formula injection escaping:
+The test suite contains **87 automated tests** across 7 test suites covering arithmetic precision, matching rules, Zod schemas, provenance guards, duplicate detection, export consistency, UTF-8 BOM encoding, ISO date formatting, bridge sign conventions, production static serving, SPA fallback routing, and formula injection escaping:
 
 ```powershell
 pnpm test
@@ -128,12 +128,12 @@ pnpm test
  ✓ tests/reconciliation.test.ts (12 tests)
  ✓ tests/money.test.ts (13 tests)
  ✓ tests/analytics.test.ts (2 tests)
- ✓ tests/export-consistency.test.ts (13 tests)
+ ✓ tests/export-consistency.test.ts (14 tests)
  ✓ tests/ai-safety.test.ts (6 tests)
  ✓ tests/server-api.test.ts (23 tests)
 
  Test Files  7 passed (7)
-      Tests  86 passed (86)
+      Tests  87 passed (87)
 ```
 
 ### Quality Linters & Production Build:
@@ -188,7 +188,8 @@ If creating the service manually:
 - **Hackathon Live Model Requirement Disclosure:** In this deployed demo, live cloud inference calls to NVIDIA Nemotron on Nebius Token Factory remain **disabled** (`ALLOW_LIVE_AI=false`). Live inference requires a verified, funded `NEBIUS_API_KEY` and rate/budget controls to prevent token drainage. The live model integration is fully implemented and tested via mock suites, but pending developer key configuration.
 - **Full Local Mode Functionality:** Even with live AI disabled, the application is 100% interactive and functional: loading synthetic client records, integer paise arithmetic, deterministic reconciliation, cash flow charts, evidence drawer, human triage decisions, audit trail recording, and formula-safe CSV/JSON/Markdown exports all function seamlessly in-browser.
 - **Session-Only Ephemeral Triage State:** Human auditor decisions (Approved/Rejected/Deferred) and review notes are retained exclusively in active React state for the duration of the browser session. They are immediately reflected in downloaded CSV, JSON, and Markdown export packages. Reloading the page or restarting the service resets the triage state to pending, ensuring zero persistence leakage.
-- **Export UTF-8 BOM & Sign Convention Semantics:** Downloaded CSVs include a UTF-8 BOM (`\uFEFF`) so spreadsheet tools (such as Excel on Windows) cleanly display em dashes (`—`) without mojibake. Dates are exported in raw ISO `YYYY-MM-DD` format (spreadsheet display formatting is locale-dependent). In the Exceptions CSV, the `Transaction Net Delta (INR)` represents the transaction's cash flow impact (e.g. -₹18,500.00 for an unpresented ledger cheque expenditure), whereas in the Reconciliation Bridge, this unpresented cheque appears as an add-back of `+₹18,500.00` because the bank balance has not yet disbursed the funds.
+- **Export UTF-8 BOM & Sign Convention Semantics:** Downloaded CSVs include a UTF-8 BOM (`\uFEFF`) so spreadsheet tools (such as Excel on Windows) cleanly display em dashes (`—`) without mojibake. Dates are exported in raw ISO `YYYY-MM-DD` format (spreadsheet display formatting is locale-dependent). In the Exceptions CSV, the `Transaction Net Delta (INR)` represents the transaction's cash flow impact (e.g. -₹18,500.00 for an unpresented ledger cheque expenditure), whereas in the Reconciliation Bridge, the items represent signed contributions to the Net Bank-minus-Ledger Variance (summing to +₹15,430.00), where the closing bridge follows the exact formula: `Ledger Closing Balance = Bank Closing Balance − Net Bank-minus-Ledger Variance` (`₹4,60,950.00 = ₹4,76,380.00 − ₹15,430.00`).
+- **Formula Injection Defense & Numeric Preservation (CWE-1236):** In CSV exports, untrusted freeform text cells starting with executable characters (`=`, `+`, `-`, `@`, `|`, `%`) are prefixed with a neutralizing apostrophe (`'`), while validated financial numeric columns preserve legitimate signed numbers (e.g. `-18500.00`) to maintain arithmetic interoperability without risk of code execution.
 
 ---
 

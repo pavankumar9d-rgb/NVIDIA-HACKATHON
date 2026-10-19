@@ -122,7 +122,38 @@ describe('Reconciliation Analytics & Audit Bridge', () => {
     expect(bridge.closingLedgerBalancePaise).toBe(46095000); // ₹4,60,950.00
     expect(bridge.unresolvedVariancePaise).toBe(1543000); // +₹15,430.00
     expect(bridge.bridgedTotalPaise).toBe(1543000); // Exactly matches!
+    expect(bridge.residualPaise).toBe(0);
+    expect(bridge.formattedResidual).toBe('₹0.00');
     expect(bridge.isBalanced).toBe(true);
+
+    // 1. The five item contributions sum to +₹15,430.00
+    expect(bridge.bridgeItems.length).toBe(5);
+    const sumImpacts = bridge.bridgeItems.reduce((acc, item) => acc + item.impactPaise, 0);
+    expect(sumImpacts).toBe(1543000); // +₹15,430.00
+
+    // 2. Bank closing minus variance equals ledger closing exactly
+    expect(bridge.closingBankBalancePaise - bridge.bridgedTotalPaise).toBe(bridge.closingLedgerBalancePaise);
+    expect(bridge.closingBankBalancePaise - bridge.unresolvedVariancePaise).toBe(bridge.closingLedgerBalancePaise);
+
+    // 3. The residual is zero for the supplied demo dataset
+    expect(bridge.residualPaise).toBe(0);
+
+    // 4. An intentionally inconsistent ledger closing balance makes isBalanced false
+    const inconsistentSummary = {
+      ...result.summary,
+      closingLedgerBalancePaise: 46000000, // Intentionally skewed by ₹950.00
+    };
+    const inconsistentBridge = getReconciliationBridge(inconsistentSummary, result.exceptions);
+    expect(inconsistentBridge.residualPaise).toBe(95000); // Non-zero residual (+₹950.00)
+    expect(inconsistentBridge.isBalanced).toBe(false);
+
+    // Also: an inconsistent unresolvedVariancePaise makes isBalanced false
+    const mismatchedVarianceSummary = {
+      ...result.summary,
+      unresolvedVariancePaise: 1500000, // Mismatched variance
+    };
+    const mismatchedVarianceBridge = getReconciliationBridge(mismatchedVarianceSummary, result.exceptions);
+    expect(mismatchedVarianceBridge.isBalanced).toBe(false);
   });
 });
 

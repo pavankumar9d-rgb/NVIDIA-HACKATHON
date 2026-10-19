@@ -204,7 +204,7 @@ describe('Export Consistency & Truthful AI Reporting', () => {
     expect(md).toContain('1 Approved, 0 Rejected, 0 Deferred, 4 Pending Review');
   });
 
-  it('ensures the mathematical reconciliation bridge balances with zero residual leakage', async () => {
+  it('ensures the mathematical reconciliation bridge balances with zero residual leakage and explicit formula', async () => {
     const { recon } = await getDemoReconciliation();
 
     const md = generateMarkdownReport({
@@ -221,6 +221,12 @@ describe('Export Consistency & Truthful AI Reporting', () => {
     expect(md).toContain('NEFT-339102'); // Gateway fee
     expect(md).toContain('HDFC-SVC-09'); // Service charge
     expect(md).toContain('ATM-00912'); // Duplicate ATM
+
+    // Mathematical formula and numerical equation
+    expect(md).toContain('Ledger Closing Balance = Bank Closing Balance − Net Bank-minus-Ledger Variance');
+    expect(md).toContain('₹4,60,950.00 = ₹4,76,380.00 − ₹15,430.00');
+    expect(md).toContain('Variance Contribution (Bank − Ledger) (INR)');
+    expect(md).toContain('Individual item contributions must **not** be blindly added to the bank closing balance');
   });
 
   it('guarantees Audit JSON has identical semantic totals and fields as Markdown', async () => {
@@ -258,10 +264,16 @@ describe('Export Consistency & Truthful AI Reporting', () => {
     // Verify match rate is unambiguous with row counts and confirmed pair count
     expect(parsed.financialSummary.matchRate).toBe('89.3% (50 matched rows / 56 active rows; 25 confirmed pairs)');
 
-    // Verify bridge in JSON is balanced
+    // Verify bridge in JSON is balanced and contains formula, equation, and residual
     expect(parsed.reconciliationBridge.isBalanced).toBe(true);
     expect(parsed.reconciliationBridge.unresolvedVariancePaise).toBe(1543000);
     expect(parsed.reconciliationBridge.bridgedTotalPaise).toBe(1543000);
+    expect(parsed.reconciliationBridge.residualPaise).toBe(0);
+    expect(parsed.reconciliationBridge.formattedResidual).toBe('₹0.00');
+    expect(parsed.reconciliationBridge.formula).toBe(
+      'Ledger Closing Balance = Bank Closing Balance - Net Bank-minus-Ledger Variance'
+    );
+    expect(parsed.reconciliationBridge.numericalEquation).toBe('₹4,60,950.00 = ₹4,76,380.00 - ₹15,430.00');
   });
 
   it('generates formula-safe CSV exports with truthful column headers and verified row counts', async () => {
@@ -542,4 +554,29 @@ describe('Export Consistency & Truthful AI Reporting', () => {
     const csvMatchLines = reconciledCSV.trim().split('\n');
     expect(csvMatchLines.length - 1).toBe(25); // 25 rows excluding header
   });
+
+  it('accurately distinguishes untrusted text cells from legitimate signed numbers in formula-injection compliance', async () => {
+    const { recon } = await getDemoReconciliation();
+
+    const md = generateMarkdownReport({
+      sessionName: 'Northstar Studio — September Close',
+      summary: recon.summary,
+      matches: recon.matches,
+      exceptions: recon.exceptions,
+    });
+
+    // Markdown compliance text must accurately state the distinction
+    expect(md).toContain('Untrusted text cells beginning with dangerous spreadsheet characters');
+    expect(md).toContain('while validated financial numeric columns intentionally preserve legitimate signed numeric amounts (e.g., `-18500.00`)');
+
+    // Verify sanitizeCellForCSV behavior in practice
+    const { sanitizeCellForCSV } = await import('../src/lib/csv');
+    // Numeric column preserves valid negative numbers
+    expect(sanitizeCellForCSV('-18500.00', true)).toBe('-18500.00');
+    expect(sanitizeCellForCSV('+1250.00', true)).toBe('+1250.00');
+    // Non-numeric column neutralizes dangerous prefixes
+    expect(sanitizeCellForCSV('=SUM(A1:A10)', false)).toBe("\"'=SUM(A1:A10)\"");
+    expect(sanitizeCellForCSV('-dangerous-text', false)).toBe("\"'-dangerous-text\"");
+  });
 });
+

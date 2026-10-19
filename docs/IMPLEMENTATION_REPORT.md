@@ -92,10 +92,10 @@ All quality gates were executed directly via PowerShell:
 
 | Verification Command | Purpose | Result | Evidence |
 | :--- | :--- | :--- | :--- |
-| `pnpm test` | Automated Vitest test suite | **PASS** | 7 test files, 86 tests passing (100% green in ~9.1s). |
+| `pnpm test` | Automated Vitest test suite | **PASS** | 7 test files, 87 tests passing (100% green in ~12.0s). |
 | `pnpm run lint` | Oxlint fast linter | **PASS** | 0 warnings and 0 errors across 33 files. |
 | `pnpm run typecheck` | Strict compiler typecheck (`tsc --noEmit`) | **PASS** | 0 type errors. |
-| `pnpm run build` | TypeScript typecheck (`tsc -b`) & Vite production bundle | **PASS** | `✓ built in ~4.6s` with zero errors or warnings. |
+| `pnpm run build` | TypeScript typecheck (`tsc -b`) & Vite production bundle | **PASS** | `✓ built in ~3.1s` with zero errors or warnings. |
 
 ### Incremental Git Delivery Log:
 1. `dbfd863`: `fix(security): enforce server-side privacy minimization`
@@ -167,6 +167,13 @@ All quality gates were executed directly via PowerShell:
     - Verified raw CSV dates are RFC 4180 / ISO 8601 compliant `YYYY-MM-DD` strings.
     - Maintained session-only ephemeral model for human review decisions and documented session scope.
     - Added 3 new tests in `tests/export-consistency.test.ts` (suite expanded from 10 to 13 tests, 86 tests total).
+16. `fix(bridge): strengthen balance validation, explicit equation, and truthful CSV disclosure`
+    - Strengthened `getReconciliationBridge` balance validation: checks both `bridgedTotalPaise === summary.unresolvedVariancePaise` and `residualPaise === 0` where `residualPaise = (closingBankBalancePaise - bridgedTotalPaise) - closingLedgerBalancePaise`.
+    - Added `residualPaise`, `formattedResidual`, and explicit `formula` to `ReconciliationBridgeResult` and JSON export.
+    - Formatted explicit bridge equation in Executive Markdown Report: `Ledger Closing Balance = Bank Closing Balance − Net Bank-minus-Ledger Variance` (`₹4,60,950.00 = ₹4,76,380.00 − ₹15,430.00`), renaming the column to `Variance Contribution (Bank − Ledger) (INR)`.
+    - Labeled unverified anomaly explanations as hypotheses requiring verification across all 5 bridge items.
+    - Updated Section 4 of Markdown report and documentation to truthfully distinguish escaped untrusted text cells (`'`) from validated signed numbers (such as `-18500.00`) in CSV formula injection compliance.
+    - Added 1 regression test in `tests/export-consistency.test.ts` and 2 validation tests in `tests/analytics.test.ts` (suite expanded to 87 tests total).
 
 ---
 
@@ -203,7 +210,7 @@ Tested against the 15 attack scenarios documented in `docs/THREAT_MODEL.md`:
 | **Open Source Model** | NVIDIA Nemotron (`nvidia/Llama-3.1-Nemotron-70B-Instruct`) | **PASS (Configured & Adapter Tested)** |
 | **Infrastructure** | Nebius Token Factory / AI Cloud Compute | **PASS (Adapter Built to Spec)** |
 | **Public Source Repo** | Public repository with open-source license | **PASS (MIT License committed)** |
-| **Working Software** | Functional application with working interactions | **PASS (Verified via 86 tests & build)** |
+| **Working Software** | Functional application with working interactions | **PASS (Verified via 87 tests & build)** |
 | **Demonstration Video** | Public video under 3 minutes | **READY (Timestamped script complete)** |
 | **Live API Call Evidence** | Real runtime inference call to Nebius Token Factory | **NOT VERIFIED (Pending user key input)** |
 
