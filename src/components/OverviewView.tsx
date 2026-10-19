@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import type { CanonicalTransaction, ReconciliationResult } from '../lib/reconciliation';
+import { formatProvenanceLabel } from '../lib/reconciliation';
 import { 
   getDailyMovementSeries, 
   getReconciliationComposition, 
@@ -102,9 +103,9 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               <span>•</span>
               <span>Currency: <strong>INR (₹)</strong></span>
               <span>•</span>
-              <span>Bank Open: <strong>{formatPaise(summary?.openingBankBalancePaise ?? 0)}</strong> {summary?.hasBankOpeningAnchor ? '(Statement Anchor)' : '(Baseline)'}</span>
+              <span>Bank Open: <strong>{formatPaise(summary?.openingBankBalancePaise ?? 0)}</strong> ({formatProvenanceLabel(summary?.bankOpeningProvenance ?? 'UNVERIFIED_BASELINE')})</span>
               <span>•</span>
-              <span>Ledger Open: <strong>{formatPaise(summary?.openingLedgerBalancePaise ?? 0)}</strong> {summary?.hasLedgerOpeningAnchor ? '(Statement Anchor)' : '(Unverified Baseline)'}</span>
+              <span>Ledger Open: <strong>{formatPaise(summary?.openingLedgerBalancePaise ?? 0)}</strong> ({formatProvenanceLabel(summary?.ledgerOpeningProvenance ?? 'UNVERIFIED_BASELINE')})</span>
               <span>•</span>
               <span>Total Transactions: <strong>{bankRows.length + ledgerRows.length} rows</strong></span>
               {(summary?.excludedBankRowCount ?? 0) + (summary?.excludedLedgerRowCount ?? 0) > 0 && (

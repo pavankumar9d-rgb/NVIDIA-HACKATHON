@@ -635,4 +635,82 @@ describe('Real-World Financial CSV Import & Boundary Hardening', () => {
     expect(bridge.formattedResidual).toBe('₹0.00');
     expect(bridge.closingBankBalancePaise - bridge.bridgedTotalPaise).toBe(bridge.closingLedgerBalancePaise);
   });
+
+  // Case 19: Reviewer-entered opening balances explicitly tracked as REVIEWER_SUPPLIED
+  it('19. records explicit REVIEWER_SUPPLIED provenance when balances are manually entered by auditor', () => {
+    const bankCanonical: CanonicalTransaction[] = [
+      {
+        id: 'BNK-001',
+        source: 'bank',
+        sourceRowNumber: 1,
+        date: '2026-09-01',
+        rawDescription: 'Customer Transfer',
+        sanitizedDescription: 'Customer Transfer',
+        amountPaise: 1000000,
+        direction: 'credit',
+        signedAmountPaise: 1000000,
+        currency: 'INR',
+        rawRow: {},
+      },
+    ];
+
+    const ledgerCanonical: CanonicalTransaction[] = [
+      {
+        id: 'LDG-001',
+        source: 'ledger',
+        sourceRowNumber: 1,
+        date: '2026-09-01',
+        rawDescription: 'Customer Transfer',
+        sanitizedDescription: 'Customer Transfer',
+        amountPaise: 1000000,
+        direction: 'credit',
+        signedAmountPaise: 1000000,
+        currency: 'INR',
+        rawRow: {},
+      },
+    ];
+
+    const balances: ReconciliationOptions = {
+      openingBankBalancePaise: 50000000, // ₹5,00,000.00 entered by reviewer
+      openingLedgerBalancePaise: 50000000, // ₹5,00,000.00 entered by reviewer
+      bankOpeningProvenance: 'REVIEWER_SUPPLIED',
+      ledgerOpeningProvenance: 'REVIEWER_SUPPLIED',
+      closingBankBalancePaise: 51000000,
+      bankClosingProvenance: 'REVIEWER_SUPPLIED',
+      ledgerClosingProvenance: 'DERIVED_FROM_NET_FLOW',
+    };
+
+    const result = runReconciliation(bankCanonical, ledgerCanonical, balances);
+
+    expect(result.summary.bankOpeningProvenance).toBe('REVIEWER_SUPPLIED');
+    expect(result.summary.ledgerOpeningProvenance).toBe('REVIEWER_SUPPLIED');
+    expect(result.summary.hasBankOpeningAnchor).toBe(true);
+    expect(result.summary.hasLedgerOpeningAnchor).toBe(true);
+    expect(result.summary.bankClosingProvenance).toBe('REVIEWER_SUPPLIED');
+    expect(result.summary.ledgerClosingProvenance).toBe('DERIVED_FROM_NET_FLOW');
+    expect(result.summary.hasBankClosingAnchor).toBe(true);
+    expect(result.summary.hasLedgerClosingAnchor).toBe(false);
+  });
+
+  // Case 20: Statement-detected bank opening with unverified bank-baseline fallback for ledger
+  it('20. marks unverified bank-baseline when ledger lacks opening row and reviewer enters nothing', () => {
+    const bankCanonical: CanonicalTransaction[] = [];
+    const ledgerCanonical: CanonicalTransaction[] = [];
+
+    const balances: ReconciliationOptions = {
+      openingBankBalancePaise: 25000000, // ₹2,50,000.00 detected from bank header
+      openingLedgerBalancePaise: 25000000, // defaulted to bank opening for math
+      bankOpeningProvenance: 'STATEMENT_DETECTED',
+      ledgerOpeningProvenance: 'UNVERIFIED_BASELINE',
+    };
+
+    const result = runReconciliation(bankCanonical, ledgerCanonical, balances);
+
+    expect(result.summary.bankOpeningProvenance).toBe('STATEMENT_DETECTED');
+    expect(result.summary.ledgerOpeningProvenance).toBe('UNVERIFIED_BASELINE');
+    expect(result.summary.hasBankOpeningAnchor).toBe(true);
+    expect(result.summary.hasLedgerOpeningAnchor).toBe(false); // MUST be false
+    expect(result.summary.openingBankBalancePaise).toBe(25000000);
+    expect(result.summary.openingLedgerBalancePaise).toBe(25000000);
+  });
 });

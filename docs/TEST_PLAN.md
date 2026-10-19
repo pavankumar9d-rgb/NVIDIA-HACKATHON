@@ -36,17 +36,17 @@ pnpm test
 ```
  RUN  v5.0.5 C:/Users/saipa/OneDrive/Desktop/nvidia hackathon
 
- ✓ tests/money.test.ts (13 tests)
- ✓ tests/reconciliation.test.ts (12 tests)
  ✓ tests/analytics.test.ts (2 tests)
- ✓ tests/csv-import.test.ts (18 tests)
- ✓ tests/export-consistency.test.ts (14 tests)
+ ✓ tests/csv-import.test.ts (20 tests)
  ✓ tests/privacy-security.test.ts (17 tests)
+ ✓ tests/reconciliation.test.ts (12 tests)
+ ✓ tests/export-consistency.test.ts (15 tests)
+ ✓ tests/money.test.ts (13 tests)
  ✓ tests/ai-safety.test.ts (6 tests)
  ✓ tests/server-api.test.ts (23 tests)
 
  Test Files  8 passed (8)
-      Tests  105 passed (105)
+      Tests  108 passed (108)
 ```
 
 ### 2.2 Production Build & Bundle Verification

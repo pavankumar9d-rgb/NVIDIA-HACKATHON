@@ -45,7 +45,9 @@ export const MetricsHeader: React.FC<MetricsHeaderProps> = ({ summary }) => {
           <div className="text-[11px] text-[#6B7280] mt-1 flex flex-col gap-0.5">
             <div className="flex items-center justify-between">
               <span>Net: <span className="font-mono font-medium text-[#111827]">{formatPaise(summary.netBankMovementPaise, { showSign: true })}</span></span>
-              <span className="text-[10px] text-[#9CA3AF]">{summary.hasBankClosingAnchor ? 'Anchor' : 'Derived'} • Open: {formatPaise(summary.openingBankBalancePaise)}</span>
+              <span className="text-[10px] text-[#9CA3AF]">
+                {summary.bankClosingProvenance === 'STATEMENT_DETECTED' ? 'Statement Anchor' : 'Derived'} • Open: {formatPaise(summary.openingBankBalancePaise)} ({summary.bankOpeningProvenance === 'STATEMENT_DETECTED' ? 'Detected' : summary.bankOpeningProvenance === 'REVIEWER_SUPPLIED' ? 'Supplied' : 'Baseline'})
+              </span>
             </div>
             <div className="text-[10px] text-[#9CA3AF] flex items-center justify-between">
               <span>In: {formatPaise(summary.totalBankInflowPaise)}</span>
@@ -70,7 +72,9 @@ export const MetricsHeader: React.FC<MetricsHeaderProps> = ({ summary }) => {
           <div className="text-[11px] text-[#6B7280] mt-1 flex flex-col gap-0.5">
             <div className="flex items-center justify-between">
               <span>Net: <span className="font-mono font-medium text-[#111827]">{formatPaise(summary.netLedgerMovementPaise, { showSign: true })}</span></span>
-              <span className="text-[10px] text-[#9CA3AF]">{summary.hasLedgerClosingAnchor ? 'Anchor' : 'Derived'} • Open: {formatPaise(summary.openingLedgerBalancePaise)}</span>
+              <span className="text-[10px] text-[#9CA3AF]">
+                {summary.ledgerClosingProvenance === 'STATEMENT_DETECTED' ? 'Statement Anchor' : 'Derived'} • Open: {formatPaise(summary.openingLedgerBalancePaise)} ({summary.ledgerOpeningProvenance === 'STATEMENT_DETECTED' ? 'Detected' : summary.ledgerOpeningProvenance === 'REVIEWER_SUPPLIED' ? 'Supplied' : 'Baseline'})
+              </span>
             </div>
             <div className="text-[10px] text-[#9CA3AF] flex items-center justify-between">
               <span>In: {formatPaise(summary.totalLedgerInflowPaise)}</span>

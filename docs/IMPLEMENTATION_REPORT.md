@@ -181,10 +181,14 @@ All quality gates were executed directly via PowerShell:
     - Prevented silent row loss: invalid transaction rows are collected with explicit error citations, requiring explicit auditor acknowledgement and tracking `excludedBankRowCount` / `excludedLedgerRowCount` in audit exports.
     - Added explicit format support disclosure in UI and docs clarifying that CSV/TSV is supported, while PDF/scanned statements are unsupported and must be exported from banking portals.
     - Created dedicated test suite `tests/csv-import.test.ts` covering all 10 synthetic real-world fixtures and edge cases.
-18. `fix(provenance): enforce strict ledger balance provenance and closing anchor validation`
+18. `2322483`: `fix(provenance): enforce strict ledger balance provenance and closing anchor validation`
     - Corrected opening balance provenance: `hasLedgerOpeningAnchor` is set to `true` strictly when detected in the ledger statement or explicitly entered by the reviewer. When falling back to bank opening balance, it is transparently designated an unverified baseline, never statement-derived.
     - Added ledger closing anchor support: `hasLedgerClosingAnchor` added to `ReconciliationOptions`, `ReconciliationSummary`, UI, Markdown report, and JSON export, passing `ledgerFile.detectedClosingPaise` to `closingLedgerBalancePaise` when present and distinguishing detected anchors from derived closing balances.
     - Expanded `tests/csv-import.test.ts` with 5 targeted regression tests covering missing vs detected opening anchors, reviewer-supplied overrides, closing anchors, and mathematical bridge verification (105 tests total across 8 test suites).
+19. `fix(provenance): propagate explicit balance source provenance across UI, exports, and tests`
+    - Replaced ambiguous boolean-only anchor status with explicit `BalanceProvenance` enum (`STATEMENT_DETECTED`, `REVIEWER_SUPPLIED`, `UNVERIFIED_BASELINE`, `DERIVED_FROM_NET_FLOW`) across `src/lib/reconciliation/index.ts`, `src/components/ImportModal.tsx`, `src/components/OverviewView.tsx`, `src/components/MetricsHeader.tsx`, and `src/lib/export/index.ts`.
+    - Truthfully display exact balance provenance in UI modals, summary cards, and JSON/Markdown exports (`formatProvenanceLabel`), ensuring reviewer-supplied opening balances are never falsely claimed as statement-derived.
+    - Added targeted regression tests in `tests/csv-import.test.ts` (expanded to 20 tests) and `tests/export-consistency.test.ts` (expanded to 15 tests), verifying reviewer-supplied, statement-detected, and unverified bank-baseline balances (108 tests total across 8 test suites).
 
 ---
 
@@ -221,7 +225,7 @@ Tested against the 15 attack scenarios documented in `docs/THREAT_MODEL.md`:
 | **Open Source Model** | NVIDIA Nemotron (`nvidia/Llama-3.1-Nemotron-70B-Instruct`) | **PASS (Configured & Adapter Tested)** |
 | **Infrastructure** | Nebius Token Factory / AI Cloud Compute | **PASS (Adapter Built to Spec)** |
 | **Public Source Repo** | Public repository with open-source license | **PASS (MIT License committed)** |
-| **Working Software** | Functional application with working interactions | **PASS (Verified via 105 tests & build)** |
+| **Working Software** | Functional application with working interactions | **PASS (Verified via 108 tests & build)** |
 | **Demonstration Video** | Public video under 3 minutes | **READY (Timestamped script complete)** |
 | **Live API Call Evidence** | Real runtime inference call to Nebius Token Factory | **NOT VERIFIED (Pending user key input)** |
 

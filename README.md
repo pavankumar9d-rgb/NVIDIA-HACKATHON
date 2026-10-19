@@ -8,7 +8,7 @@
   </p>
   <p>
     <a href="#quickstart"><img src="https://img.shields.io/badge/Status-Built%20%26%20Tested-17845B" alt="Status" /></a>
-    <a href="#test-results"><img src="https://img.shields.io/badge/Tests-100%2F100%20Passing-17845B" alt="Tests" /></a>
+    <a href="#test-results"><img src="https://img.shields.io/badge/Tests-108%2F108%20Passing-17845B" alt="Tests" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue" alt="License" /></a>
     <img src="https://img.shields.io/badge/Model-NVIDIA%20Nemotron%2070B-D7FF56?labelColor=101A2B" alt="Model" />
     <img src="https://img.shields.io/badge/Platform-Nebius%20Token%20Factory-101A2B" alt="Nebius" />
@@ -115,7 +115,7 @@ pnpm run dev
 
 ## 4. Test Results & Quality Gates
 
-The test suite contains **100 automated tests** across 8 test suites covering arithmetic precision, matching rules, Zod schemas, provenance guards, duplicate detection, export consistency, UTF-8 BOM encoding, ISO date formatting, bridge sign conventions, real-world CSV import edge cases, deterministic calendar dates, balance anchor preservation, production static serving, SPA fallback routing, and formula injection escaping:
+The test suite contains **108 automated tests** across 8 test suites covering arithmetic precision, matching rules, Zod schemas, provenance guards, duplicate detection, export consistency, UTF-8 BOM encoding, ISO date formatting, bridge sign conventions, real-world CSV import edge cases, deterministic calendar dates, balance anchor preservation, balance source provenance (statement-detected vs reviewer-supplied vs unverified baseline), production static serving, SPA fallback routing, and formula injection escaping:
 
 ```powershell
 pnpm test
@@ -125,17 +125,17 @@ pnpm test
 ```
  RUN  v5.0.5 C:/Users/saipa/OneDrive/Desktop/nvidia hackathon
 
- ✓ tests/money.test.ts (13 tests)
- ✓ tests/reconciliation.test.ts (12 tests)
  ✓ tests/analytics.test.ts (2 tests)
- ✓ tests/csv-import.test.ts (13 tests)
- ✓ tests/export-consistency.test.ts (14 tests)
+ ✓ tests/csv-import.test.ts (20 tests)
  ✓ tests/privacy-security.test.ts (17 tests)
+ ✓ tests/reconciliation.test.ts (12 tests)
+ ✓ tests/export-consistency.test.ts (15 tests)
+ ✓ tests/money.test.ts (13 tests)
  ✓ tests/ai-safety.test.ts (6 tests)
  ✓ tests/server-api.test.ts (23 tests)
 
  Test Files  8 passed (8)
-      Tests  100 passed (100)
+      Tests  108 passed (108)
 ```
 
 ### Quality Linters & Production Build:

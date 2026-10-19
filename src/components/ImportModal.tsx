@@ -12,7 +12,7 @@ import type {
   DateFormat,
   MappingDetectionResult 
 } from '../lib/csv';
-import type { CanonicalTransaction, ReconciliationOptions } from '../lib/reconciliation';
+import type { CanonicalTransaction, ReconciliationOptions, BalanceProvenance } from '../lib/reconciliation';
 import { formatPaise, parseToPaise } from '../lib/money';
 import { 
   Upload, 
@@ -248,51 +248,78 @@ export const ImportModal: React.FC<ImportModalProps> = ({
       rawRow: r.raw,
     }));
 
-    // Parse bank opening balance: user input overrides detected, or default 0
+    // Parse bank opening balance
     let bankOpeningPaise = 0;
-    let hasBankOpening = false;
+    let bankOpeningProvenance: BalanceProvenance = 'UNVERIFIED_BASELINE';
+
     if (bankFile.openingBalanceInput.trim() !== '') {
       try {
-        bankOpeningPaise = parseToPaise(bankFile.openingBalanceInput);
-        hasBankOpening = true;
+        const parsed = parseToPaise(bankFile.openingBalanceInput);
+        bankOpeningPaise = parsed;
+        if (bankFile.detectedOpeningPaise !== undefined && parsed === bankFile.detectedOpeningPaise) {
+          bankOpeningProvenance = 'STATEMENT_DETECTED';
+        } else {
+          bankOpeningProvenance = 'REVIEWER_SUPPLIED';
+        }
       } catch {
-        bankOpeningPaise = bankFile.detectedOpeningPaise ?? 0;
-        hasBankOpening = bankFile.detectedOpeningPaise !== undefined;
+        if (bankFile.detectedOpeningPaise !== undefined) {
+          bankOpeningPaise = bankFile.detectedOpeningPaise;
+          bankOpeningProvenance = 'STATEMENT_DETECTED';
+        } else {
+          bankOpeningPaise = 0;
+          bankOpeningProvenance = 'UNVERIFIED_BASELINE';
+        }
       }
     } else if (bankFile.detectedOpeningPaise !== undefined) {
       bankOpeningPaise = bankFile.detectedOpeningPaise;
-      hasBankOpening = true;
+      bankOpeningProvenance = 'STATEMENT_DETECTED';
+    } else {
+      bankOpeningPaise = 0;
+      bankOpeningProvenance = 'UNVERIFIED_BASELINE';
     }
 
-    // Ledger opening balance:
-    // Set hasLedgerOpeningAnchor=true ONLY when ledger opening balance was detected
-    // from the ledger file or explicitly supplied by the reviewer.
+    // Parse ledger opening balance
     let ledgerOpeningPaise = bankOpeningPaise;
-    let hasLedgerOpening = false;
+    let ledgerOpeningProvenance: BalanceProvenance = 'UNVERIFIED_BASELINE';
+
     if (ledgerFile.openingBalanceInput.trim() !== '') {
       try {
-        ledgerOpeningPaise = parseToPaise(ledgerFile.openingBalanceInput);
-        hasLedgerOpening = true;
+        const parsed = parseToPaise(ledgerFile.openingBalanceInput);
+        ledgerOpeningPaise = parsed;
+        if (ledgerFile.detectedOpeningPaise !== undefined && parsed === ledgerFile.detectedOpeningPaise) {
+          ledgerOpeningProvenance = 'STATEMENT_DETECTED';
+        } else {
+          ledgerOpeningProvenance = 'REVIEWER_SUPPLIED';
+        }
       } catch {
         if (ledgerFile.detectedOpeningPaise !== undefined) {
           ledgerOpeningPaise = ledgerFile.detectedOpeningPaise;
-          hasLedgerOpening = true;
+          ledgerOpeningProvenance = 'STATEMENT_DETECTED';
         } else {
           ledgerOpeningPaise = bankOpeningPaise;
-          hasLedgerOpening = false;
+          ledgerOpeningProvenance = 'UNVERIFIED_BASELINE';
         }
       }
     } else if (ledgerFile.detectedOpeningPaise !== undefined) {
       ledgerOpeningPaise = ledgerFile.detectedOpeningPaise;
-      hasLedgerOpening = true;
+      ledgerOpeningProvenance = 'STATEMENT_DETECTED';
     } else {
       // Falling back to bank opening balance merely as an unverified baseline
       ledgerOpeningPaise = bankOpeningPaise;
-      hasLedgerOpening = false;
+      ledgerOpeningProvenance = 'UNVERIFIED_BASELINE';
     }
 
-    const hasBankClosing = bankFile.detectedClosingPaise !== undefined;
-    const hasLedgerClosing = ledgerFile.detectedClosingPaise !== undefined;
+    const bankClosingProvenance: BalanceProvenance = bankFile.detectedClosingPaise !== undefined
+      ? 'STATEMENT_DETECTED'
+      : 'DERIVED_FROM_NET_FLOW';
+    const ledgerClosingProvenance: BalanceProvenance = ledgerFile.detectedClosingPaise !== undefined
+      ? 'STATEMENT_DETECTED'
+      : 'DERIVED_FROM_NET_FLOW';
+
+    const hasBankOpening = bankOpeningProvenance !== 'UNVERIFIED_BASELINE';
+    const hasLedgerOpening = ledgerOpeningProvenance !== 'UNVERIFIED_BASELINE';
+    const hasBankClosing = bankClosingProvenance === 'STATEMENT_DETECTED';
+    const hasLedgerClosing = ledgerClosingProvenance === 'STATEMENT_DETECTED';
 
     const options: ReconciliationOptions = {
       openingBankBalancePaise: bankOpeningPaise,
@@ -303,6 +330,10 @@ export const ImportModal: React.FC<ImportModalProps> = ({
       hasLedgerOpeningAnchor: hasLedgerOpening,
       hasBankClosingAnchor: hasBankClosing,
       hasLedgerClosingAnchor: hasLedgerClosing,
+      bankOpeningProvenance,
+      ledgerOpeningProvenance,
+      bankClosingProvenance,
+      ledgerClosingProvenance,
       excludedBankRowCount: bankFile.acknowledgeExcluded ? bankFile.invalidRows.length : 0,
       excludedLedgerRowCount: ledgerFile.acknowledgeExcluded ? ledgerFile.invalidRows.length : 0,
     };
@@ -740,41 +771,47 @@ export const ImportModal: React.FC<ImportModalProps> = ({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-[#4B5563] pt-1">
             <div>
-              Bank Opening Anchor:{' '}
+              Bank Opening Balance:{' '}
               <strong className="text-[#111827]">
                 {bankFile.openingBalanceInput.trim() !== ''
-                  ? `₹${bankFile.openingBalanceInput} (Supplied)`
+                  ? (bankFile.detectedOpeningPaise !== undefined &&
+                     (() => { try { return parseToPaise(bankFile.openingBalanceInput) === bankFile.detectedOpeningPaise; } catch { return false; } })()
+                      ? `${formatPaise(bankFile.detectedOpeningPaise)} (Statement-detected)`
+                      : `₹${bankFile.openingBalanceInput} (Reviewer-supplied)`)
                   : bankFile.detectedOpeningPaise !== undefined
-                  ? `${formatPaise(bankFile.detectedOpeningPaise)} (Statement Anchor)`
-                  : '₹0.00 (Unanchored baseline)'}
+                  ? `${formatPaise(bankFile.detectedOpeningPaise)} (Statement-detected)`
+                  : '₹0.00 (Unverified baseline)'}
               </strong>
             </div>
             <div>
-              Ledger Opening Anchor:{' '}
+              Ledger Opening Balance:{' '}
               <strong className="text-[#111827]">
                 {ledgerFile.openingBalanceInput.trim() !== ''
-                  ? `₹${ledgerFile.openingBalanceInput} (Supplied)`
+                  ? (ledgerFile.detectedOpeningPaise !== undefined &&
+                     (() => { try { return parseToPaise(ledgerFile.openingBalanceInput) === ledgerFile.detectedOpeningPaise; } catch { return false; } })()
+                      ? `${formatPaise(ledgerFile.detectedOpeningPaise)} (Statement-detected)`
+                      : `₹${ledgerFile.openingBalanceInput} (Reviewer-supplied)`)
                   : ledgerFile.detectedOpeningPaise !== undefined
-                  ? `${formatPaise(ledgerFile.detectedOpeningPaise)} (Statement Anchor)`
+                  ? `${formatPaise(ledgerFile.detectedOpeningPaise)} (Statement-detected)`
                   : (bankFile.openingBalanceInput.trim() !== '' || bankFile.detectedOpeningPaise !== undefined)
-                  ? `${bankFile.openingBalanceInput.trim() !== '' ? `₹${bankFile.openingBalanceInput}` : formatPaise(bankFile.detectedOpeningPaise!)} (Unverified Baseline from Bank)`
-                  : '₹0.00 (Unanchored baseline)'}
+                  ? `${bankFile.openingBalanceInput.trim() !== '' ? `₹${bankFile.openingBalanceInput}` : formatPaise(bankFile.detectedOpeningPaise!)} (Unverified baseline from bank)`
+                  : '₹0.00 (Unverified baseline)'}
               </strong>
             </div>
             <div>
-              Bank Closing Anchor:{' '}
+              Bank Closing Balance:{' '}
               <strong className="text-[#111827]">
                 {bankFile.detectedClosingPaise !== undefined
-                  ? `${formatPaise(bankFile.detectedClosingPaise)} (Statement Anchor)`
-                  : 'Derived from Net Period Flow'}
+                  ? `${formatPaise(bankFile.detectedClosingPaise)} (Statement-detected)`
+                  : 'Derived from net flow'}
               </strong>
             </div>
             <div>
-              Ledger Closing Anchor:{' '}
+              Ledger Closing Balance:{' '}
               <strong className="text-[#111827]">
                 {ledgerFile.detectedClosingPaise !== undefined
-                  ? `${formatPaise(ledgerFile.detectedClosingPaise)} (Statement Anchor)`
-                  : 'Derived from Net Period Flow'}
+                  ? `${formatPaise(ledgerFile.detectedClosingPaise)} (Statement-detected)`
+                  : 'Derived from net flow'}
               </strong>
             </div>
           </div>

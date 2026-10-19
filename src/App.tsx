@@ -128,6 +128,10 @@ export const App: React.FC = () => {
       hasBankClosingAnchor: bClose !== undefined,
       hasLedgerOpeningAnchor: false,
       hasLedgerClosingAnchor: false,
+      bankOpeningProvenance: bOpen !== undefined ? 'STATEMENT_DETECTED' : 'UNVERIFIED_BASELINE',
+      ledgerOpeningProvenance: 'UNVERIFIED_BASELINE',
+      bankClosingProvenance: bClose !== undefined ? 'STATEMENT_DETECTED' : 'DERIVED_FROM_NET_FLOW',
+      ledgerClosingProvenance: 'DERIVED_FROM_NET_FLOW',
     };
 
     setBankRows(bCanonical);
@@ -180,6 +184,10 @@ export const App: React.FC = () => {
       hasLedgerOpeningAnchor: options?.hasLedgerOpeningAnchor ?? false,
       hasBankClosingAnchor: options?.hasBankClosingAnchor ?? false,
       hasLedgerClosingAnchor: options?.hasLedgerClosingAnchor ?? false,
+      bankOpeningProvenance: options?.bankOpeningProvenance ?? 'UNVERIFIED_BASELINE',
+      ledgerOpeningProvenance: options?.ledgerOpeningProvenance ?? 'UNVERIFIED_BASELINE',
+      bankClosingProvenance: options?.bankClosingProvenance ?? 'DERIVED_FROM_NET_FLOW',
+      ledgerClosingProvenance: options?.ledgerClosingProvenance ?? 'DERIVED_FROM_NET_FLOW',
       excludedBankRowCount: options?.excludedBankRowCount ?? 0,
       excludedLedgerRowCount: options?.excludedLedgerRowCount ?? 0,
     };

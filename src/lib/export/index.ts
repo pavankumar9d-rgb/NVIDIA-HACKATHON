@@ -16,8 +16,9 @@
 import type { 
   ReconciliationMatch, 
   ReconciliationException, 
-  ReconciliationSummary 
+  ReconciliationSummary
 } from '../reconciliation';
+import { formatProvenanceLabel } from '../reconciliation';
 import { getReconciliationBridge } from '../reconciliation/analytics';
 import { exportToSafeCSV } from '../csv';
 import { formatPaise } from '../money';
@@ -123,21 +124,21 @@ The table below reconciles certified opening anchors, gross period transaction f
 
 | Financial Position & Movement | Bank Statement (INR) | General Ledger (INR) | Variance (Bank - Ledger) | Accounting Description |
 | :--- | :--- | :--- | :--- | :--- |
-| **Opening Anchor Balance** | **${formatPaise(summary.openingBankBalancePaise)}** | **${formatPaise(summary.openingLedgerBalancePaise)}** | ${formatPaise(summary.openingBankBalancePaise - summary.openingLedgerBalancePaise, { showSign: true })} | Period opening anchor (${summary.hasBankOpeningAnchor ? 'Bank: Statement Anchor' : 'Bank: Baseline'}; ${summary.hasLedgerOpeningAnchor ? 'Ledger: Statement Anchor' : 'Ledger: Unverified Baseline'}) |
+| **Opening Anchor Balance** | **${formatPaise(summary.openingBankBalancePaise)}** | **${formatPaise(summary.openingLedgerBalancePaise)}** | ${formatPaise(summary.openingBankBalancePaise - summary.openingLedgerBalancePaise, { showSign: true })} | Period opening anchor (Bank: ${formatProvenanceLabel(summary.bankOpeningProvenance)}; Ledger: ${formatProvenanceLabel(summary.ledgerOpeningProvenance)}) |
 | Total Period Inflows (Credits) | ${formatPaise(summary.totalBankInflowPaise)} | ${formatPaise(summary.totalLedgerInflowPaise)} | ${formatPaise(summary.totalBankInflowPaise - summary.totalLedgerInflowPaise, { showSign: true })} | Total customer receipts & statement credits |
 | Total Period Outflows (Debits) | ${formatPaise(summary.totalBankOutflowPaise)} | ${formatPaise(summary.totalLedgerOutflowPaise)} | ${formatPaise(summary.totalBankOutflowPaise - summary.totalLedgerOutflowPaise, { showSign: true })} | Total vendor payments & statement debits |
 | **Net Period Movement** | **${formatPaise(summary.netBankMovementPaise, { showSign: true })}** | **${formatPaise(summary.netLedgerMovementPaise, { showSign: true })}** | **${formatPaise(summary.netBankMovementPaise - summary.netLedgerMovementPaise, { showSign: true })}** | Net cash flow across period (Inflows minus Outflows) |
-| **Closing Balance Position** | **${formatPaise(summary.closingBankBalancePaise)}** | **${formatPaise(summary.closingLedgerBalancePaise)}** | **${formatPaise(summary.unresolvedVariancePaise, { showSign: true })}** | Ending balance (${summary.hasBankClosingAnchor ? 'Bank: Statement Anchor' : 'Bank: Net Flow Derived'}; ${summary.hasLedgerClosingAnchor ? 'Ledger: Statement Anchor' : 'Ledger: Net Flow Derived'}) |
+| **Closing Balance Position** | **${formatPaise(summary.closingBankBalancePaise)}** | **${formatPaise(summary.closingLedgerBalancePaise)}** | **${formatPaise(summary.unresolvedVariancePaise, { showSign: true })}** | Ending balance (Bank: ${formatProvenanceLabel(summary.bankClosingProvenance)}; Ledger: ${formatProvenanceLabel(summary.ledgerClosingProvenance)}) |
 
 ### Reconciliation Performance Metrics:
 - **Confirmed 1-to-1 Matches:** ${matches.length} pairs (${matchedRowCount} rows matched out of ${totalActiveRows} active statement rows = **${rowMatchPercentage}%** row match rate)
 - **Matched Financial Volume:** **${formatPaise(summary.matchedAmountPaise)}** (across ${matches.length} confirmed matched pairs)
 - **Closing Discrepancy Variance:** **${formatPaise(summary.unresolvedVariancePaise, { showSign: true })}** across ${exceptions.length} exceptions
 - **Balance Provenance Status:**
-  - Bank Opening: **${formatPaise(summary.openingBankBalancePaise)}** (${summary.hasBankOpeningAnchor ? 'Statement-derived anchor' : 'Baseline'})
-  - Ledger Opening: **${formatPaise(summary.openingLedgerBalancePaise)}** (${summary.hasLedgerOpeningAnchor ? 'Statement-derived / Reviewer-supplied' : 'Unverified baseline from bank'})
-  - Bank Closing: **${formatPaise(summary.closingBankBalancePaise)}** (${summary.hasBankClosingAnchor ? 'Statement-derived anchor' : 'Derived from opening balance + net flow'})
-  - Ledger Closing: **${formatPaise(summary.closingLedgerBalancePaise)}** (${summary.hasLedgerClosingAnchor ? 'Statement-derived anchor' : 'Derived from opening balance + net flow'})
+  - Bank Opening: **${formatPaise(summary.openingBankBalancePaise)}** (${formatProvenanceLabel(summary.bankOpeningProvenance)})
+  - Ledger Opening: **${formatPaise(summary.openingLedgerBalancePaise)}** (${formatProvenanceLabel(summary.ledgerOpeningProvenance)})
+  - Bank Closing: **${formatPaise(summary.closingBankBalancePaise)}** (${formatProvenanceLabel(summary.bankClosingProvenance)})
+  - Ledger Closing: **${formatPaise(summary.closingLedgerBalancePaise)}** (${formatProvenanceLabel(summary.ledgerClosingProvenance)})
 - **Review Decisions Status:** ${approvedCount} Approved, ${rejectedCount} Rejected, ${deferredCount} Deferred, ${pendingCount} Pending Review${
   summary.excludedBankRowCount > 0 || summary.excludedLedgerRowCount > 0
     ? `\n- **Auditor-Excluded Statement Rows:** ${summary.excludedBankRowCount} bank row(s), ${summary.excludedLedgerRowCount} ledger row(s) excluded after explicit auditor acknowledgement`
@@ -252,6 +253,10 @@ export function generateAuditJSON(options: ExportReportOptions): string {
       financialSummary: {
         openingAnchorBalance: formatPaise(summary.openingBankBalancePaise),
         openingLedgerBalance: formatPaise(summary.openingLedgerBalancePaise),
+        bankOpeningProvenance: summary.bankOpeningProvenance,
+        ledgerOpeningProvenance: summary.ledgerOpeningProvenance,
+        bankClosingProvenance: summary.bankClosingProvenance,
+        ledgerClosingProvenance: summary.ledgerClosingProvenance,
         hasBankOpeningAnchor: summary.hasBankOpeningAnchor,
         hasLedgerOpeningAnchor: summary.hasLedgerOpeningAnchor,
         hasBankClosingAnchor: summary.hasBankClosingAnchor,

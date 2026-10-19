@@ -92,6 +92,25 @@ export interface ReconciliationException {
   reviewDecision?: HumanReviewDecision;
 }
 
+export type BalanceProvenance = 
+  | 'STATEMENT_DETECTED' 
+  | 'REVIEWER_SUPPLIED' 
+  | 'UNVERIFIED_BASELINE' 
+  | 'DERIVED_FROM_NET_FLOW';
+
+export function formatProvenanceLabel(provenance: BalanceProvenance): string {
+  switch (provenance) {
+    case 'STATEMENT_DETECTED':
+      return 'Statement-detected';
+    case 'REVIEWER_SUPPLIED':
+      return 'Reviewer-supplied';
+    case 'UNVERIFIED_BASELINE':
+      return 'Unverified baseline';
+    case 'DERIVED_FROM_NET_FLOW':
+      return 'Derived from net flow';
+  }
+}
+
 export interface ReconciliationSummary {
   bankRowCount: number;
   ledgerRowCount: number;
@@ -107,6 +126,10 @@ export interface ReconciliationSummary {
   hasLedgerOpeningAnchor: boolean;
   hasBankClosingAnchor: boolean;
   hasLedgerClosingAnchor: boolean;
+  bankOpeningProvenance: BalanceProvenance;
+  ledgerOpeningProvenance: BalanceProvenance;
+  bankClosingProvenance: BalanceProvenance;
+  ledgerClosingProvenance: BalanceProvenance;
 
   // Financial metrics in paise
   openingBankBalancePaise: number;
@@ -198,6 +221,10 @@ export interface ReconciliationOptions {
   hasLedgerOpeningAnchor?: boolean;
   hasBankClosingAnchor?: boolean;
   hasLedgerClosingAnchor?: boolean;
+  bankOpeningProvenance?: BalanceProvenance;
+  ledgerOpeningProvenance?: BalanceProvenance;
+  bankClosingProvenance?: BalanceProvenance;
+  ledgerClosingProvenance?: BalanceProvenance;
   excludedBankRowCount?: number;
   excludedLedgerRowCount?: number;
 }
@@ -543,10 +570,32 @@ export function runReconciliation(
 
   const excludedBankRowCount = options.excludedBankRowCount ?? 0;
   const excludedLedgerRowCount = options.excludedLedgerRowCount ?? 0;
-  const hasBankOpeningAnchor = options.hasBankOpeningAnchor ?? (options.openingBankBalancePaise !== undefined);
-  const hasLedgerOpeningAnchor = options.hasLedgerOpeningAnchor ?? (options.openingLedgerBalancePaise !== undefined);
-  const hasBankClosingAnchor = options.hasBankClosingAnchor ?? (options.closingBankBalancePaise !== undefined);
-  const hasLedgerClosingAnchor = options.hasLedgerClosingAnchor ?? (options.closingLedgerBalancePaise !== undefined);
+
+  const bankOpeningProvenance: BalanceProvenance = options.bankOpeningProvenance ?? (
+    options.hasBankOpeningAnchor !== undefined
+      ? (options.hasBankOpeningAnchor ? 'STATEMENT_DETECTED' : 'UNVERIFIED_BASELINE')
+      : (options.openingBankBalancePaise !== undefined ? 'STATEMENT_DETECTED' : 'UNVERIFIED_BASELINE')
+  );
+  const ledgerOpeningProvenance: BalanceProvenance = options.ledgerOpeningProvenance ?? (
+    options.hasLedgerOpeningAnchor !== undefined
+      ? (options.hasLedgerOpeningAnchor ? 'STATEMENT_DETECTED' : 'UNVERIFIED_BASELINE')
+      : (options.openingLedgerBalancePaise !== undefined ? 'STATEMENT_DETECTED' : 'UNVERIFIED_BASELINE')
+  );
+  const bankClosingProvenance: BalanceProvenance = options.bankClosingProvenance ?? (
+    options.hasBankClosingAnchor !== undefined
+      ? (options.hasBankClosingAnchor ? 'STATEMENT_DETECTED' : 'DERIVED_FROM_NET_FLOW')
+      : (options.closingBankBalancePaise !== undefined ? 'STATEMENT_DETECTED' : 'DERIVED_FROM_NET_FLOW')
+  );
+  const ledgerClosingProvenance: BalanceProvenance = options.ledgerClosingProvenance ?? (
+    options.hasLedgerClosingAnchor !== undefined
+      ? (options.hasLedgerClosingAnchor ? 'STATEMENT_DETECTED' : 'DERIVED_FROM_NET_FLOW')
+      : (options.closingLedgerBalancePaise !== undefined ? 'STATEMENT_DETECTED' : 'DERIVED_FROM_NET_FLOW')
+  );
+
+  const hasBankOpeningAnchor = bankOpeningProvenance === 'STATEMENT_DETECTED' || bankOpeningProvenance === 'REVIEWER_SUPPLIED';
+  const hasLedgerOpeningAnchor = ledgerOpeningProvenance === 'STATEMENT_DETECTED' || ledgerOpeningProvenance === 'REVIEWER_SUPPLIED';
+  const hasBankClosingAnchor = bankClosingProvenance === 'STATEMENT_DETECTED' || bankClosingProvenance === 'REVIEWER_SUPPLIED';
+  const hasLedgerClosingAnchor = ledgerClosingProvenance === 'STATEMENT_DETECTED' || ledgerClosingProvenance === 'REVIEWER_SUPPLIED';
 
   const openingBankBalancePaise = options.openingBankBalancePaise ?? 0;
   const closingBankBalancePaise = options.closingBankBalancePaise ?? (openingBankBalancePaise + netBankMovementPaise);
@@ -571,6 +620,10 @@ export function runReconciliation(
     hasLedgerOpeningAnchor,
     hasBankClosingAnchor,
     hasLedgerClosingAnchor,
+    bankOpeningProvenance,
+    ledgerOpeningProvenance,
+    bankClosingProvenance,
+    ledgerClosingProvenance,
     openingBankBalancePaise,
     closingBankBalancePaise,
     totalBankInflowPaise: bankCredits,

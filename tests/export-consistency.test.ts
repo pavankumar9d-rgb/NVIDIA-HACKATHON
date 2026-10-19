@@ -259,6 +259,10 @@ describe('Export Consistency & Truthful AI Reporting', () => {
     expect(parsed.financialSummary.hasLedgerOpeningAnchor).toBe(false);
     expect(parsed.financialSummary.hasBankClosingAnchor).toBe(true);
     expect(parsed.financialSummary.hasLedgerClosingAnchor).toBe(false);
+    expect(parsed.financialSummary.bankOpeningProvenance).toBe('STATEMENT_DETECTED');
+    expect(parsed.financialSummary.ledgerOpeningProvenance).toBe('UNVERIFIED_BASELINE');
+    expect(parsed.financialSummary.bankClosingProvenance).toBe('STATEMENT_DETECTED');
+    expect(parsed.financialSummary.ledgerClosingProvenance).toBe('DERIVED_FROM_NET_FLOW');
 
     // Verify exception counts match
     expect(parsed.financialSummary.unresolvedExceptionCount).toBe(5);
@@ -581,6 +585,107 @@ describe('Export Consistency & Truthful AI Reporting', () => {
     // Non-numeric column neutralizes dangerous prefixes
     expect(sanitizeCellForCSV('=SUM(A1:A10)', false)).toBe("\"'=SUM(A1:A10)\"");
     expect(sanitizeCellForCSV('-dangerous-text', false)).toBe("\"'-dangerous-text\"");
+  });
+
+  it('truthfully propagates explicit balance source provenance to JSON and Markdown exports without mislabeling reviewer inputs', () => {
+    const bankCanonical: CanonicalTransaction[] = [
+      {
+        id: 'BNK-001',
+        source: 'bank',
+        sourceRowNumber: 1,
+        date: '2026-09-01',
+        rawDescription: 'Customer Settlement',
+        sanitizedDescription: 'Customer Settlement',
+        amountPaise: 5000000,
+        direction: 'credit',
+        signedAmountPaise: 5000000,
+        currency: 'INR',
+        rawRow: {},
+      },
+    ];
+
+    const ledgerCanonical: CanonicalTransaction[] = [
+      {
+        id: 'LDG-001',
+        source: 'ledger',
+        sourceRowNumber: 1,
+        date: '2026-09-01',
+        rawDescription: 'Customer Settlement',
+        sanitizedDescription: 'Customer Settlement',
+        amountPaise: 5000000,
+        direction: 'credit',
+        signedAmountPaise: 5000000,
+        currency: 'INR',
+        rawRow: {},
+      },
+    ];
+
+    // Scenario A: Reviewer explicitly supplies bank and ledger opening balances
+    const reconReviewer = runReconciliation(bankCanonical, ledgerCanonical, {
+      openingBankBalancePaise: 50000000,
+      openingLedgerBalancePaise: 48000000,
+      bankOpeningProvenance: 'REVIEWER_SUPPLIED',
+      ledgerOpeningProvenance: 'REVIEWER_SUPPLIED',
+      closingBankBalancePaise: 55000000,
+      bankClosingProvenance: 'REVIEWER_SUPPLIED',
+      closingLedgerBalancePaise: 53000000,
+      ledgerClosingProvenance: 'REVIEWER_SUPPLIED',
+    });
+
+    const jsonReviewer = JSON.parse(generateAuditJSON({
+      sessionName: 'Reviewer Test Session',
+      summary: reconReviewer.summary,
+      matches: reconReviewer.matches,
+      exceptions: reconReviewer.exceptions,
+    }));
+
+    const mdReviewer = generateMarkdownReport({
+      sessionName: 'Reviewer Test Session',
+      summary: reconReviewer.summary,
+      matches: reconReviewer.matches,
+      exceptions: reconReviewer.exceptions,
+    });
+
+    // Must record REVIEWER_SUPPLIED in JSON
+    expect(jsonReviewer.financialSummary.bankOpeningProvenance).toBe('REVIEWER_SUPPLIED');
+    expect(jsonReviewer.financialSummary.ledgerOpeningProvenance).toBe('REVIEWER_SUPPLIED');
+    expect(jsonReviewer.financialSummary.bankClosingProvenance).toBe('REVIEWER_SUPPLIED');
+    expect(jsonReviewer.financialSummary.ledgerClosingProvenance).toBe('REVIEWER_SUPPLIED');
+
+    // Must display Reviewer-supplied in Markdown and NEVER claim Statement-detected
+    expect(mdReviewer).toContain('Bank Opening: **₹5,00,000.00** (Reviewer-supplied)');
+    expect(mdReviewer).toContain('Ledger Opening: **₹4,80,000.00** (Reviewer-supplied)');
+    expect(mdReviewer).not.toContain('Bank Opening: **₹5,00,000.00** (Statement-detected)');
+    expect(mdReviewer).not.toContain('Ledger Opening: **₹4,80,000.00** (Statement-detected)');
+
+    // Scenario B: Unverified baseline fallback for ledger
+    const reconBaseline = runReconciliation(bankCanonical, ledgerCanonical, {
+      openingBankBalancePaise: 50000000,
+      bankOpeningProvenance: 'STATEMENT_DETECTED',
+      ledgerOpeningProvenance: 'UNVERIFIED_BASELINE',
+    });
+
+    const jsonBaseline = JSON.parse(generateAuditJSON({
+      sessionName: 'Baseline Test Session',
+      summary: reconBaseline.summary,
+      matches: reconBaseline.matches,
+      exceptions: reconBaseline.exceptions,
+    }));
+
+    const mdBaseline = generateMarkdownReport({
+      sessionName: 'Baseline Test Session',
+      summary: reconBaseline.summary,
+      matches: reconBaseline.matches,
+      exceptions: reconBaseline.exceptions,
+    });
+
+    expect(jsonBaseline.financialSummary.bankOpeningProvenance).toBe('STATEMENT_DETECTED');
+    expect(jsonBaseline.financialSummary.ledgerOpeningProvenance).toBe('UNVERIFIED_BASELINE');
+    expect(jsonBaseline.financialSummary.hasLedgerOpeningAnchor).toBe(false);
+
+    expect(mdBaseline).toContain('Bank Opening: **₹5,00,000.00** (Statement-detected)');
+    expect(mdBaseline).toContain('Ledger Opening: **₹5,00,000.00** (Unverified baseline)');
+    expect(mdBaseline).not.toContain('Ledger Opening: **₹5,00,000.00** (Statement-detected)');
   });
 });
 
