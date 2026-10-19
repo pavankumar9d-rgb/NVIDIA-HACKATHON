@@ -106,6 +106,7 @@ export interface ReconciliationSummary {
   hasBankOpeningAnchor: boolean;
   hasLedgerOpeningAnchor: boolean;
   hasBankClosingAnchor: boolean;
+  hasLedgerClosingAnchor: boolean;
 
   // Financial metrics in paise
   openingBankBalancePaise: number;
@@ -196,6 +197,7 @@ export interface ReconciliationOptions {
   hasBankOpeningAnchor?: boolean;
   hasLedgerOpeningAnchor?: boolean;
   hasBankClosingAnchor?: boolean;
+  hasLedgerClosingAnchor?: boolean;
   excludedBankRowCount?: number;
   excludedLedgerRowCount?: number;
 }
@@ -544,6 +546,7 @@ export function runReconciliation(
   const hasBankOpeningAnchor = options.hasBankOpeningAnchor ?? (options.openingBankBalancePaise !== undefined);
   const hasLedgerOpeningAnchor = options.hasLedgerOpeningAnchor ?? (options.openingLedgerBalancePaise !== undefined);
   const hasBankClosingAnchor = options.hasBankClosingAnchor ?? (options.closingBankBalancePaise !== undefined);
+  const hasLedgerClosingAnchor = options.hasLedgerClosingAnchor ?? (options.closingLedgerBalancePaise !== undefined);
 
   const openingBankBalancePaise = options.openingBankBalancePaise ?? 0;
   const closingBankBalancePaise = options.closingBankBalancePaise ?? (openingBankBalancePaise + netBankMovementPaise);
@@ -567,6 +570,7 @@ export function runReconciliation(
     hasBankOpeningAnchor,
     hasLedgerOpeningAnchor,
     hasBankClosingAnchor,
+    hasLedgerClosingAnchor,
     openingBankBalancePaise,
     closingBankBalancePaise,
     totalBankInflowPaise: bankCredits,

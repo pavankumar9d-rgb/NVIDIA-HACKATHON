@@ -10,6 +10,7 @@ import {
 } from '../src/lib/csv';
 import { runReconciliation } from '../src/lib/reconciliation';
 import type { CanonicalTransaction, ReconciliationOptions } from '../src/lib/reconciliation';
+import { getReconciliationBridge } from '../src/lib/reconciliation/analytics';
 
 describe('Real-World Financial CSV Import & Boundary Hardening', () => {
 
@@ -397,5 +398,241 @@ describe('Real-World Financial CSV Import & Boundary Hardening', () => {
       { Date: '2026-09-25' },
     ];
     expect(detectFileDateFormat(isoRows, 'Date')).toBe('YMD');
+  });
+
+  // Case 14: Bank opening detected, ledger opening missing -> ledger provenance is NOT reported as statement-verified
+  it('14. bank opening detected, ledger opening missing: ledger provenance is not reported as statement-verified', () => {
+    const bankCanonical: CanonicalTransaction[] = [
+      {
+        id: 'BNK-001',
+        source: 'bank',
+        sourceRowNumber: 1,
+        date: '2026-09-02',
+        rawDescription: 'Client Retainer',
+        sanitizedDescription: 'Client Retainer',
+        amountPaise: 1000000,
+        direction: 'credit',
+        signedAmountPaise: 1000000,
+        currency: 'INR',
+        rawRow: {},
+      },
+    ];
+
+    const ledgerCanonical: CanonicalTransaction[] = [
+      {
+        id: 'LDG-001',
+        source: 'ledger',
+        sourceRowNumber: 1,
+        date: '2026-09-02',
+        rawDescription: 'Client Retainer',
+        sanitizedDescription: 'Client Retainer',
+        amountPaise: 1000000,
+        direction: 'credit',
+        signedAmountPaise: 1000000,
+        currency: 'INR',
+        rawRow: {},
+      },
+    ];
+
+    // Bank opening anchor detected from bank CSV row, but ledger CSV has no opening balance row and user supplied none
+    const balances: ReconciliationOptions = {
+      openingBankBalancePaise: 45000000, // ₹4,50,000.00
+      hasBankOpeningAnchor: true,
+      openingLedgerBalancePaise: 45000000, // used as unverified baseline
+      hasLedgerOpeningAnchor: false, // NOT statement verified
+    };
+
+    const result = runReconciliation(bankCanonical, ledgerCanonical, balances);
+
+    expect(result.summary.hasBankOpeningAnchor).toBe(true);
+    expect(result.summary.hasLedgerOpeningAnchor).toBe(false);
+    expect(result.summary.openingBankBalancePaise).toBe(45000000);
+    expect(result.summary.openingLedgerBalancePaise).toBe(45000000);
+  });
+
+  // Case 15: Explicit ledger opening entered -> provenance reflects reviewer-supplied value
+  it('15. explicit ledger opening entered: provenance reflects reviewer-supplied value', () => {
+    const bankCanonical: CanonicalTransaction[] = [];
+    const ledgerCanonical: CanonicalTransaction[] = [];
+
+    const balances: ReconciliationOptions = {
+      openingBankBalancePaise: 45000000,
+      hasBankOpeningAnchor: true,
+      openingLedgerBalancePaise: 42000000, // Reviewer explicitly entered ₹4,20,000.00
+      hasLedgerOpeningAnchor: true, // Reviewer supplied
+    };
+
+    const result = runReconciliation(bankCanonical, ledgerCanonical, balances);
+
+    expect(result.summary.hasBankOpeningAnchor).toBe(true);
+    expect(result.summary.hasLedgerOpeningAnchor).toBe(true);
+    expect(result.summary.openingLedgerBalancePaise).toBe(42000000);
+    expect(result.summary.openingBankBalancePaise).toBe(45000000);
+  });
+
+  // Case 16: Ledger closing anchor detected -> reconciliation uses it
+  it('16. ledger closing anchor detected: reconciliation uses it as closing position', () => {
+    const bankCanonical: CanonicalTransaction[] = [
+      {
+        id: 'BNK-001',
+        source: 'bank',
+        sourceRowNumber: 1,
+        date: '2026-09-02',
+        rawDescription: 'Vendor Pay',
+        sanitizedDescription: 'Vendor Pay',
+        amountPaise: 500000,
+        direction: 'debit',
+        signedAmountPaise: -500000,
+        currency: 'INR',
+        rawRow: {},
+      },
+    ];
+
+    const ledgerCanonical: CanonicalTransaction[] = [
+      {
+        id: 'LDG-001',
+        source: 'ledger',
+        sourceRowNumber: 1,
+        date: '2026-09-02',
+        rawDescription: 'Vendor Pay',
+        sanitizedDescription: 'Vendor Pay',
+        amountPaise: 500000,
+        direction: 'debit',
+        signedAmountPaise: -500000,
+        currency: 'INR',
+        rawRow: {},
+      },
+    ];
+
+    const balances: ReconciliationOptions = {
+      openingBankBalancePaise: 50000000,
+      closingBankBalancePaise: 49500000,
+      hasBankOpeningAnchor: true,
+      hasBankClosingAnchor: true,
+      openingLedgerBalancePaise: 50000000,
+      closingLedgerBalancePaise: 49000000, // Statement-detected closing ledger balance
+      hasLedgerOpeningAnchor: true,
+      hasLedgerClosingAnchor: true,
+    };
+
+    const result = runReconciliation(bankCanonical, ledgerCanonical, balances);
+
+    expect(result.summary.hasLedgerClosingAnchor).toBe(true);
+    expect(result.summary.closingLedgerBalancePaise).toBe(49000000);
+    expect(result.summary.closingBankBalancePaise).toBe(49500000);
+    // Unresolved variance = Bank closing (49500000) - Ledger closing (49000000) = +500000
+    expect(result.summary.unresolvedVariancePaise).toBe(500000);
+  });
+
+  // Case 17: Ledger closing anchor absent -> derived balance is clearly identified as derived
+  it('17. ledger closing anchor absent: derived balance is clearly identified as derived, not supplied', () => {
+    const bankCanonical: CanonicalTransaction[] = [];
+    const ledgerCanonical: CanonicalTransaction[] = [
+      {
+        id: 'LDG-001',
+        source: 'ledger',
+        sourceRowNumber: 1,
+        date: '2026-09-05',
+        rawDescription: 'Client Income',
+        sanitizedDescription: 'Client Income',
+        amountPaise: 2500000, // +₹25,000.00
+        direction: 'credit',
+        signedAmountPaise: 2500000,
+        currency: 'INR',
+        rawRow: {},
+      },
+      {
+        id: 'LDG-002',
+        source: 'ledger',
+        sourceRowNumber: 2,
+        date: '2026-09-10',
+        rawDescription: 'Office Supplies',
+        sanitizedDescription: 'Office Supplies',
+        amountPaise: 500000, // -₹5,000.00
+        direction: 'debit',
+        signedAmountPaise: -500000,
+        currency: 'INR',
+        rawRow: {},
+      },
+    ];
+
+    const balances: ReconciliationOptions = {
+      openingBankBalancePaise: 10000000,
+      openingLedgerBalancePaise: 10000000,
+      hasBankOpeningAnchor: true,
+      hasLedgerOpeningAnchor: false,
+      // closingLedgerBalancePaise omitted -> must derive
+    };
+
+    const result = runReconciliation(bankCanonical, ledgerCanonical, balances);
+
+    // net movement: +2500000 - 500000 = +2000000
+    // derived closing ledger balance: 10000000 + 2000000 = 12000000
+    expect(result.summary.hasLedgerClosingAnchor).toBe(false);
+    expect(result.summary.netLedgerMovementPaise).toBe(2000000);
+    expect(result.summary.closingLedgerBalancePaise).toBe(12000000);
+  });
+
+  // Case 18: Closing variance and bridge equation verification against synthetic fixtures
+  it('18. verifies closing variance and two-way bridge equation against synthetic fixtures with detected vs derived balances', () => {
+    const bankCanonical: CanonicalTransaction[] = [
+      {
+        id: 'BNK-001',
+        source: 'bank',
+        sourceRowNumber: 1,
+        date: '2026-09-02',
+        rawDescription: 'Direct Interest Credit',
+        sanitizedDescription: 'Direct Interest Credit',
+        amountPaise: 342000, // +₹3,420.00 (Unmatched Bank)
+        direction: 'credit',
+        signedAmountPaise: 342000,
+        currency: 'INR',
+        rawRow: {},
+      },
+    ];
+
+    const ledgerCanonical: CanonicalTransaction[] = [
+      {
+        id: 'LDG-001',
+        source: 'ledger',
+        sourceRowNumber: 1,
+        date: '2026-09-05',
+        rawDescription: 'Vendor Cheque Issued',
+        sanitizedDescription: 'Vendor Cheque Issued',
+        amountPaise: 1850000, // -₹18,500.00 (Unmatched Ledger / Unpresented Cheque)
+        direction: 'debit',
+        signedAmountPaise: -1850000,
+        currency: 'INR',
+        rawRow: {},
+      },
+    ];
+
+    const balances: ReconciliationOptions = {
+      openingBankBalancePaise: 45000000, // ₹4,50,000.00
+      closingBankBalancePaise: 45342000, // ₹4,53,420.00 (detected bank closing)
+      openingLedgerBalancePaise: 45000000, // baseline
+      hasBankOpeningAnchor: true,
+      hasBankClosingAnchor: true,
+      hasLedgerOpeningAnchor: false,
+      hasLedgerClosingAnchor: false, // derived: 45000000 - 1850000 = 43150000
+    };
+
+    const result = runReconciliation(bankCanonical, ledgerCanonical, balances);
+
+    expect(result.summary.hasBankClosingAnchor).toBe(true);
+    expect(result.summary.hasLedgerClosingAnchor).toBe(false);
+    expect(result.summary.closingBankBalancePaise).toBe(45342000);
+    expect(result.summary.closingLedgerBalancePaise).toBe(43150000);
+
+    // Closing variance = Bank (45342000) - Ledger (43150000) = +2192000 (+₹21,920.00)
+    expect(result.summary.unresolvedVariancePaise).toBe(2192000);
+
+    // Bridge verification
+    const bridge = getReconciliationBridge(result.summary, result.exceptions);
+    expect(bridge.isBalanced).toBe(true);
+    expect(bridge.bridgedTotalPaise).toBe(2192000);
+    expect(bridge.residualPaise).toBe(0);
+    expect(bridge.formattedResidual).toBe('₹0.00');
+    expect(bridge.closingBankBalancePaise - bridge.bridgedTotalPaise).toBe(bridge.closingLedgerBalancePaise);
   });
 });

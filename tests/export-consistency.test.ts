@@ -255,6 +255,10 @@ describe('Export Consistency & Truthful AI Reporting', () => {
     expect(parsed.financialSummary.closingBankBalance).toBe('₹4,76,380.00');
     expect(parsed.financialSummary.closingLedgerBalance).toBe('₹4,60,950.00');
     expect(parsed.financialSummary.closingVariance).toBe('+₹15,430.00');
+    expect(parsed.financialSummary.hasBankOpeningAnchor).toBe(true);
+    expect(parsed.financialSummary.hasLedgerOpeningAnchor).toBe(false);
+    expect(parsed.financialSummary.hasBankClosingAnchor).toBe(true);
+    expect(parsed.financialSummary.hasLedgerClosingAnchor).toBe(false);
 
     // Verify exception counts match
     expect(parsed.financialSummary.unresolvedExceptionCount).toBe(5);

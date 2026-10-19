@@ -124,6 +124,10 @@ export const App: React.FC = () => {
       openingBankBalancePaise: bOpen ?? 45000000,
       closingBankBalancePaise: bClose ?? 47638000,
       openingLedgerBalancePaise: bOpen ?? 45000000,
+      hasBankOpeningAnchor: bOpen !== undefined,
+      hasBankClosingAnchor: bClose !== undefined,
+      hasLedgerOpeningAnchor: false,
+      hasLedgerClosingAnchor: false,
     };
 
     setBankRows(bCanonical);
@@ -175,6 +179,7 @@ export const App: React.FC = () => {
       hasBankOpeningAnchor: options?.hasBankOpeningAnchor ?? false,
       hasLedgerOpeningAnchor: options?.hasLedgerOpeningAnchor ?? false,
       hasBankClosingAnchor: options?.hasBankClosingAnchor ?? false,
+      hasLedgerClosingAnchor: options?.hasLedgerClosingAnchor ?? false,
       excludedBankRowCount: options?.excludedBankRowCount ?? 0,
       excludedLedgerRowCount: options?.excludedLedgerRowCount ?? 0,
     };

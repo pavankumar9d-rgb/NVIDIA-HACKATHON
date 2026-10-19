@@ -39,14 +39,14 @@ pnpm test
  ✓ tests/money.test.ts (13 tests)
  ✓ tests/reconciliation.test.ts (12 tests)
  ✓ tests/analytics.test.ts (2 tests)
- ✓ tests/csv-import.test.ts (13 tests)
+ ✓ tests/csv-import.test.ts (18 tests)
  ✓ tests/export-consistency.test.ts (14 tests)
  ✓ tests/privacy-security.test.ts (17 tests)
  ✓ tests/ai-safety.test.ts (6 tests)
  ✓ tests/server-api.test.ts (23 tests)
 
  Test Files  8 passed (8)
-      Tests  100 passed (100)
+      Tests  105 passed (105)
 ```
 
 ### 2.2 Production Build & Bundle Verification

@@ -174,13 +174,17 @@ All quality gates were executed directly via PowerShell:
     - Labeled unverified anomaly explanations as hypotheses requiring verification across all 5 bridge items.
     - Updated Section 4 of Markdown report and documentation to truthfully distinguish escaped untrusted text cells (`'`) from validated signed numbers (such as `-18500.00`) in CSV formula injection compliance.
     - Added 1 regression test in `tests/export-consistency.test.ts` and 2 validation tests in `tests/analytics.test.ts` (87 tests total).
-17. `fix(import): harden real-world CSV import, deterministic calendar parsing, and balance anchors`
+17. `6eeb42e`: `fix(import): harden real-world CSV import, deterministic calendar parsing, and balance anchors`
     - Added deterministic calendar date parser (`parseDeterministicDate`) supporting ISO (`YYYY-MM-DD`), Indian/UK (`DD/MM/YYYY`), US (`MM/DD/YYYY`), and alphanumeric (`DD-Mon-YYYY`) conventions with leap-year checks and timezone drift immunity.
     - Added column mapping inspection (`inspectColumnMapping`) and user-editable mapping preview in `ImportModal` for dual debit/credit or single signed amount structures.
     - Retained detected bank and ledger balance anchors across `ImportModal`, `App.tsx`, and `ReconciliationOptions`, displaying anchor provenance (`hasBankOpeningAnchor`, `hasLedgerOpeningAnchor`, `hasBankClosingAnchor`) in reports.
     - Prevented silent row loss: invalid transaction rows are collected with explicit error citations, requiring explicit auditor acknowledgement and tracking `excludedBankRowCount` / `excludedLedgerRowCount` in audit exports.
     - Added explicit format support disclosure in UI and docs clarifying that CSV/TSV is supported, while PDF/scanned statements are unsupported and must be exported from banking portals.
-    - Created dedicated test suite `tests/csv-import.test.ts` covering all 10 synthetic real-world fixtures and edge cases (suite expanded to 100 tests total across 8 test suites).
+    - Created dedicated test suite `tests/csv-import.test.ts` covering all 10 synthetic real-world fixtures and edge cases.
+18. `fix(provenance): enforce strict ledger balance provenance and closing anchor validation`
+    - Corrected opening balance provenance: `hasLedgerOpeningAnchor` is set to `true` strictly when detected in the ledger statement or explicitly entered by the reviewer. When falling back to bank opening balance, it is transparently designated an unverified baseline, never statement-derived.
+    - Added ledger closing anchor support: `hasLedgerClosingAnchor` added to `ReconciliationOptions`, `ReconciliationSummary`, UI, Markdown report, and JSON export, passing `ledgerFile.detectedClosingPaise` to `closingLedgerBalancePaise` when present and distinguishing detected anchors from derived closing balances.
+    - Expanded `tests/csv-import.test.ts` with 5 targeted regression tests covering missing vs detected opening anchors, reviewer-supplied overrides, closing anchors, and mathematical bridge verification (105 tests total across 8 test suites).
 
 ---
 
@@ -217,7 +221,7 @@ Tested against the 15 attack scenarios documented in `docs/THREAT_MODEL.md`:
 | **Open Source Model** | NVIDIA Nemotron (`nvidia/Llama-3.1-Nemotron-70B-Instruct`) | **PASS (Configured & Adapter Tested)** |
 | **Infrastructure** | Nebius Token Factory / AI Cloud Compute | **PASS (Adapter Built to Spec)** |
 | **Public Source Repo** | Public repository with open-source license | **PASS (MIT License committed)** |
-| **Working Software** | Functional application with working interactions | **PASS (Verified via 100 tests & build)** |
+| **Working Software** | Functional application with working interactions | **PASS (Verified via 105 tests & build)** |
 | **Demonstration Video** | Public video under 3 minutes | **READY (Timestamped script complete)** |
 | **Live API Call Evidence** | Real runtime inference call to Nebius Token Factory | **NOT VERIFIED (Pending user key input)** |
 

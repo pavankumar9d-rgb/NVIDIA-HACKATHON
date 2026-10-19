@@ -85,7 +85,6 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   const [sessionTitle, setSessionTitle] = useState('October 2026 Monthly Close');
   const [bankFile, setBankFile] = useState<FileState>(initialFileState);
   const [ledgerFile, setLedgerFile] = useState<FileState>(initialFileState);
-  const [ledgerOpeningBalanceInput, setLedgerOpeningBalanceInput] = useState<string>('');
 
   if (!isOpen) return null;
 
@@ -265,27 +264,45 @@ export const ImportModal: React.FC<ImportModalProps> = ({
       hasBankOpening = true;
     }
 
-    // Ledger opening balance: explicit user input, or default to bank opening
+    // Ledger opening balance:
+    // Set hasLedgerOpeningAnchor=true ONLY when ledger opening balance was detected
+    // from the ledger file or explicitly supplied by the reviewer.
     let ledgerOpeningPaise = bankOpeningPaise;
     let hasLedgerOpening = false;
-    if (ledgerOpeningBalanceInput.trim() !== '') {
+    if (ledgerFile.openingBalanceInput.trim() !== '') {
       try {
-        ledgerOpeningPaise = parseToPaise(ledgerOpeningBalanceInput);
+        ledgerOpeningPaise = parseToPaise(ledgerFile.openingBalanceInput);
         hasLedgerOpening = true;
       } catch {
-        ledgerOpeningPaise = bankOpeningPaise;
+        if (ledgerFile.detectedOpeningPaise !== undefined) {
+          ledgerOpeningPaise = ledgerFile.detectedOpeningPaise;
+          hasLedgerOpening = true;
+        } else {
+          ledgerOpeningPaise = bankOpeningPaise;
+          hasLedgerOpening = false;
+        }
       }
+    } else if (ledgerFile.detectedOpeningPaise !== undefined) {
+      ledgerOpeningPaise = ledgerFile.detectedOpeningPaise;
+      hasLedgerOpening = true;
     } else {
-      hasLedgerOpening = hasBankOpening;
+      // Falling back to bank opening balance merely as an unverified baseline
+      ledgerOpeningPaise = bankOpeningPaise;
+      hasLedgerOpening = false;
     }
+
+    const hasBankClosing = bankFile.detectedClosingPaise !== undefined;
+    const hasLedgerClosing = ledgerFile.detectedClosingPaise !== undefined;
 
     const options: ReconciliationOptions = {
       openingBankBalancePaise: bankOpeningPaise,
       closingBankBalancePaise: bankFile.detectedClosingPaise,
       openingLedgerBalancePaise: ledgerOpeningPaise,
+      closingLedgerBalancePaise: ledgerFile.detectedClosingPaise,
       hasBankOpeningAnchor: hasBankOpening,
       hasLedgerOpeningAnchor: hasLedgerOpening,
-      hasBankClosingAnchor: bankFile.detectedClosingPaise !== undefined,
+      hasBankClosingAnchor: hasBankClosing,
+      hasLedgerClosingAnchor: hasLedgerClosing,
       excludedBankRowCount: bankFile.acknowledgeExcluded ? bankFile.invalidRows.length : 0,
       excludedLedgerRowCount: ledgerFile.acknowledgeExcluded ? ledgerFile.invalidRows.length : 0,
     };
@@ -346,7 +363,12 @@ export const ImportModal: React.FC<ImportModalProps> = ({
               </span>
               {fileState.detectedOpeningPaise !== undefined && (
                 <span className="text-[#101A2B] bg-[#EEF1EB] px-2 py-0.5 rounded-md font-mono text-[10px]">
-                  Anchor: {formatPaise(fileState.detectedOpeningPaise)}
+                  Open: {formatPaise(fileState.detectedOpeningPaise)}
+                </span>
+              )}
+              {fileState.detectedClosingPaise !== undefined && (
+                <span className="text-[#101A2B] bg-[#EEF1EB] px-2 py-0.5 rounded-md font-mono text-[10px]">
+                  Close: {formatPaise(fileState.detectedClosingPaise)}
                 </span>
               )}
               {hasInvalid && (
@@ -624,14 +646,10 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                       </label>
                       <input
                         type="text"
-                        placeholder="e.g. 250000.00"
-                        value={sourcePrefix === 'BNK' ? fileState.openingBalanceInput : ledgerOpeningBalanceInput}
+                        placeholder={sourcePrefix === 'BNK' ? 'e.g. 250000.00' : 'Optional (defaults to bank baseline)'}
+                        value={fileState.openingBalanceInput}
                         onChange={(e) => {
-                          if (sourcePrefix === 'BNK') {
-                            setFileState((prev) => ({ ...prev, openingBalanceInput: e.target.value }));
-                          } else {
-                            setLedgerOpeningBalanceInput(e.target.value);
-                          }
+                          setFileState((prev) => ({ ...prev, openingBalanceInput: e.target.value }));
                         }}
                         className="w-full px-2 py-1 border border-[#DDE3DA] rounded text-xs bg-white text-[#111827]"
                       />
@@ -724,23 +742,39 @@ export const ImportModal: React.FC<ImportModalProps> = ({
             <div>
               Bank Opening Anchor:{' '}
               <strong className="text-[#111827]">
-                {bankFile.openingBalanceInput
-                  ? `₹${bankFile.openingBalanceInput}`
+                {bankFile.openingBalanceInput.trim() !== ''
+                  ? `₹${bankFile.openingBalanceInput} (Supplied)`
                   : bankFile.detectedOpeningPaise !== undefined
-                  ? formatPaise(bankFile.detectedOpeningPaise)
+                  ? `${formatPaise(bankFile.detectedOpeningPaise)} (Statement Anchor)`
                   : '₹0.00 (Unanchored baseline)'}
               </strong>
             </div>
             <div>
               Ledger Opening Anchor:{' '}
               <strong className="text-[#111827]">
-                {ledgerOpeningBalanceInput
-                  ? `₹${ledgerOpeningBalanceInput}`
-                  : bankFile.openingBalanceInput
-                  ? `₹${bankFile.openingBalanceInput}`
-                  : bankFile.detectedOpeningPaise !== undefined
-                  ? formatPaise(bankFile.detectedOpeningPaise)
+                {ledgerFile.openingBalanceInput.trim() !== ''
+                  ? `₹${ledgerFile.openingBalanceInput} (Supplied)`
+                  : ledgerFile.detectedOpeningPaise !== undefined
+                  ? `${formatPaise(ledgerFile.detectedOpeningPaise)} (Statement Anchor)`
+                  : (bankFile.openingBalanceInput.trim() !== '' || bankFile.detectedOpeningPaise !== undefined)
+                  ? `${bankFile.openingBalanceInput.trim() !== '' ? `₹${bankFile.openingBalanceInput}` : formatPaise(bankFile.detectedOpeningPaise!)} (Unverified Baseline from Bank)`
                   : '₹0.00 (Unanchored baseline)'}
+              </strong>
+            </div>
+            <div>
+              Bank Closing Anchor:{' '}
+              <strong className="text-[#111827]">
+                {bankFile.detectedClosingPaise !== undefined
+                  ? `${formatPaise(bankFile.detectedClosingPaise)} (Statement Anchor)`
+                  : 'Derived from Net Period Flow'}
+              </strong>
+            </div>
+            <div>
+              Ledger Closing Anchor:{' '}
+              <strong className="text-[#111827]">
+                {ledgerFile.detectedClosingPaise !== undefined
+                  ? `${formatPaise(ledgerFile.detectedClosingPaise)} (Statement Anchor)`
+                  : 'Derived from Net Period Flow'}
               </strong>
             </div>
           </div>

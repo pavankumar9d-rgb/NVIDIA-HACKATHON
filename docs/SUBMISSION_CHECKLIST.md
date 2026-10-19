@@ -50,7 +50,7 @@
 ---
 
 ## 3. Truthful Runtime Status Disclosure
-- **Deterministic Reconciliation Engine:** Fully implemented, verified, and passes 100 of 100 automated tests across 8 test suites.
+- **Deterministic Reconciliation Engine:** Fully implemented, verified, and passes 105 of 105 automated tests across 8 test suites.
 - **Nebius Token Factory Adapter:** Fully implemented and configured in `server/index.ts` with model `nvidia/Llama-3.1-Nemotron-70B-Instruct`.
 - **Live Cloud Inference State:** Currently running in **Local Mode** with live inference switch `ALLOW_LIVE_AI=false` because a funded `NEBIUS_API_KEY` has not yet been supplied. All deterministic rules, redactions, schemas, and UI fallbacks function cleanly.
 - **Eligibility Verdict:** **PASS ON ARCHITECTURE, CODE & DEMO; LIVE API INFERENCE PENDING USER KEY CONFIGURATION.**
