@@ -316,7 +316,21 @@ export function generateReconciledCSV(matches: ReconciliationMatch[]): string {
 }
 
 /**
+ * Prepends a UTF-8 Byte Order Mark (BOM: \uFEFF) to CSV content for reliable spreadsheet rendering.
+ */
+export function withUTF8BOM(csvContent: string): string {
+  return csvContent.startsWith('\uFEFF') ? csvContent : `\uFEFF${csvContent}`;
+}
+
+/**
  * Generates the formula-safe CSV for all identified exceptions.
+ * 
+ * Sign Convention Note:
+ * - `Transaction Net Delta (INR)`: Reflects the transaction's cash flow impact or amount delta
+ *   (negative for disbursements/expenses such as unpresented cheques or bank charges; positive for credits/receipts).
+ * - This differs from the Reconciliation Bridge, which calculates balance-sheet adjustments from Bank Closing
+ *   to Ledger Closing (where an unpresented cheque is an add-back of +₹18,500 because the bank has not yet disbursed
+ *   the funds, making the bank balance higher relative to the general ledger).
  */
 export function generateExceptionsCSV(exceptions: ReconciliationException[]): string {
   const rows = exceptions.map((e) => {
@@ -348,11 +362,12 @@ export function generateExceptionsCSV(exceptions: ReconciliationException[]): st
     { key: 'date', label: 'Date' },
     { key: 'reference', label: 'Reference' },
     { key: 'description', label: 'Narration' },
-    { key: 'amount_delta_rupees', label: 'Variance (INR)', isNumeric: true },
+    { key: 'amount_delta_rupees', label: 'Transaction Net Delta (INR)', isNumeric: true },
     { key: 'review_status', label: 'Review Decision' },
     { key: 'reviewer_note', label: 'Reviewer Note' },
     { key: 'ai_status', label: 'AI Status' },
-    { key: 'ai_classification', label: 'Nemotron Classification' },
+    { key: 'ai_classification', label: 'Investigation Classification' },
     { key: 'ai_recommendation', label: 'Recommended Action' },
   ]);
 }
+

@@ -92,10 +92,10 @@ All quality gates were executed directly via PowerShell:
 
 | Verification Command | Purpose | Result | Evidence |
 | :--- | :--- | :--- | :--- |
-| `pnpm test` | Automated Vitest test suite | **PASS** | 7 test files, 83 tests passing (100% green in ~7.5s). |
+| `pnpm test` | Automated Vitest test suite | **PASS** | 7 test files, 86 tests passing (100% green in ~9.1s). |
 | `pnpm run lint` | Oxlint fast linter | **PASS** | 0 warnings and 0 errors across 33 files. |
 | `pnpm run typecheck` | Strict compiler typecheck (`tsc --noEmit`) | **PASS** | 0 type errors. |
-| `pnpm run build` | TypeScript typecheck (`tsc -b`) & Vite production bundle | **PASS** | `✓ built in ~6.5s` with zero errors or warnings. |
+| `pnpm run build` | TypeScript typecheck (`tsc -b`) & Vite production bundle | **PASS** | `✓ built in ~4.6s` with zero errors or warnings. |
 
 ### Incremental Git Delivery Log:
 1. `dbfd863`: `fix(security): enforce server-side privacy minimization`
@@ -160,6 +160,13 @@ All quality gates were executed directly via PowerShell:
     - Captured fresh export creation timestamp in `ExportModal`, ensuring `generatedAt` succeeds preceding investigation and review events.
     - Updated `reconciliationBridge.items` amount-mismatch explanation to explicitly describe gateway fee as a possible cause requiring voucher verification.
     - Added 3 regression tests in `tests/export-consistency.test.ts` (suite expanded from 7 to 10 tests, 83 tests total).
+15. `fix(csv): add UTF-8 BOM, neutral investigation header, and document sign conventions`
+    - Added `withUTF8BOM` helper and prepended `\uFEFF` UTF-8 Byte Order Mark to CSV downloads in `ExportModal`, preventing `â€”` mojibake for missing-row em dashes in Excel on Windows while leaving JSON and Markdown exports strictly unaffected.
+    - Renamed column header from `Nemotron Classification` to model-neutral `Investigation Classification` in Exceptions CSV, honestly representing local fallbacks, model hypotheses, or un-inferred exceptions.
+    - Renamed column header from `Variance (INR)` to `Transaction Net Delta (INR)` in Exceptions CSV and documented the distinction between raw transaction cash flow impact (negative for ledger expense cheques) and the Reconciliation Bridge balance-sheet adjustment (positive add-back because the bank has not yet disbursed the funds).
+    - Verified raw CSV dates are RFC 4180 / ISO 8601 compliant `YYYY-MM-DD` strings.
+    - Maintained session-only ephemeral model for human review decisions and documented session scope.
+    - Added 3 new tests in `tests/export-consistency.test.ts` (suite expanded from 10 to 13 tests, 86 tests total).
 
 ---
 
@@ -196,7 +203,7 @@ Tested against the 15 attack scenarios documented in `docs/THREAT_MODEL.md`:
 | **Open Source Model** | NVIDIA Nemotron (`nvidia/Llama-3.1-Nemotron-70B-Instruct`) | **PASS (Configured & Adapter Tested)** |
 | **Infrastructure** | Nebius Token Factory / AI Cloud Compute | **PASS (Adapter Built to Spec)** |
 | **Public Source Repo** | Public repository with open-source license | **PASS (MIT License committed)** |
-| **Working Software** | Functional application with working interactions | **PASS (Verified via 83 tests & build)** |
+| **Working Software** | Functional application with working interactions | **PASS (Verified via 86 tests & build)** |
 | **Demonstration Video** | Public video under 3 minutes | **READY (Timestamped script complete)** |
 | **Live API Call Evidence** | Real runtime inference call to Nebius Token Factory | **NOT VERIFIED (Pending user key input)** |
 

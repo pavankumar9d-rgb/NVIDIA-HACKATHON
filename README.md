@@ -8,7 +8,7 @@
   </p>
   <p>
     <a href="#quickstart"><img src="https://img.shields.io/badge/Status-Built%20%26%20Tested-17845B" alt="Status" /></a>
-    <a href="#test-results"><img src="https://img.shields.io/badge/Tests-83%2F83%20Passing-17845B" alt="Tests" /></a>
+    <a href="#test-results"><img src="https://img.shields.io/badge/Tests-86%2F86%20Passing-17845B" alt="Tests" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue" alt="License" /></a>
     <img src="https://img.shields.io/badge/Model-NVIDIA%20Nemotron%2070B-D7FF56?labelColor=101A2B" alt="Model" />
     <img src="https://img.shields.io/badge/Platform-Nebius%20Token%20Factory-101A2B" alt="Nebius" />
@@ -62,6 +62,8 @@ ProofLedger AI separates mathematical calculation from natural language reasonin
 - **Pre-Flight Redaction:** Account numbers (`\b\d{11,18}\b`), UPI handles (`user@bank`), and phone numbers are scrubbed with `[REDACTED]` tokens before prompt creation.
 - **Citation Provenance Guard:** Every row ID cited by the AI is cross-referenced against active session records. Any hallucinated reference is immediately rejected.
 - **Formula Injection Defense (CWE-1236):** All exported CSV cells starting with dangerous spreadsheet prefixes (`=`, `+`, `-`, `@`) have an apostrophe (`'`) prepended to neutralize executable macro injection in Excel. Legitimate negative numbers in numeric columns remain intact.
+- **Ephemeral Session Review State:** Human triage decisions (Approved/Rejected/Deferred) and notes exist exclusively in client React state. Refreshing or restarting resets state to pending, ensuring zero persistence leakage.
+- **CSV UTF-8 BOM Encoding:** CSV downloads include a UTF-8 BOM (`\uFEFF`) prefix, guaranteeing clean Unicode rendering in Excel on Windows (preventing `â€”` mojibake for missing-row em dashes) while leaving JSON and Markdown exports strictly unaffected.
 
 ---
 
@@ -112,7 +114,7 @@ pnpm run dev
 
 ## 4. Test Results & Quality Gates
 
-The test suite contains **80 automated tests** across 7 test suites covering arithmetic precision, matching rules, Zod schemas, provenance guards, duplicate detection, export consistency, production static serving, SPA fallback routing, and formula injection escaping:
+The test suite contains **86 automated tests** across 7 test suites covering arithmetic precision, matching rules, Zod schemas, provenance guards, duplicate detection, export consistency, UTF-8 BOM encoding, ISO date formatting, bridge sign conventions, production static serving, SPA fallback routing, and formula injection escaping:
 
 ```powershell
 pnpm test
@@ -122,23 +124,23 @@ pnpm test
 ```
  RUN  v5.0.5 C:/Users/saipa/OneDrive/Desktop/nvidia hackathon
 
- ✓ tests/money.test.ts (13 tests)
- ✓ tests/reconciliation.test.ts (12 tests)
- ✓ tests/analytics.test.ts (2 tests)
  ✓ tests/privacy-security.test.ts (17 tests)
- ✓ tests/export-consistency.test.ts (10 tests)
+ ✓ tests/reconciliation.test.ts (12 tests)
+ ✓ tests/money.test.ts (13 tests)
+ ✓ tests/analytics.test.ts (2 tests)
+ ✓ tests/export-consistency.test.ts (13 tests)
  ✓ tests/ai-safety.test.ts (6 tests)
  ✓ tests/server-api.test.ts (23 tests)
 
  Test Files  7 passed (7)
-      Tests  83 passed (83)
+      Tests  86 passed (86)
 ```
 
 ### Quality Linters & Production Build:
 ```powershell
 pnpm run lint        # Oxlint: 0 warnings, 0 errors across 33 files
 pnpm run typecheck   # tsc --noEmit: zero type errors
-pnpm run build       # Vite build: production client bundle generated in ~6.5s
+pnpm run build       # Vite build: production client bundle generated cleanly in ~4.6s
 ```
 
 ---
@@ -185,6 +187,8 @@ If creating the service manually:
 - **Free-Tier Sleep Cycle:** Render's free plan spins down web services after 15 minutes of inactivity. When visiting the site after an idle period, expect a ~30 to 50 second cold start delay while the instance wakes up.
 - **Hackathon Live Model Requirement Disclosure:** In this deployed demo, live cloud inference calls to NVIDIA Nemotron on Nebius Token Factory remain **disabled** (`ALLOW_LIVE_AI=false`). Live inference requires a verified, funded `NEBIUS_API_KEY` and rate/budget controls to prevent token drainage. The live model integration is fully implemented and tested via mock suites, but pending developer key configuration.
 - **Full Local Mode Functionality:** Even with live AI disabled, the application is 100% interactive and functional: loading synthetic client records, integer paise arithmetic, deterministic reconciliation, cash flow charts, evidence drawer, human triage decisions, audit trail recording, and formula-safe CSV/JSON/Markdown exports all function seamlessly in-browser.
+- **Session-Only Ephemeral Triage State:** Human auditor decisions (Approved/Rejected/Deferred) and review notes are retained exclusively in active React state for the duration of the browser session. They are immediately reflected in downloaded CSV, JSON, and Markdown export packages. Reloading the page or restarting the service resets the triage state to pending, ensuring zero persistence leakage.
+- **Export UTF-8 BOM & Sign Convention Semantics:** Downloaded CSVs include a UTF-8 BOM (`\uFEFF`) so spreadsheet tools (such as Excel on Windows) cleanly display em dashes (`—`) without mojibake. Dates are exported in raw ISO `YYYY-MM-DD` format (spreadsheet display formatting is locale-dependent). In the Exceptions CSV, the `Transaction Net Delta (INR)` represents the transaction's cash flow impact (e.g. -₹18,500.00 for an unpresented ledger cheque expenditure), whereas in the Reconciliation Bridge, this unpresented cheque appears as an add-back of `+₹18,500.00` because the bank balance has not yet disbursed the funds.
 
 ---
 

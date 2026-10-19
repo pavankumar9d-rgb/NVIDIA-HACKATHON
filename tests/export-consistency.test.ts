@@ -6,8 +6,10 @@ import {
   generateMarkdownReport, 
   generateAuditJSON, 
   generateReconciledCSV, 
-  generateExceptionsCSV
+  generateExceptionsCSV,
+  withUTF8BOM,
 } from '../src/lib/export';
+import { getReconciliationBridge } from '../src/lib/reconciliation/analytics';
 
 async function getDemoReconciliation() {
   const parsedBank = await parseCSVString(SYNTHETIC_BANK_CSV);
@@ -262,7 +264,7 @@ describe('Export Consistency & Truthful AI Reporting', () => {
     expect(parsed.reconciliationBridge.bridgedTotalPaise).toBe(1543000);
   });
 
-  it('generates formula-safe CSV exports with duplicate candidate classification', async () => {
+  it('generates formula-safe CSV exports with truthful column headers and verified row counts', async () => {
     const { recon } = await getDemoReconciliation();
 
     const exceptionsCSV = generateExceptionsCSV(recon.exceptions);
@@ -272,10 +274,104 @@ describe('Export Consistency & Truthful AI Reporting', () => {
     expect(exceptionsCSV).toContain('UNMATCHED_BANK');
     expect(exceptionsCSV).toContain('UNMATCHED_LEDGER');
 
+    // Truthful model-neutral classification header
+    expect(exceptionsCSV).toContain('Investigation Classification');
+    expect(exceptionsCSV).not.toContain('Nemotron Classification');
+
+    // Unambiguous transaction delta header
+    expect(exceptionsCSV).toContain('Transaction Net Delta (INR)');
+    expect(exceptionsCSV).not.toContain('Variance (INR)');
+
+    // Exceptions CSV must contain 1 header + 5 exception rows = 6 lines
+    const exLines = exceptionsCSV.trim().split(/\r?\n/);
+    expect(exLines.length).toBe(6);
+
     const reconciledCSV = generateReconciledCSV(recon.matches);
-    const lines = reconciledCSV.trim().split('\n');
+    const recLines = reconciledCSV.trim().split(/\r?\n/);
     // Header + 25 match rows = 26 lines
-    expect(lines.length).toBe(26);
+    expect(recLines.length).toBe(26);
+  });
+
+  it('exports CSV with UTF-8 BOM, ensuring em dashes and Unicode characters parse without mojibake', async () => {
+    const { recon } = await getDemoReconciliation();
+
+    const rawReconciled = generateReconciledCSV(recon.matches);
+    const rawExceptions = generateExceptionsCSV(recon.exceptions);
+
+    // 1. withUTF8BOM prepends UTF-8 BOM character
+    const bomReconciled = withUTF8BOM(rawReconciled);
+    expect(bomReconciled.charCodeAt(0)).toBe(0xfeff);
+    expect(bomReconciled.startsWith('\uFEFF')).toBe(true);
+
+    // Idempotent if called twice
+    expect(withUTF8BOM(bomReconciled)).toBe(bomReconciled);
+
+    // 2. parseCSVString cleanly strips the BOM without header name corruption
+    const parsedWithBOM = await parseCSVString(bomReconciled);
+    expect(parsedWithBOM.errors).toEqual([]);
+    expect(parsedWithBOM.headers[0]).toBe('Match ID'); // NOT '\uFEFFMatch ID'
+    expect(parsedWithBOM.rows.length).toBe(25);
+
+    // 3. Em dashes in missing bank/ledger rows parse cleanly as em dash, not mojibake â€”
+    const bomExceptions = withUTF8BOM(rawExceptions);
+    const parsedExceptions = await parseCSVString(bomExceptions);
+    expect(parsedExceptions.errors).toEqual([]);
+    expect(parsedExceptions.headers[0]).toBe('Exception ID');
+    expect(parsedExceptions.rows.length).toBe(5);
+
+    // Unmatched ledger row has bank row as '—'
+    const unmatchedLedger = parsedExceptions.rows.find((r) => r['Exception Type'] === 'UNMATCHED_LEDGER');
+    expect(unmatchedLedger).toBeDefined();
+    expect(unmatchedLedger?.['Bank Row']).toBe('—');
+    expect(unmatchedLedger?.['Bank Row']).not.toContain('â€”');
+  });
+
+  it('guarantees raw CSV transaction dates are strict ISO YYYY-MM-DD strings', async () => {
+    const { recon } = await getDemoReconciliation();
+
+    const reconciledCSV = generateReconciledCSV(recon.matches);
+    const exceptionsCSV = generateExceptionsCSV(recon.exceptions);
+
+    // In reconciled CSV, every row date matches ISO YYYY-MM-DD
+    const recRows = (await parseCSVString(reconciledCSV)).rows;
+    expect(recRows.length).toBe(25);
+    for (const row of recRows) {
+      expect(row['Date']).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
+
+    // In exceptions CSV, every row date matches ISO YYYY-MM-DD
+    const excRows = (await parseCSVString(exceptionsCSV)).rows;
+    expect(excRows.length).toBe(5);
+    for (const row of excRows) {
+      expect(row['Date']).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
+  });
+
+  it('clearly verifies and distinguishes sign conventions between transaction delta and bridge adjustments', async () => {
+    const { recon } = await getDemoReconciliation();
+
+    const exceptionsCSV = generateExceptionsCSV(recon.exceptions);
+    const parsed = await parseCSVString(exceptionsCSV);
+
+    // Find the unpresented cheque exception (CHQ-771829, LDG-025, ₹18,500 debit expenditure)
+    const chequeRow = parsed.rows.find((r) => r['Reference'] === 'CHQ-771829');
+    expect(chequeRow).toBeDefined();
+
+    // 1. Transaction delta is negative (-18500.00) because it represents a debit outflow / expense in the ledger
+    expect(chequeRow?.['Transaction Net Delta (INR)']).toBe('-18500.00');
+
+    // 2. In the Reconciliation Bridge, this unpresented cheque is an ADD-BACK (+₹18,500.00)
+    // because the bank has NOT yet disbursed the funds, making the closing bank balance higher than ledger
+    const bridge = getReconciliationBridge(recon.summary, recon.exceptions);
+    const chequeBridgeItem = bridge.bridgeItems.find((b) => b.exceptionType === 'UNMATCHED_LEDGER');
+    expect(chequeBridgeItem).toBeDefined();
+    expect(chequeBridgeItem?.impactPaise).toBe(1850000); // +₹18,500.00
+    expect(chequeBridgeItem?.formattedImpact).toBe('+₹18,500.00');
+
+    // 3. Ensure the overall closing variance (+₹15,430.00) and zero residual leakage remain mathematically intact
+    expect(recon.summary.unresolvedVariancePaise).toBe(1543000); // +₹15,430.00
+    expect(bridge.bridgedTotalPaise).toBe(1543000);
+    expect(bridge.isBalanced).toBe(true);
   });
 
   it('generates fresh export timestamp that succeeds investigation and review events', async () => {

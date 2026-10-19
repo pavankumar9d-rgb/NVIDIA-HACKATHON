@@ -3,8 +3,8 @@
 **Product:** ProofLedger AI  
 **Track:** Best Apps & Agents (Nebius × NVIDIA Global AI Hackathon 2026)  
 **Test Framework:** Vitest v5.0.5 + jsdom  
-**Status:** 83 of 83 Tests Passing (100% Green across 7 Test Suites)  
-**Last Verified:** October 18, 2026  
+**Status:** 86 of 86 Tests Passing (100% Green across 7 Test Suites)  
+**Last Verified:** October 19, 2026  
 
 ---
 
@@ -18,10 +18,10 @@ ProofLedger AI implements automated verification across seven critical domains:
 | `tests/reconciliation.test.ts` | 1-to-1 matching, date clearance tolerance, duplicate candidate detection, Jaccard token description overlap, amount mismatch detection, Northstar Studio synthetic benchmark. | 12 | **PASS** |
 | `tests/analytics.test.ts` | Daily cash flow aggregation, cumulative variance trajectory, volume composition calculation, and zero-leakage accounting. | 2 | **PASS** |
 | `tests/privacy-security.test.ts` | Server-side narration sanitization, regex lookarounds for phone vs account, Unicode normalization, whitespace formula injection neutralization (CWE-1236), `.env.example` secret hygiene. | 17 | **PASS** |
-| `tests/export-consistency.test.ts` | Markdown, JSON, and CSV export parity with Executive Overview; distinction of opening anchor, period net movement, and closing balances; truthful Local Mode attribution, unambiguous match-rate calculation, export timestamp semantics, and unverified hypothesis labeling. | 10 | **PASS** |
+| `tests/export-consistency.test.ts` | Markdown, JSON, and CSV export parity with Executive Overview; distinction of opening anchor, period net movement, and closing balances; truthful Local Mode attribution, unambiguous match-rate calculation, export timestamp semantics, unverified hypothesis labeling, UTF-8 BOM encoding for Excel, ISO date strings, and bridge vs transaction delta sign conventions. | 13 | **PASS** |
 | `tests/ai-safety.test.ts` | Zod runtime schema conformance, rejection of invalid classifications, citation provenance verification (blocking hallucinated row IDs), explicit user consent enforcement, prompt injection neutralization. | 6 | **PASS** |
 | `tests/server-api.test.ts` | Express gateway health check, `/api/ai/status` key leak prevention, `/api/investigate` consent requirement, truthful `LOCAL_MODE` fallback, rate limiting, Render origin protection, static serving, SPA routing, API 404 guard, and production loopback restriction. | 23 | **PASS** |
-| **Total** | **Comprehensive Full-Stack Coverage** | **83** | **100% PASS** |
+| **Total** | **Comprehensive Full-Stack Coverage** | **86** | **100% PASS** |
 
 ---
 
@@ -35,17 +35,16 @@ pnpm test
 ```
  RUN  v5.0.5 C:/Users/saipa/OneDrive/Desktop/nvidia hackathon
 
- ✓ tests/money.test.ts (13 tests)
- ✓ tests/reconciliation.test.ts (12 tests)
- ✓ tests/analytics.test.ts (2 tests)
  ✓ tests/privacy-security.test.ts (17 tests)
- ✓ tests/export-consistency.test.ts (10 tests)
+ ✓ tests/reconciliation.test.ts (12 tests)
+ ✓ tests/money.test.ts (13 tests)
+ ✓ tests/analytics.test.ts (2 tests)
+ ✓ tests/export-consistency.test.ts (13 tests)
  ✓ tests/ai-safety.test.ts (6 tests)
  ✓ tests/server-api.test.ts (23 tests)
 
  Test Files  7 passed (7)
-      Tests  83 passed (83)
-   Duration  7.07s
+      Tests  86 passed (86)
 ```
 
 ### 2.2 Production Build & Bundle Verification

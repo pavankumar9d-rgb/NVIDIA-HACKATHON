@@ -8,7 +8,8 @@ import {
   generateMarkdownReport, 
   generateAuditJSON, 
   generateReconciledCSV, 
-  generateExceptionsCSV 
+  generateExceptionsCSV,
+  withUTF8BOM,
 } from '../lib/export';
 import { 
   Download, 
@@ -101,7 +102,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         break;
     }
 
-    const blob = new Blob([content], { type: mimeType });
+    const blobContent = activeExportTab.startsWith('csv') ? withUTF8BOM(content) : content;
+    const blob = new Blob([blobContent], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
