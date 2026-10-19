@@ -8,7 +8,7 @@
   </p>
   <p>
     <a href="#quickstart"><img src="https://img.shields.io/badge/Status-Built%20%26%20Tested-17845B" alt="Status" /></a>
-    <a href="#test-results"><img src="https://img.shields.io/badge/Tests-87%2F87%20Passing-17845B" alt="Tests" /></a>
+    <a href="#test-results"><img src="https://img.shields.io/badge/Tests-100%2F100%20Passing-17845B" alt="Tests" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue" alt="License" /></a>
     <img src="https://img.shields.io/badge/Model-NVIDIA%20Nemotron%2070B-D7FF56?labelColor=101A2B" alt="Model" />
     <img src="https://img.shields.io/badge/Platform-Nebius%20Token%20Factory-101A2B" alt="Nebius" />
@@ -64,6 +64,7 @@ ProofLedger AI separates mathematical calculation from natural language reasonin
 - **Formula Injection Defense (CWE-1236):** All exported CSV cells starting with dangerous spreadsheet prefixes (`=`, `+`, `-`, `@`) have an apostrophe (`'`) prepended to neutralize executable macro injection in Excel. Legitimate negative numbers in numeric columns remain intact.
 - **Ephemeral Session Review State:** Human triage decisions (Approved/Rejected/Deferred) and notes exist exclusively in client React state. Refreshing or restarting resets state to pending, ensuring zero persistence leakage.
 - **CSV UTF-8 BOM Encoding:** CSV downloads include a UTF-8 BOM (`\uFEFF`) prefix, guaranteeing clean Unicode rendering in Excel on Windows (preventing `â€”` mojibake for missing-row em dashes) while leaving JSON and Markdown exports strictly unaffected.
+- **Hardened Real-World CSV Import & Anchor Engine:** In-browser deterministic date parser supporting ISO (`YYYY-MM-DD`), Indian/UK (`DD/MM/YYYY`), US (`MM/DD/YYYY`), and alphanumeric (`DD-Mon-YYYY`) conventions with zero timezone calendar shifting and leap-year validation. Column mapping inspection supports single signed amount or dual debit/credit layouts. Opening and closing balance anchors are preserved from statement rows or user input into reconciliation metrics. Invalid rows are explicitly surfaced and cannot be silently dropped without user acknowledgement. Unsupported formats (such as PDF statements or scanned documents) are clearly disallowed with guidance to export CSVs from online banking portals.
 
 ---
 
@@ -114,7 +115,7 @@ pnpm run dev
 
 ## 4. Test Results & Quality Gates
 
-The test suite contains **87 automated tests** across 7 test suites covering arithmetic precision, matching rules, Zod schemas, provenance guards, duplicate detection, export consistency, UTF-8 BOM encoding, ISO date formatting, bridge sign conventions, production static serving, SPA fallback routing, and formula injection escaping:
+The test suite contains **100 automated tests** across 8 test suites covering arithmetic precision, matching rules, Zod schemas, provenance guards, duplicate detection, export consistency, UTF-8 BOM encoding, ISO date formatting, bridge sign conventions, real-world CSV import edge cases, deterministic calendar dates, balance anchor preservation, production static serving, SPA fallback routing, and formula injection escaping:
 
 ```powershell
 pnpm test
@@ -124,23 +125,24 @@ pnpm test
 ```
  RUN  v5.0.5 C:/Users/saipa/OneDrive/Desktop/nvidia hackathon
 
- ✓ tests/privacy-security.test.ts (17 tests)
- ✓ tests/reconciliation.test.ts (12 tests)
  ✓ tests/money.test.ts (13 tests)
+ ✓ tests/reconciliation.test.ts (12 tests)
  ✓ tests/analytics.test.ts (2 tests)
+ ✓ tests/csv-import.test.ts (13 tests)
  ✓ tests/export-consistency.test.ts (14 tests)
+ ✓ tests/privacy-security.test.ts (17 tests)
  ✓ tests/ai-safety.test.ts (6 tests)
  ✓ tests/server-api.test.ts (23 tests)
 
- Test Files  7 passed (7)
-      Tests  87 passed (87)
+ Test Files  8 passed (8)
+      Tests  100 passed (100)
 ```
 
 ### Quality Linters & Production Build:
 ```powershell
-pnpm run lint        # Oxlint: 0 warnings, 0 errors across 33 files
+pnpm run lint        # Oxlint: 0 warnings, 0 errors across 34 files
 pnpm run typecheck   # tsc --noEmit: zero type errors
-pnpm run build       # Vite build: production client bundle generated cleanly in ~4.6s
+pnpm run build       # Vite build: production client bundle generated cleanly in ~5.5s
 ```
 
 ---

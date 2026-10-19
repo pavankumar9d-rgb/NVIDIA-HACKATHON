@@ -102,9 +102,17 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               <span>•</span>
               <span>Currency: <strong>INR (₹)</strong></span>
               <span>•</span>
-              <span>Opening Anchor: <strong>{formatPaise(summary?.openingBankBalancePaise ?? 0)}</strong></span>
+              <span>Opening Anchor: <strong>{formatPaise(summary?.openingBankBalancePaise ?? 0)}</strong> {summary?.hasBankOpeningAnchor ? '(Statement Anchor)' : '(Baseline)'}</span>
               <span>•</span>
               <span>Total Transactions: <strong>{bankRows.length + ledgerRows.length} rows</strong></span>
+              {(summary?.excludedBankRowCount ?? 0) + (summary?.excludedLedgerRowCount ?? 0) > 0 && (
+                <>
+                  <span>•</span>
+                  <span className="text-[#D75E4C] font-semibold">
+                    Excluded: {(summary?.excludedBankRowCount ?? 0) + (summary?.excludedLedgerRowCount ?? 0)} invalid rows
+                  </span>
+                </>
+              )}
             </p>
           </div>
 

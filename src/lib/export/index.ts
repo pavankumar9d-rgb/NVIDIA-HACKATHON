@@ -133,7 +133,11 @@ The table below reconciles certified opening anchors, gross period transaction f
 - **Confirmed 1-to-1 Matches:** ${matches.length} pairs (${matchedRowCount} rows matched out of ${totalActiveRows} active statement rows = **${rowMatchPercentage}%** row match rate)
 - **Matched Financial Volume:** **${formatPaise(summary.matchedAmountPaise)}** (across ${matches.length} confirmed matched pairs)
 - **Closing Discrepancy Variance:** **${formatPaise(summary.unresolvedVariancePaise, { showSign: true })}** across ${exceptions.length} exceptions
-- **Review Decisions Status:** ${approvedCount} Approved, ${rejectedCount} Rejected, ${deferredCount} Deferred, ${pendingCount} Pending Review
+- **Review Decisions Status:** ${approvedCount} Approved, ${rejectedCount} Rejected, ${deferredCount} Deferred, ${pendingCount} Pending Review${
+  summary.excludedBankRowCount > 0 || summary.excludedLedgerRowCount > 0
+    ? `\n- **Auditor-Excluded Statement Rows:** ${summary.excludedBankRowCount} bank row(s), ${summary.excludedLedgerRowCount} ledger row(s) excluded after explicit auditor acknowledgement`
+    : ''
+}
 
 ---
 
@@ -243,6 +247,11 @@ export function generateAuditJSON(options: ExportReportOptions): string {
       financialSummary: {
         openingAnchorBalance: formatPaise(summary.openingBankBalancePaise),
         openingLedgerBalance: formatPaise(summary.openingLedgerBalancePaise),
+        hasBankOpeningAnchor: summary.hasBankOpeningAnchor,
+        hasLedgerOpeningAnchor: summary.hasLedgerOpeningAnchor,
+        hasBankClosingAnchor: summary.hasBankClosingAnchor,
+        excludedBankRowCount: summary.excludedBankRowCount,
+        excludedLedgerRowCount: summary.excludedLedgerRowCount,
         totalBankInflows: formatPaise(summary.totalBankInflowPaise),
         totalBankOutflows: formatPaise(summary.totalBankOutflowPaise),
         netBankPeriodMovement: formatPaise(summary.netBankMovementPaise, { showSign: true }),

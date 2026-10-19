@@ -98,6 +98,15 @@ export interface ReconciliationSummary {
   confirmedMatchCount: number;
   exceptionCount: number;
   
+  // Excluded row metrics (for auditable statements)
+  excludedBankRowCount: number;
+  excludedLedgerRowCount: number;
+
+  // Anchor provenance indicators
+  hasBankOpeningAnchor: boolean;
+  hasLedgerOpeningAnchor: boolean;
+  hasBankClosingAnchor: boolean;
+
   // Financial metrics in paise
   openingBankBalancePaise: number;
   closingBankBalancePaise: number;
@@ -184,6 +193,11 @@ export interface ReconciliationOptions {
   closingBankBalancePaise?: number;
   openingLedgerBalancePaise?: number;
   closingLedgerBalancePaise?: number;
+  hasBankOpeningAnchor?: boolean;
+  hasLedgerOpeningAnchor?: boolean;
+  hasBankClosingAnchor?: boolean;
+  excludedBankRowCount?: number;
+  excludedLedgerRowCount?: number;
 }
 
 /**
@@ -525,6 +539,12 @@ export function runReconciliation(
   const netLedgerMovementPaise = ledgerCredits - ledgerDebits;
   const netLedgerTotalPaise = netLedgerMovementPaise;
 
+  const excludedBankRowCount = options.excludedBankRowCount ?? 0;
+  const excludedLedgerRowCount = options.excludedLedgerRowCount ?? 0;
+  const hasBankOpeningAnchor = options.hasBankOpeningAnchor ?? (options.openingBankBalancePaise !== undefined);
+  const hasLedgerOpeningAnchor = options.hasLedgerOpeningAnchor ?? (options.openingLedgerBalancePaise !== undefined);
+  const hasBankClosingAnchor = options.hasBankClosingAnchor ?? (options.closingBankBalancePaise !== undefined);
+
   const openingBankBalancePaise = options.openingBankBalancePaise ?? 0;
   const closingBankBalancePaise = options.closingBankBalancePaise ?? (openingBankBalancePaise + netBankMovementPaise);
 
@@ -542,6 +562,11 @@ export function runReconciliation(
     ledgerRowCount: ledgerRows.length,
     confirmedMatchCount: matches.length,
     exceptionCount: exceptions.length,
+    excludedBankRowCount,
+    excludedLedgerRowCount,
+    hasBankOpeningAnchor,
+    hasLedgerOpeningAnchor,
+    hasBankClosingAnchor,
     openingBankBalancePaise,
     closingBankBalancePaise,
     totalBankInflowPaise: bankCredits,

@@ -164,17 +164,33 @@ export const App: React.FC = () => {
   const handleCustomImport = (
     bRows: CanonicalTransaction[],
     lRows: CanonicalTransaction[],
-    name: string
+    name: string,
+    options?: ReconciliationOptions
   ) => {
+    const balances: ReconciliationOptions = {
+      openingBankBalancePaise: options?.openingBankBalancePaise ?? 0,
+      closingBankBalancePaise: options?.closingBankBalancePaise,
+      openingLedgerBalancePaise: options?.openingLedgerBalancePaise ?? options?.openingBankBalancePaise ?? 0,
+      closingLedgerBalancePaise: options?.closingLedgerBalancePaise,
+      hasBankOpeningAnchor: options?.hasBankOpeningAnchor ?? false,
+      hasLedgerOpeningAnchor: options?.hasLedgerOpeningAnchor ?? false,
+      hasBankClosingAnchor: options?.hasBankClosingAnchor ?? false,
+      excludedBankRowCount: options?.excludedBankRowCount ?? 0,
+      excludedLedgerRowCount: options?.excludedLedgerRowCount ?? 0,
+    };
+
     setBankRows(bRows);
     setLedgerRows(lRows);
+    setSessionBalances(balances);
     setSessionName(name);
     setIsSynthetic(false);
 
-    const result = runReconciliation(bRows, lRows);
+    const result = runReconciliation(bRows, lRows, balances);
     setReconciliationResult(result);
     if (result.exceptions.length > 0) {
       setSelectedItem({ type: 'exception', id: result.exceptions[0].exceptionId });
+    } else if (result.matches.length > 0) {
+      setSelectedItem({ type: 'match', id: result.matches[0].matchId });
     }
   };
 
