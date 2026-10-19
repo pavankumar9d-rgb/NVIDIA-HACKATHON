@@ -1,6 +1,7 @@
 import React, { useState, useId } from 'react';
 import type { DailyMovementBucket } from '../../lib/reconciliation/analytics';
 import { formatPaise } from '../../lib/money';
+import { useCountUp } from '../../lib/animation/useCountUp';
 
 interface DailyMovementChartProps {
   data: DailyMovementBucket[];
@@ -9,6 +10,8 @@ interface DailyMovementChartProps {
 export const DailyMovementChart: React.FC<DailyMovementChartProps> = ({ data }) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const chartId = useId();
+  const animProgressRaw = useCountUp(100, { duration: 700 });
+  const animProgress = animProgressRaw / 100;
 
   if (!data || data.length === 0) {
     return (
@@ -124,8 +127,10 @@ export const DailyMovementChart: React.FC<DailyMovementChartProps> = ({ data }) 
           {/* Bars and hover hit areas */}
           {data.map((d, idx) => {
             const centerX = padding.left + idx * step + step / 2;
-            const inflowHeight = (d.bankInflowPaise / maxPaise) * innerHeight;
-            const outflowHeight = (d.bankOutflowPaise / maxPaise) * innerHeight;
+            const fullInflowHeight = (d.bankInflowPaise / maxPaise) * innerHeight;
+            const fullOutflowHeight = (d.bankOutflowPaise / maxPaise) * innerHeight;
+            const currentInflowHeight = fullInflowHeight * animProgress;
+            const currentOutflowHeight = fullOutflowHeight * animProgress;
             const baseLine = padding.top + innerHeight;
 
             const isHovered = hoveredIndex === idx;
@@ -150,9 +155,9 @@ export const DailyMovementChart: React.FC<DailyMovementChartProps> = ({ data }) 
                 {d.bankInflowPaise > 0 && (
                   <rect
                     x={centerX - barWidth - 1}
-                    y={baseLine - inflowHeight}
+                    y={baseLine - currentInflowHeight}
                     width={barWidth}
-                    height={Math.max(2, inflowHeight)}
+                    height={Math.max(1, currentInflowHeight)}
                     rx="1.5"
                     fill={`url(#${chartId}-inflow)`}
                     opacity={hoveredIndex === null || isHovered ? 1 : 0.45}
@@ -163,9 +168,9 @@ export const DailyMovementChart: React.FC<DailyMovementChartProps> = ({ data }) 
                 {d.bankOutflowPaise > 0 && (
                   <rect
                     x={centerX + 1}
-                    y={baseLine - outflowHeight}
+                    y={baseLine - currentOutflowHeight}
                     width={barWidth}
-                    height={Math.max(2, outflowHeight)}
+                    height={Math.max(1, currentOutflowHeight)}
                     rx="1.5"
                     fill={`url(#${chartId}-outflow)`}
                     opacity={hoveredIndex === null || isHovered ? 1 : 0.45}
@@ -187,7 +192,7 @@ export const DailyMovementChart: React.FC<DailyMovementChartProps> = ({ data }) 
             );
           })}
 
-          {/* Net position connecting path */}
+          {/* Net position connecting path drawn progressively */}
           {data.length > 1 && (
             <polyline
               fill="none"
@@ -196,6 +201,7 @@ export const DailyMovementChart: React.FC<DailyMovementChartProps> = ({ data }) 
               strokeDasharray="2 2"
               opacity="0.75"
               points={data
+                .slice(0, Math.max(2, Math.ceil(data.length * animProgress)))
                 .map((d, idx) => {
                   const cx = padding.left + idx * step + step / 2;
                   // Map net to vertical position (clamped)

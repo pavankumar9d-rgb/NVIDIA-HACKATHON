@@ -8,12 +8,12 @@ import {
   CheckCircle2,
   AlertCircle,
   Bookmark,
-  LogIn,
   LogOut
 } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import type { ReconciliationSummary } from '../lib/reconciliation';
 import { getReconciliationAuditStatus } from '../lib/reconciliation/analytics';
+import { GoogleIcon } from './GoogleIcon';
 
 interface TopBarProps {
   sessionName: string;
@@ -28,6 +28,8 @@ interface TopBarProps {
   summary?: ReconciliationSummary | null;
   currentUser?: User | null;
   isSupabaseAvailable?: boolean;
+  isAuthLoading?: boolean;
+  authError?: string | null;
   onOpenSaveHistory?: () => void;
   onSignIn?: () => void;
   onSignOut?: () => void;
@@ -46,6 +48,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   summary = null,
   currentUser = null,
   isSupabaseAvailable = false,
+  isAuthLoading = false,
+  authError = null,
   onOpenSaveHistory,
   onSignIn,
   onSignOut,
@@ -169,29 +173,50 @@ export const TopBar: React.FC<TopBarProps> = ({
             <button
               type="button"
               onClick={onSignOut}
+              disabled={isAuthLoading}
               className="p-1.5 rounded-md border border-[#DDE3DA] hover:bg-slate-100 text-[#6B7280] transition-colors cursor-pointer"
               title="Sign Out"
             >
               <LogOut className="w-3.5 h-3.5" />
             </button>
           </div>
-        ) : isSupabaseAvailable ? (
-          <button
-            type="button"
-            onClick={onSignIn}
-            className="px-2.5 py-1.5 rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-[#111827] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Sign in with Google to enable private persistent history across devices"
-          >
-            <LogIn className="w-3.5 h-3.5 text-slate-600" />
-            <span className="hidden md:inline">Sign In</span>
-          </button>
         ) : (
-          <span 
-            className="hidden lg:inline-flex items-center gap-1 text-[11px] text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200"
-            title="Guest session. Reconciliations remain in local memory only."
-          >
-            Guest Session
-          </span>
+          <div className="flex items-center gap-2 pl-2 border-l border-[#DDE3DA]">
+            <div className="flex flex-col items-end">
+              <button
+                type="button"
+                onClick={onSignIn}
+                disabled={isAuthLoading}
+                className="px-2.5 py-1.5 rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-[#111827] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                title="Continue with Google. Account created automatically on first sign-in."
+              >
+                {isAuthLoading ? (
+                  <div className="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <GoogleIcon className="w-3.5 h-3.5" />
+                )}
+                <span>Continue with Google</span>
+              </button>
+              <span className="hidden xl:inline text-[9px] text-slate-400 font-medium">
+                Account created on first sign-in
+              </span>
+            </div>
+
+            {authError && (
+              <span className="text-[11px] text-rose-600 flex items-center gap-1" title={authError}>
+                <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
+              </span>
+            )}
+
+            <span 
+              className="hidden lg:inline-flex items-center text-[11px] text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200"
+              title={isSupabaseAvailable 
+                ? "Guest Mode is active. Sign in to enable private cross-session history." 
+                : "Guest Mode is active. Reconciliations run completely in-browser without cloud persistence."}
+            >
+              Guest Mode
+            </span>
+          </div>
         )}
       </div>
     </header>

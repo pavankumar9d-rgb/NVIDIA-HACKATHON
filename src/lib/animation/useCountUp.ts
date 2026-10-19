@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 
 interface UseCountUpOptions {
   duration?: number;
+  durationMs?: number;
   startValue?: number;
 }
 
@@ -15,7 +16,8 @@ export function useCountUp(
   targetValue: number,
   options: UseCountUpOptions = {}
 ): number {
-  const { duration = 800, startValue = 0 } = options;
+  const duration = options.duration ?? options.durationMs ?? 800;
+  const startValue = options.startValue ?? 0;
   const [displayValue, setDisplayValue] = useState<number>(
     duration === 0 ? targetValue : startValue
   );

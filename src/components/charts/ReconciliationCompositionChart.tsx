@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { CompositionSegment } from '../../lib/reconciliation/analytics';
 import { formatPaise } from '../../lib/money';
+import { useCountUp } from '../../lib/animation/useCountUp';
 
 interface ReconciliationCompositionChartProps {
   segments: CompositionSegment[];
@@ -14,6 +15,8 @@ export const ReconciliationCompositionChart: React.FC<ReconciliationCompositionC
   activeFilter,
 }) => {
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const animProgressRaw = useCountUp(100, { duration: 700 });
+  const animProgress = animProgressRaw / 100;
 
   const totalCount = segments.reduce((acc, s) => acc + s.count, 0);
 
@@ -28,7 +31,7 @@ export const ReconciliationCompositionChart: React.FC<ReconciliationCompositionC
             </span>
           </h3>
           <p className="text-[11px] text-[#6B7280]">
-            Proportion of confirmed matches versus pending exception categories
+            Proportion of confirmed matches versus pending exception categories (distinct from row match rate)
           </p>
         </div>
 
@@ -50,7 +53,8 @@ export const ReconciliationCompositionChart: React.FC<ReconciliationCompositionC
         aria-label="Reconciliation match and exception breakdown"
       >
         {segments.map((seg) => {
-          const widthPct = Math.max(seg.percentage, seg.count > 0 ? 3 : 0);
+          const finalWidthPct = Math.max(seg.percentage, seg.count > 0 ? 3 : 0);
+          const widthPct = finalWidthPct * animProgress;
           const isHovered = hoveredKey === seg.key;
           const isSelected = activeFilter === seg.filterType;
 

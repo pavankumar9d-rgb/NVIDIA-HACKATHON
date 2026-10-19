@@ -9,7 +9,6 @@ import {
   Calendar, 
   ShieldCheck, 
   AlertCircle,
-  LogIn,
   AlertTriangle,
   RefreshCw
 } from 'lucide-react';
@@ -21,15 +20,20 @@ import {
 } from '../lib/supabase/history';
 import { isSupabaseConfigured } from '../lib/supabase/client';
 import { formatPaise } from '../lib/money';
+import { GoogleIcon } from './GoogleIcon';
 
 interface HistoryViewProps {
   currentUser?: User | null;
   onSignIn?: () => void;
+  isAuthLoading?: boolean;
+  authError?: string | null;
 }
 
 export const HistoryView: React.FC<HistoryViewProps> = ({
   currentUser,
   onSignIn,
+  isAuthLoading = false,
+  authError = null,
 }) => {
   const [history, setHistory] = useState<HistoryRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -95,14 +99,47 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
           <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-700 mx-auto flex items-center justify-center">
             <History className="w-6 h-6" />
           </div>
-          <h2 className="text-base font-bold text-[#111827]">Cloud History Not Configured</h2>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            ProofLedger AI is running in local Guest Mode. Reconciliations remain in local client memory and are never persisted to cloud databases.
-          </p>
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-300 text-[10px] font-semibold mb-2">
+              <AlertCircle className="w-3 h-3 text-amber-600" />
+              <span>Status: Setup Required (Cloud persistence inactive)</span>
+            </div>
+            <h2 className="text-base font-bold text-[#111827]">Cloud History Setup Required</h2>
+            <p className="text-xs text-slate-600 leading-relaxed mt-1">
+              ProofLedger AI is operating in local Guest Mode. Reconciliations remain in local client memory and are never persisted to cloud databases without Supabase.
+            </p>
+          </div>
+
           <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-left text-[11px] font-mono text-slate-700 space-y-1">
             <div className="text-slate-500 font-sans font-bold">To enable private cloud history:</div>
             <div>VITE_SUPABASE_URL=https://...</div>
             <div>VITE_SUPABASE_ANON_KEY=...</div>
+          </div>
+
+          {onSignIn && (
+            <div className="space-y-1.5 pt-1">
+              <button
+                type="button"
+                onClick={onSignIn}
+                disabled={isAuthLoading}
+                className="w-full py-2.5 px-4 rounded-xl bg-[#101A2B] hover:bg-[#1C2D48] text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
+              >
+                {isAuthLoading ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <GoogleIcon className="w-4 h-4" />
+                )}
+                <span>Continue with Google</span>
+              </button>
+              <span className="text-[10px] text-slate-500 block">
+                Account created on first sign-in once configured
+              </span>
+            </div>
+          )}
+
+          <div className="p-3 rounded-xl bg-[#F9FAF8] border border-[#EEF1EB] text-[11px] text-slate-600 text-left">
+            <span className="font-bold text-slate-800 block mb-0.5">Guest Mode Active</span>
+            Local calculations and audit export work in-browser with zero configuration.
           </div>
         </div>
       </div>
@@ -116,19 +153,39 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
           <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-700 mx-auto flex items-center justify-center">
             <ShieldCheck className="w-6 h-6" />
           </div>
-          <h2 className="text-base font-bold text-[#111827]">Sign In for Private Cloud History</h2>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            Sign in with Google to view and manage your encrypted reconciliation history. Row Level Security ensures only you can access your saved audit reports.
-          </p>
+          <div>
+            <h2 className="text-base font-bold text-[#111827]">Sign In for Private Cloud History</h2>
+            <p className="text-xs text-slate-600 leading-relaxed mt-1">
+              Sign in with Google to view and manage your encrypted reconciliation history. Row Level Security ensures only you can access your saved audit reports.
+            </p>
+          </div>
+
+          {authError && (
+            <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-center gap-2 text-left">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{authError}</span>
+            </div>
+          )}
+
           {onSignIn && (
-            <button
-              type="button"
-              onClick={onSignIn}
-              className="w-full py-2.5 px-4 rounded-xl bg-[#101A2B] hover:bg-[#1C2D48] text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
-            >
-              <LogIn className="w-4 h-4 text-[#D7FF56]" />
-              <span>Sign In with Google</span>
-            </button>
+            <div className="space-y-1.5 pt-1">
+              <button
+                type="button"
+                onClick={onSignIn}
+                disabled={isAuthLoading}
+                className="w-full py-2.5 px-4 rounded-xl bg-[#101A2B] hover:bg-[#1C2D48] text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
+              >
+                {isAuthLoading ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <GoogleIcon className="w-4 h-4" />
+                )}
+                <span>Continue with Google</span>
+              </button>
+              <span className="text-[10px] text-slate-500 block">
+                Account created automatically on first sign-in
+              </span>
+            </div>
           )}
         </div>
       </div>

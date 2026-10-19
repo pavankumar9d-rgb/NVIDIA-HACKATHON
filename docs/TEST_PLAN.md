@@ -3,14 +3,14 @@
 **Product:** ProofLedger AI  
 **Track:** Best Apps & Agents (Nebius × NVIDIA Global AI Hackathon 2026)  
 **Test Framework:** Vitest v5.0.5 + jsdom  
-**Status:** 116 of 116 Tests Passing (100% Green across 10 Test Suites)  
+**Status:** 128 of 128 Tests Passing (100% Green across 11 Test Suites)  
 **Last Verified:** October 19, 2026  
 
 ---
 
 ## 1. Test Architecture & Coverage Matrix
 
-ProofLedger AI implements automated verification across ten critical domains:
+ProofLedger AI implements automated verification across eleven critical domains:
 
 | Test Suite File | Scope & Invariants Covered | Test Count | Result |
 | :--- | :--- | :--- | :--- |
@@ -22,9 +22,10 @@ ProofLedger AI implements automated verification across ten critical domains:
 | `tests/export-consistency.test.ts` | Markdown, JSON, and CSV export parity with Executive Overview; distinction of opening anchor, period net movement, and closing balances; truthful Local Mode attribution, unambiguous match-rate calculation, export timestamp semantics, unverified hypothesis labeling, UTF-8 BOM encoding for Excel, ISO date strings, explicit bridge equation verification, and truthful distinction between untrusted text cells and signed numbers in formula-injection compliance. | 15 | **PASS** |
 | `tests/animation.test.ts` | Presentation-only count-up hook (`useCountUp`), easeOutCubic curve interpolation, prefers-reduced-motion boundary jump, exact integer paise convergence without floating-point drift. | 2 | **PASS** |
 | `tests/history-privacy.test.ts` | Supabase client graceful fallback when unconfigured, private cloud history snapshot allowlist (strict stripping of `rawRow`, raw CSV text, unmasked PII/tokens), audit decision preservation, and RLS constraint compliance. | 3 | **PASS** |
+| `tests/auth-ui.test.tsx` | Supabase client safe fallback when unconfigured, TopBar "Continue with Google" action & "Account created on first sign-in" disclosure, WelcomeView auth discoverability, HistoryView setup guidance & cloud persistence status, and SetupRequiredModal invariants. | 12 | **PASS** |
 | `tests/ai-safety.test.ts` | Zod runtime schema conformance, rejection of invalid classifications, citation provenance verification (blocking hallucinated row IDs), explicit user consent enforcement, prompt injection neutralization. | 6 | **PASS** |
 | `tests/server-api.test.ts` | Express gateway health check, `/api/ai/status` key leak prevention, `/api/investigate` consent requirement, truthful `LOCAL_MODE` fallback, rate limiting, Render origin protection, static serving, SPA routing, API 404 guard, and production loopback restriction. | 23 | **PASS** |
-| **Total** | **Comprehensive Full-Stack Coverage** | **116** | **100% PASS** |
+| **Total** | **Comprehensive Full-Stack Coverage** | **128** | **100% PASS** |
 
 ---
 
@@ -38,19 +39,20 @@ pnpm test
 ```
  RUN  v5.0.5 C:/Users/saipa/OneDrive/Desktop/nvidia hackathon
 
- ✓ tests/reconciliation.test.ts (12 tests)
  ✓ tests/privacy-security.test.ts (17 tests)
+ ✓ tests/reconciliation.test.ts (12 tests)
  ✓ tests/money.test.ts (13 tests)
  ✓ tests/csv-import.test.ts (20 tests)
+ ✓ tests/history-privacy.test.ts (3 tests)
  ✓ tests/analytics.test.ts (5 tests)
+ ✓ tests/ai-safety.test.ts (6 tests)
  ✓ tests/export-consistency.test.ts (15 tests)
  ✓ tests/animation.test.ts (2 tests)
- ✓ tests/history-privacy.test.ts (3 tests)
- ✓ tests/ai-safety.test.ts (6 tests)
  ✓ tests/server-api.test.ts (23 tests)
+ ✓ tests/auth-ui.test.tsx (12 tests)
 
- Test Files  10 passed (10)
-      Tests  116 passed (116)
+ Test Files  11 passed (11)
+      Tests  128 passed (128)
 ```
 
 ### 2.2 Production Build & Bundle Verification

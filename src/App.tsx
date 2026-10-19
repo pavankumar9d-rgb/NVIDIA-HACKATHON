@@ -14,6 +14,7 @@ import { ExportModal } from './components/ExportModal';
 import { PrivacyDrawer } from './components/PrivacyDrawer';
 import { AuditTrailView } from './components/AuditTrailView';
 import { BrandedPreloader } from './components/BrandedPreloader';
+import { SetupRequiredModal } from './components/SetupRequiredModal';
 import type { 
   CanonicalTransaction, 
   ReconciliationResult, 
@@ -44,6 +45,9 @@ export const App: React.FC = () => {
   const [activeTableFilter, setActiveTableFilter] = useState<string | undefined>(undefined);
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isSetupModalOpen, setIsSetupModalOpen] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [isSaveHistoryModalOpen, setIsSaveHistoryModalOpen] = useState(false);
   const [isSavingHistory, setIsSavingHistory] = useState(false);
   const [saveHistoryError, setSaveHistoryError] = useState<string | null>(null);
@@ -186,7 +190,39 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  const handleSaveHistoryConfirm = async (name: string, description?: string) => {
+  const handleSignIn = async () => {
+    setAuthError(null);
+    if (!isSupabaseConfigured()) {
+      setIsSetupModalOpen(true);
+      return;
+    }
+    setIsAuthLoading(true);
+    try {
+      const { error } = await signInWithGoogle();
+      if (error) {
+        setAuthError(error.message);
+      }
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : 'Authentication failed');
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    setAuthError(null);
+    setIsAuthLoading(true);
+    try {
+      await signOut();
+      setCurrentUser(null);
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : 'Sign out failed');
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handleSaveHistoryConfirm = async (name: string, _description?: string) => {
     if (!reconciliationResult) return;
     setIsSavingHistory(true);
     setSaveHistoryError(null);
@@ -194,8 +230,7 @@ export const App: React.FC = () => {
       const { error } = await saveReconciliationToHistory(
         name,
         reconciliationResult,
-        isSynthetic,
-        description
+        isSynthetic
       );
       if (error) {
         setSaveHistoryError(error.message);
@@ -460,12 +495,11 @@ export const App: React.FC = () => {
           summary={reconciliationResult?.summary ?? null}
           currentUser={currentUser}
           isSupabaseAvailable={isSupabaseConfigured()}
+          isAuthLoading={isAuthLoading}
+          authError={authError}
           onOpenSaveHistory={() => setIsSaveHistoryModalOpen(true)}
-          onSignIn={signInWithGoogle}
-          onSignOut={async () => {
-            await signOut();
-            setCurrentUser(null);
-          }}
+          onSignIn={handleSignIn}
+          onSignOut={handleSignOut}
         />
 
         {currentTab === 'overview' && (
@@ -473,6 +507,10 @@ export const App: React.FC = () => {
             <WelcomeView
               onOpenImport={() => setIsImportModalOpen(true)}
               onLoadDemo={loadSyntheticDemo}
+              currentUser={currentUser}
+              onSignIn={handleSignIn}
+              isAuthLoading={isAuthLoading}
+              isSupabaseAvailable={isSupabaseConfigured()}
             />
           ) : (
             <OverviewView
@@ -553,7 +591,9 @@ export const App: React.FC = () => {
           <div className="flex-1 overflow-hidden flex flex-col">
             <HistoryView
               currentUser={currentUser}
-              onSignIn={signInWithGoogle}
+              onSignIn={handleSignIn}
+              isAuthLoading={isAuthLoading}
+              authError={authError}
             />
           </div>
         )}
@@ -609,6 +649,11 @@ export const App: React.FC = () => {
           currentUserEmail={currentUser?.email}
         />
       )}
+
+      <SetupRequiredModal
+        isOpen={isSetupModalOpen}
+        onClose={() => setIsSetupModalOpen(false)}
+      />
     </div>
   );
 };
