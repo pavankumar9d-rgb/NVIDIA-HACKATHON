@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ReconciliationSummary } from '../lib/reconciliation';
 import { formatPaise } from '../lib/money';
+import { useCountUp } from '../lib/animation/useCountUp';
 import { 
   Building2, 
   BookOpen, 
@@ -14,6 +15,18 @@ interface MetricsHeaderProps {
 }
 
 export const MetricsHeader: React.FC<MetricsHeaderProps> = ({ summary }) => {
+  const closingBankPaise = summary?.closingBankBalancePaise ?? 0;
+  const closingLedgerPaise = summary?.closingLedgerBalancePaise ?? 0;
+  const confirmedMatches = summary?.confirmedMatchCount ?? 0;
+  const matchedAmountPaise = summary?.matchedAmountPaise ?? 0;
+  const unresolvedVariancePaise = summary?.unresolvedVariancePaise ?? 0;
+
+  const displayBankPaise = useCountUp(closingBankPaise, { duration: 700 });
+  const displayLedgerPaise = useCountUp(closingLedgerPaise, { duration: 700 });
+  const displayMatchedCount = useCountUp(confirmedMatches, { duration: 600 });
+  const displayMatchedVolume = useCountUp(matchedAmountPaise, { duration: 700 });
+  const displayVariancePaise = useCountUp(unresolvedVariancePaise, { duration: 700 });
+
   if (!summary) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 md:p-6 pb-2">
@@ -40,7 +53,7 @@ export const MetricsHeader: React.FC<MetricsHeaderProps> = ({ summary }) => {
             </span>
           </div>
           <div className="text-xl md:text-2xl font-bold font-mono text-[#111827] tracking-tight">
-            {formatPaise(summary.closingBankBalancePaise)}
+            {formatPaise(displayBankPaise)}
           </div>
           <div className="text-[11px] text-[#6B7280] mt-1 flex flex-col gap-0.5">
             <div className="flex items-center justify-between">
@@ -67,7 +80,7 @@ export const MetricsHeader: React.FC<MetricsHeaderProps> = ({ summary }) => {
             </span>
           </div>
           <div className="text-xl md:text-2xl font-bold font-mono text-[#111827] tracking-tight">
-            {formatPaise(summary.closingLedgerBalancePaise)}
+            {formatPaise(displayLedgerPaise)}
           </div>
           <div className="text-[11px] text-[#6B7280] mt-1 flex flex-col gap-0.5">
             <div className="flex items-center justify-between">
@@ -94,10 +107,10 @@ export const MetricsHeader: React.FC<MetricsHeaderProps> = ({ summary }) => {
             </span>
           </div>
           <div className="text-xl md:text-2xl font-bold font-mono text-[#17845B] tracking-tight">
-            {summary.confirmedMatchCount} pairs
+            {displayMatchedCount} pairs
           </div>
           <div className="text-[11px] text-[#6B7280] mt-1 flex items-center justify-between">
-            <span className="font-mono">Volume: {formatPaise(summary.matchedAmountPaise)}</span>
+            <span className="font-mono">Volume: {formatPaise(displayMatchedVolume)}</span>
             <span className="text-[10px] text-[#9CA3AF] font-mono">{summary.confirmedMatchCount * 2} / {summary.bankRowCount + summary.ledgerRowCount} rows</span>
           </div>
         </div>
@@ -117,7 +130,7 @@ export const MetricsHeader: React.FC<MetricsHeaderProps> = ({ summary }) => {
           <div className={`text-xl md:text-2xl font-bold font-mono tracking-tight ${
             isVarianceZero ? 'text-[#17845B]' : 'text-[#D75E4C]'
           }`}>
-            {formatPaise(summary.unresolvedVariancePaise, { showSign: true })}
+            {formatPaise(displayVariancePaise, { showSign: true })}
           </div>
           <div className="text-[11px] text-[#6B7280] mt-1 flex items-center gap-1">
             {isVarianceZero ? (

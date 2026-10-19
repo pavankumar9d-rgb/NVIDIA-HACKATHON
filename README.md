@@ -8,7 +8,7 @@
   </p>
   <p>
     <a href="#quickstart"><img src="https://img.shields.io/badge/Status-Built%20%26%20Tested-17845B" alt="Status" /></a>
-    <a href="#test-results"><img src="https://img.shields.io/badge/Tests-108%2F108%20Passing-17845B" alt="Tests" /></a>
+    <a href="#test-results"><img src="https://img.shields.io/badge/Tests-116%2F116%20Passing-17845B" alt="Tests" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue" alt="License" /></a>
     <img src="https://img.shields.io/badge/Model-NVIDIA%20Nemotron%2070B-D7FF56?labelColor=101A2B" alt="Model" />
     <img src="https://img.shields.io/badge/Platform-Nebius%20Token%20Factory-101A2B" alt="Nebius" />
@@ -115,7 +115,7 @@ pnpm run dev
 
 ## 4. Test Results & Quality Gates
 
-The test suite contains **108 automated tests** across 8 test suites covering arithmetic precision, matching rules, Zod schemas, provenance guards, duplicate detection, export consistency, UTF-8 BOM encoding, ISO date formatting, bridge sign conventions, real-world CSV import edge cases, deterministic calendar dates, balance anchor preservation, balance source provenance (statement-detected vs reviewer-supplied vs unverified baseline), production static serving, SPA fallback routing, and formula injection escaping:
+The test suite contains **116 automated tests** across 10 test suites covering arithmetic precision, matching rules, Zod schemas, provenance guards, duplicate detection, export consistency, UTF-8 BOM encoding, ISO date formatting, bridge sign conventions, real-world CSV import edge cases, deterministic calendar dates, balance anchor preservation, balance source provenance, Supabase client graceful fallback, snapshot PII sanitization allowlist, presentation count-up animations, production static serving, SPA fallback routing, and formula injection escaping:
 
 ```powershell
 pnpm test
@@ -125,24 +125,26 @@ pnpm test
 ```
  RUN  v5.0.5 C:/Users/saipa/OneDrive/Desktop/nvidia hackathon
 
- ✓ tests/analytics.test.ts (2 tests)
- ✓ tests/csv-import.test.ts (20 tests)
- ✓ tests/privacy-security.test.ts (17 tests)
  ✓ tests/reconciliation.test.ts (12 tests)
- ✓ tests/export-consistency.test.ts (15 tests)
+ ✓ tests/privacy-security.test.ts (17 tests)
  ✓ tests/money.test.ts (13 tests)
+ ✓ tests/csv-import.test.ts (20 tests)
+ ✓ tests/analytics.test.ts (5 tests)
+ ✓ tests/export-consistency.test.ts (15 tests)
+ ✓ tests/animation.test.ts (2 tests)
+ ✓ tests/history-privacy.test.ts (3 tests)
  ✓ tests/ai-safety.test.ts (6 tests)
  ✓ tests/server-api.test.ts (23 tests)
 
- Test Files  8 passed (8)
-      Tests  108 passed (108)
+ Test Files  10 passed (10)
+      Tests  116 passed (116)
 ```
 
 ### Quality Linters & Production Build:
 ```powershell
-pnpm run lint        # Oxlint: 0 warnings, 0 errors across 34 files
+pnpm run lint        # Oxlint: 0 warnings, 0 errors across 42 files
 pnpm run typecheck   # tsc --noEmit: zero type errors
-pnpm run build       # Vite build: production client bundle generated cleanly in ~5.5s
+pnpm run build       # Vite build: production client bundle generated cleanly in ~2.7s
 ```
 
 ---
@@ -231,6 +233,7 @@ If creating the service manually:
 - [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md) — Test Matrix, Acceptance Gates & Command Execution Evidence.
 - [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md) — Timestamped 2m 50s Video Walkthrough Script.
 - [`docs/SUBMISSION_CHECKLIST.md`](docs/SUBMISSION_CHECKLIST.md) — Official Devpost Rules & Judging Criteria Compliance.
+- [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) — Zero-Cost Supabase PostgreSQL Setup, RLS Policies & Architecture.
 - [`docs/IMPLEMENTATION_REPORT.md`](docs/IMPLEMENTATION_REPORT.md) — Full Engineering & Implementation Status Report.
 - [`docs/CODEX_REVIEW_PROMPT.md`](docs/CODEX_REVIEW_PROMPT.md) — Independent Read-Only Review Prompt for OpenAI Codex.
 

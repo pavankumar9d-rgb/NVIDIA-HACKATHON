@@ -4,12 +4,13 @@ import {
   Layers, 
   ShieldCheck, 
   FileText, 
-  Cpu
+  Cpu,
+  History
 } from 'lucide-react';
 
 interface NavigationRailProps {
-  currentTab: 'overview' | 'workspace' | 'privacy' | 'audit';
-  onSelectTab: (tab: 'overview' | 'workspace' | 'privacy' | 'audit') => void;
+  currentTab: 'overview' | 'workspace' | 'privacy' | 'audit' | 'history';
+  onSelectTab: (tab: 'overview' | 'workspace' | 'privacy' | 'audit' | 'history') => void;
   exceptionCount?: number;
   aiStatus: {
     configured: boolean;
@@ -79,6 +80,20 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
                 {exceptionCount}
               </span>
             )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onSelectTab('history')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs md:text-sm font-medium transition-colors cursor-pointer ${
+              currentTab === 'history'
+                ? 'bg-[#1C2D48] text-white font-semibold'
+                : 'text-slate-300 hover:bg-[#16233B] hover:text-white'
+            }`}
+            title="Private Cloud History (RLS Protected)"
+          >
+            <History className="w-4 h-4 text-purple-400" />
+            <span className="hidden md:inline">Private History</span>
           </button>
 
           <button

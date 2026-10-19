@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import type { User } from '@supabase/supabase-js';
 import { NavigationRail } from './components/NavigationRail';
 import { TopBar } from './components/TopBar';
 import { WorkflowRibbon } from './components/WorkflowRibbon';
 import { OverviewView } from './components/OverviewView';
+import { WelcomeView } from './components/WelcomeView';
+import { HistoryView } from './components/HistoryView';
+import { SaveHistoryModal } from './components/SaveHistoryModal';
 import { TransactionGrid } from './components/TransactionGrid';
 import { EvidencePanel } from './components/EvidencePanel';
 import { ImportModal } from './components/ImportModal';
@@ -20,16 +24,29 @@ import { runReconciliation } from './lib/reconciliation';
 import { parseCSVString, validateAndNormalizeRows } from './lib/csv';
 import { buildMinimizedExceptionPayload } from './lib/privacy';
 import { 
+  isSupabaseConfigured, 
+  signInWithGoogle, 
+  signOut, 
+  getCurrentUser, 
+  onAuthStateChange 
+} from './lib/supabase/client';
+import { saveReconciliationToHistory } from './lib/supabase/history';
+import { 
   SYNTHETIC_BANK_CSV, 
   SYNTHETIC_LEDGER_CSV 
 } from './data/syntheticDemo';
 
 export const App: React.FC = () => {
-  const [currentTab, setCurrentTab] = useState<'overview' | 'workspace' | 'privacy' | 'audit'>('overview');
-  const [sessionName, setSessionName] = useState('Northstar Studio — September Close');
-  const [isSynthetic, setIsSynthetic] = useState(true);
+  const [currentTab, setCurrentTab] = useState<'overview' | 'workspace' | 'privacy' | 'audit' | 'history'>('overview');
+  const [sessionName, setSessionName] = useState('Reconciliation Workspace');
+  const [isSynthetic, setIsSynthetic] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
   const [activeTableFilter, setActiveTableFilter] = useState<string | undefined>(undefined);
+
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isSaveHistoryModalOpen, setIsSaveHistoryModalOpen] = useState(false);
+  const [isSavingHistory, setIsSavingHistory] = useState(false);
+  const [saveHistoryError, setSaveHistoryError] = useState<string | null>(null);
 
   const [bankRows, setBankRows] = useState<CanonicalTransaction[]>([]);
   const [ledgerRows, setLedgerRows] = useState<CanonicalTransaction[]>([]);
@@ -150,9 +167,47 @@ export const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // oxlint-disable-next-line react/set-state-in-effect
-    void loadSyntheticDemo();
-  }, [loadSyntheticDemo]);
+    // Check initial user authentication state and mark app ready
+    void getCurrentUser()
+      .then((user) => {
+        setCurrentUser(user);
+        setIsAppReady(true);
+      })
+      .catch(() => {
+        setIsAppReady(true);
+      });
+
+    const { data: authListener } = onAuthStateChange((_event, session) => {
+      setCurrentUser(session?.user ?? null);
+    });
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
+  }, []);
+
+  const handleSaveHistoryConfirm = async (name: string, description?: string) => {
+    if (!reconciliationResult) return;
+    setIsSavingHistory(true);
+    setSaveHistoryError(null);
+    try {
+      const { error } = await saveReconciliationToHistory(
+        name,
+        reconciliationResult,
+        isSynthetic,
+        description
+      );
+      if (error) {
+        setSaveHistoryError(error.message);
+      } else {
+        setIsSaveHistoryModalOpen(false);
+      }
+    } catch (err) {
+      setSaveHistoryError(err instanceof Error ? err.message : 'Failed to save snapshot');
+    } finally {
+      setIsSavingHistory(false);
+    }
+  };
 
   const handleRunReconciliation = () => {
     if (bankRows.length === 0 || ledgerRows.length === 0) return;
@@ -165,7 +220,7 @@ export const App: React.FC = () => {
     setLedgerRows([]);
     setReconciliationResult(null);
     setSelectedItem(null);
-    setSessionName('New Reconciliation Session');
+    setSessionName('Reconciliation Workspace');
     setIsSynthetic(false);
   };
 
@@ -403,26 +458,41 @@ export const App: React.FC = () => {
           hasData={bankRows.length > 0}
           isReconciled={Boolean(reconciliationResult)}
           summary={reconciliationResult?.summary ?? null}
+          currentUser={currentUser}
+          isSupabaseAvailable={isSupabaseConfigured()}
+          onOpenSaveHistory={() => setIsSaveHistoryModalOpen(true)}
+          onSignIn={signInWithGoogle}
+          onSignOut={async () => {
+            await signOut();
+            setCurrentUser(null);
+          }}
         />
 
         {currentTab === 'overview' && (
-          <OverviewView
-            sessionName={sessionName}
-            isSynthetic={isSynthetic}
-            bankRows={bankRows}
-            ledgerRows={ledgerRows}
-            reconciliationResult={reconciliationResult}
-            onNavigateToWorkspace={(exceptionId, filterType) => {
-              setCurrentTab('workspace');
-              if (exceptionId) {
-                setSelectedItem({ type: 'exception', id: exceptionId });
-              }
-              if (filterType) {
-                setActiveTableFilter(filterType);
-              }
-            }}
-            onOpenExport={() => setIsExportModalOpen(true)}
-          />
+          !reconciliationResult && bankRows.length === 0 ? (
+            <WelcomeView
+              onOpenImport={() => setIsImportModalOpen(true)}
+              onLoadDemo={loadSyntheticDemo}
+            />
+          ) : (
+            <OverviewView
+              sessionName={sessionName}
+              isSynthetic={isSynthetic}
+              bankRows={bankRows}
+              ledgerRows={ledgerRows}
+              reconciliationResult={reconciliationResult}
+              onNavigateToWorkspace={(exceptionId, filterType) => {
+                setCurrentTab('workspace');
+                if (exceptionId) {
+                  setSelectedItem({ type: 'exception', id: exceptionId });
+                }
+                if (filterType) {
+                  setActiveTableFilter(filterType);
+                }
+              }}
+              onOpenExport={() => setIsExportModalOpen(true)}
+            />
+          )
         )}
 
         {currentTab === 'workspace' && (
@@ -479,6 +549,15 @@ export const App: React.FC = () => {
           </div>
         )}
 
+        {currentTab === 'history' && (
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <HistoryView
+              currentUser={currentUser}
+              onSignIn={signInWithGoogle}
+            />
+          </div>
+        )}
+
         {currentTab === 'privacy' && (
           <div className="flex-1 overflow-y-auto">
             <PrivacyDrawer aiStatus={aiStatus} />
@@ -513,6 +592,21 @@ export const App: React.FC = () => {
           summary={reconciliationResult?.summary || null}
           sessionName={sessionName}
           aiStatus={aiStatus}
+        />
+      )}
+
+      {isSaveHistoryModalOpen && reconciliationResult && (
+        <SaveHistoryModal
+          isOpen={isSaveHistoryModalOpen}
+          onClose={() => {
+            setIsSaveHistoryModalOpen(false);
+            setSaveHistoryError(null);
+          }}
+          onConfirm={handleSaveHistoryConfirm}
+          defaultName={sessionName}
+          isSaving={isSavingHistory}
+          errorMessage={saveHistoryError}
+          currentUserEmail={currentUser?.email}
         />
       )}
     </div>

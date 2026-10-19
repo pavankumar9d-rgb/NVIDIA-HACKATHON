@@ -3,14 +3,14 @@
 **Product:** ProofLedger AI  
 **Track:** Best Apps & Agents (Nebius × NVIDIA Global AI Hackathon 2026)  
 **Test Framework:** Vitest v5.0.5 + jsdom  
-**Status:** 100 of 100 Tests Passing (100% Green across 8 Test Suites)  
+**Status:** 116 of 116 Tests Passing (100% Green across 10 Test Suites)  
 **Last Verified:** October 19, 2026  
 
 ---
 
 ## 1. Test Architecture & Coverage Matrix
 
-ProofLedger AI implements automated verification across eight critical domains:
+ProofLedger AI implements automated verification across ten critical domains:
 
 | Test Suite File | Scope & Invariants Covered | Test Count | Result |
 | :--- | :--- | :--- | :--- |
@@ -20,9 +20,11 @@ ProofLedger AI implements automated verification across eight critical domains:
 | `tests/csv-import.test.ts` | Deterministic date parsing (ISO, Indian DD/MM/YYYY, US MM/DD/YYYY, leap years), timezone drift immunity, column mapping inspection, dual debit/credit vs signed single amount, balance anchor preservation, invalid row error isolation (no silent dropping), duplicate & ambiguous candidate handling, formula injection sanitization. | 20 | **PASS** |
 | `tests/privacy-security.test.ts` | Server-side narration sanitization, regex lookarounds for phone vs account, Unicode normalization, whitespace formula injection neutralization (CWE-1236), `.env.example` secret hygiene. | 17 | **PASS** |
 | `tests/export-consistency.test.ts` | Markdown, JSON, and CSV export parity with Executive Overview; distinction of opening anchor, period net movement, and closing balances; truthful Local Mode attribution, unambiguous match-rate calculation, export timestamp semantics, unverified hypothesis labeling, UTF-8 BOM encoding for Excel, ISO date strings, explicit bridge equation verification, and truthful distinction between untrusted text cells and signed numbers in formula-injection compliance. | 15 | **PASS** |
+| `tests/animation.test.ts` | Presentation-only count-up hook (`useCountUp`), easeOutCubic curve interpolation, prefers-reduced-motion boundary jump, exact integer paise convergence without floating-point drift. | 2 | **PASS** |
+| `tests/history-privacy.test.ts` | Supabase client graceful fallback when unconfigured, private cloud history snapshot allowlist (strict stripping of `rawRow`, raw CSV text, unmasked PII/tokens), audit decision preservation, and RLS constraint compliance. | 3 | **PASS** |
 | `tests/ai-safety.test.ts` | Zod runtime schema conformance, rejection of invalid classifications, citation provenance verification (blocking hallucinated row IDs), explicit user consent enforcement, prompt injection neutralization. | 6 | **PASS** |
 | `tests/server-api.test.ts` | Express gateway health check, `/api/ai/status` key leak prevention, `/api/investigate` consent requirement, truthful `LOCAL_MODE` fallback, rate limiting, Render origin protection, static serving, SPA routing, API 404 guard, and production loopback restriction. | 23 | **PASS** |
-| **Total** | **Comprehensive Full-Stack Coverage** | **111** | **100% PASS** |
+| **Total** | **Comprehensive Full-Stack Coverage** | **116** | **100% PASS** |
 
 ---
 
@@ -36,17 +38,19 @@ pnpm test
 ```
  RUN  v5.0.5 C:/Users/saipa/OneDrive/Desktop/nvidia hackathon
 
- ✓ tests/analytics.test.ts (5 tests)
- ✓ tests/csv-import.test.ts (20 tests)
- ✓ tests/privacy-security.test.ts (17 tests)
  ✓ tests/reconciliation.test.ts (12 tests)
- ✓ tests/export-consistency.test.ts (15 tests)
+ ✓ tests/privacy-security.test.ts (17 tests)
  ✓ tests/money.test.ts (13 tests)
+ ✓ tests/csv-import.test.ts (20 tests)
+ ✓ tests/analytics.test.ts (5 tests)
+ ✓ tests/export-consistency.test.ts (15 tests)
+ ✓ tests/animation.test.ts (2 tests)
+ ✓ tests/history-privacy.test.ts (3 tests)
  ✓ tests/ai-safety.test.ts (6 tests)
  ✓ tests/server-api.test.ts (23 tests)
 
- Test Files  8 passed (8)
-      Tests  111 passed (111)
+ Test Files  10 passed (10)
+      Tests  116 passed (116)
 ```
 
 ### 2.2 Production Build & Bundle Verification

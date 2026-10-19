@@ -6,8 +6,12 @@ import {
   RotateCcw, 
   Download,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Bookmark,
+  LogIn,
+  LogOut
 } from 'lucide-react';
+import type { User } from '@supabase/supabase-js';
 import type { ReconciliationSummary } from '../lib/reconciliation';
 import { getReconciliationAuditStatus } from '../lib/reconciliation/analytics';
 
@@ -22,6 +26,11 @@ interface TopBarProps {
   hasData: boolean;
   isReconciled: boolean;
   summary?: ReconciliationSummary | null;
+  currentUser?: User | null;
+  isSupabaseAvailable?: boolean;
+  onOpenSaveHistory?: () => void;
+  onSignIn?: () => void;
+  onSignOut?: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -35,6 +44,11 @@ export const TopBar: React.FC<TopBarProps> = ({
   hasData,
   isReconciled,
   summary = null,
+  currentUser = null,
+  isSupabaseAvailable = false,
+  onOpenSaveHistory,
+  onSignIn,
+  onSignOut,
 }) => {
   const auditStatus = isReconciled ? getReconciliationAuditStatus(summary) : null;
 
@@ -119,6 +133,18 @@ export const TopBar: React.FC<TopBarProps> = ({
           </button>
         )}
 
+        {isReconciled && onOpenSaveHistory && (
+          <button
+            type="button"
+            onClick={onOpenSaveHistory}
+            className="px-3 py-1.5 rounded-md border border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-900 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Save sanitized reconciliation snapshot to private cloud history (Requires consent)"
+          >
+            <Bookmark className="w-3.5 h-3.5 text-purple-600" />
+            <span className="hidden sm:inline">Save to History</span>
+          </button>
+        )}
+
         {hasData && (
           <button
             type="button"
@@ -128,6 +154,44 @@ export const TopBar: React.FC<TopBarProps> = ({
           >
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
+        )}
+
+        {currentUser ? (
+          <div className="flex items-center gap-2 pl-2 border-l border-[#DDE3DA]">
+            <div className="flex items-center gap-1.5 text-xs text-slate-700 font-medium">
+              <span className="w-6 h-6 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-[11px] border border-purple-300">
+                {(currentUser.email?.[0] || 'U').toUpperCase()}
+              </span>
+              <span className="hidden lg:inline text-[11px] text-slate-600 max-w-[120px] truncate" title={currentUser.email}>
+                {currentUser.email}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={onSignOut}
+              className="p-1.5 rounded-md border border-[#DDE3DA] hover:bg-slate-100 text-[#6B7280] transition-colors cursor-pointer"
+              title="Sign Out"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : isSupabaseAvailable ? (
+          <button
+            type="button"
+            onClick={onSignIn}
+            className="px-2.5 py-1.5 rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-[#111827] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Sign in with Google to enable private persistent history across devices"
+          >
+            <LogIn className="w-3.5 h-3.5 text-slate-600" />
+            <span className="hidden md:inline">Sign In</span>
+          </button>
+        ) : (
+          <span 
+            className="hidden lg:inline-flex items-center gap-1 text-[11px] text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200"
+            title="Guest session. Reconciliations remain in local memory only."
+          >
+            Guest Session
+          </span>
         )}
       </div>
     </header>
