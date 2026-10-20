@@ -103,6 +103,40 @@ describe('TopBar Authentication UI', () => {
     fireEvent.click(signOutBtn);
     expect(onSignOut).toHaveBeenCalledTimes(1);
   });
+
+  it('strictly hides "Save to History" from guest users even when reconciliation is complete', () => {
+    const onOpenSaveHistory = vi.fn();
+    render(
+      <TopBar
+        {...dummyProps}
+        isReconciled={true}
+        currentUser={null}
+        onOpenSaveHistory={onOpenSaveHistory}
+      />
+    );
+    expect(screen.queryByTitle(/save sanitized reconciliation snapshot/i)).toBeNull();
+    expect(screen.queryByRole('button', { name: /save to history/i })).toBeNull();
+  });
+
+  it('renders "Save to History" for authenticated users when reconciliation is complete', () => {
+    const onOpenSaveHistory = vi.fn();
+    const fakeUser: Partial<User> = {
+      id: 'usr-456',
+      email: 'accountant@example.com',
+    };
+    render(
+      <TopBar
+        {...dummyProps}
+        isReconciled={true}
+        currentUser={fakeUser as User}
+        onOpenSaveHistory={onOpenSaveHistory}
+      />
+    );
+    const saveBtn = screen.getByRole('button', { name: /save to history/i });
+    expect(saveBtn).toBeDefined();
+    fireEvent.click(saveBtn);
+    expect(onOpenSaveHistory).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('WelcomeScreen (Initial Post-Preloader Experience)', () => {

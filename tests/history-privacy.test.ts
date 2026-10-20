@@ -216,5 +216,65 @@ describe('Supabase Client & History Privacy Invariants', () => {
       // Should fail either due to unconfigured client or missing user session
       expect(saveRes.error?.message).toMatch(/not configured|must be signed in/i);
     });
+
+    it('executes full synthetic reconciliation without touching durable storage and rejects cloud-save attempt', async () => {
+      // Clear storage
+      localStorage.clear();
+      sessionStorage.clear();
+
+      // Set guest mode
+      sessionStorage.setItem('proofledger_guest_mode', 'true');
+
+      // Create synthetic test data
+      const bankTx: CanonicalTransaction = {
+        id: 'BNK-GUEST-01',
+        source: 'bank',
+        sourceRowNumber: 1,
+        date: '2026-09-01',
+        rawDescription: 'Consulting Fee Client A',
+        sanitizedDescription: 'Consulting Fee Client A',
+        amountPaise: 1500000,
+        direction: 'credit',
+        signedAmountPaise: 1500000,
+        reference: 'INV-1001',
+        currency: 'INR',
+      };
+      const ledgerTx: CanonicalTransaction = {
+        id: 'LDG-GUEST-01',
+        source: 'ledger',
+        sourceRowNumber: 1,
+        date: '2026-09-01',
+        rawDescription: 'Invoice 1001 Payment',
+        sanitizedDescription: 'Invoice 1001 Payment',
+        amountPaise: 1500000,
+        direction: 'credit',
+        signedAmountPaise: 1500000,
+        reference: 'INV-1001',
+        currency: 'INR',
+      };
+
+      // Import into reconciliation engine
+      const { runReconciliation } = await import('../src/lib/reconciliation');
+      const reconResult = runReconciliation([bankTx], [ledgerTx]);
+
+      expect(reconResult.matches.length).toBe(1);
+      expect(reconResult.summary.confirmedMatchCount).toBe(1);
+
+      // Verify that after running reconciliation, zero items were persisted to localStorage
+      expect(localStorage.length).toBe(0);
+
+      // Verify that sessionStorage holds ONLY proofledger_guest_mode
+      expect(sessionStorage.length).toBe(1);
+      expect(sessionStorage.getItem('proofledger_guest_mode')).toBe('true');
+
+      // Attempt to save to cloud history without an authenticated session
+      const saveRes = await saveReconciliationToHistory('Guest Client Run', reconResult, false);
+      expect(saveRes.data).toBeNull();
+      expect(saveRes.error).not.toBeNull();
+      expect(saveRes.error?.message).toMatch(/not configured|must be signed in/i);
+
+      // Cleanup
+      sessionStorage.removeItem('proofledger_guest_mode');
+    });
   });
 });
