@@ -13,7 +13,6 @@ import {
 import type { User } from '@supabase/supabase-js';
 import type { ReconciliationSummary } from '../lib/reconciliation';
 import { getReconciliationAuditStatus } from '../lib/reconciliation/analytics';
-import { GoogleIcon } from './GoogleIcon';
 
 interface TopBarProps {
   sessionName: string;
@@ -47,9 +46,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   isReconciled,
   summary = null,
   currentUser = null,
-  isSupabaseAvailable = false,
   isAuthLoading = false,
-  authError = null,
   onOpenSaveHistory,
   onSignIn,
   onSignOut,
@@ -182,40 +179,25 @@ export const TopBar: React.FC<TopBarProps> = ({
           </div>
         ) : (
           <div className="flex items-center gap-2 pl-2 border-l border-[#DDE3DA]">
-            <div className="flex flex-col items-end">
+            <span 
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200"
+              title="Guest Mode is active. All reconciliations execute completely in-browser without remote persistence."
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Guest Mode
+            </span>
+
+            {onSignIn && (
               <button
                 type="button"
                 onClick={onSignIn}
                 disabled={isAuthLoading}
-                className="px-2.5 py-1.5 rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-[#111827] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-                title="Continue with Google. Account created automatically on first sign-in."
+                className="text-[11px] text-slate-500 hover:text-[#101A2B] hover:underline font-medium px-1 cursor-pointer transition-colors"
+                title="Sign in with Google to enable private cloud history"
               >
-                {isAuthLoading ? (
-                  <div className="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <GoogleIcon className="w-3.5 h-3.5" />
-                )}
-                <span>Continue with Google</span>
+                Sign In
               </button>
-              <span className="hidden xl:inline text-[9px] text-slate-400 font-medium">
-                Account created on first sign-in
-              </span>
-            </div>
-
-            {authError && (
-              <span className="text-[11px] text-rose-600 flex items-center gap-1" title={authError}>
-                <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
-              </span>
             )}
-
-            <span 
-              className="hidden lg:inline-flex items-center text-[11px] text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200"
-              title={isSupabaseAvailable 
-                ? "Guest Mode is active. Sign in to enable private cross-session history." 
-                : "Guest Mode is active. Reconciliations run completely in-browser without cloud persistence."}
-            >
-              Guest Mode
-            </span>
           </div>
         )}
       </div>

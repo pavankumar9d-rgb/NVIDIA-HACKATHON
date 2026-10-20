@@ -117,11 +117,18 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         {/* Auth Error Display */}
         {authError && (
           <div 
-            className="w-full mt-3 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2 text-left"
+            className="w-full mt-3 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs text-left space-y-1.5"
             role="alert"
           >
-            <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-            <span className="flex-1 leading-tight">{authError}</span>
+            <div className="flex items-center gap-2 font-bold text-rose-900">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>Google Authentication Unavailable</span>
+            </div>
+            <p className="leading-relaxed text-[11px] text-rose-700">
+              {authError.includes('provider is not enabled')
+                ? 'Google OAuth provider is not yet enabled in the Supabase Dashboard. You can continue as Guest to access full local reconciliation features.'
+                : authError}
+            </p>
           </div>
         )}
 
@@ -145,3 +152,4 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
     </main>
   );
 };
+

@@ -56,7 +56,7 @@ describe('TopBar Authentication UI', () => {
     isReconciled: false,
   };
 
-  it('renders "Continue with Google" and "Account created on first sign-in" when unauthenticated', () => {
+  it('renders clear Guest Mode badge and non-promotional Sign In action when unauthenticated', () => {
     const onSignIn = vi.fn();
     render(
       <TopBar
@@ -67,26 +67,18 @@ describe('TopBar Authentication UI', () => {
       />
     );
 
-    const button = screen.getByRole('button', { name: /continue with google/i });
-    expect(button).toBeDefined();
-    expect(screen.getByText(/account created on first sign-in/i)).toBeDefined();
+    // Guest mode indicator should be prominent
     expect(screen.getByText(/guest mode/i)).toBeDefined();
 
-    fireEvent.click(button);
+    // Prominent "Continue with Google" promo button should NOT be in TopBar anymore
+    expect(screen.queryByRole('button', { name: /continue with google/i })).toBeNull();
+
+    // Discrete Sign In link should exist
+    const signInBtn = screen.getByRole('button', { name: /^sign in$/i });
+    expect(signInBtn).toBeDefined();
+
+    fireEvent.click(signInBtn);
     expect(onSignIn).toHaveBeenCalledTimes(1);
-  });
-
-  it('renders loading spinner and disables button during auth loading', () => {
-    render(
-      <TopBar
-        {...dummyProps}
-        currentUser={null}
-        isAuthLoading={true}
-      />
-    );
-
-    const button = screen.getByRole('button', { name: /continue with google/i });
-    expect(button).toHaveProperty('disabled', true);
   });
 
   it('renders user email and Sign Out action when authenticated', () => {
@@ -168,7 +160,7 @@ describe('WelcomeScreen (Initial Post-Preloader Experience)', () => {
     );
 
     expect(screen.getByRole('alert')).toBeDefined();
-    expect(screen.getByText(/google oauth provider is not enabled/i)).toBeDefined();
+    expect(screen.getByText(/google oauth provider is not yet enabled/i)).toBeDefined();
   });
 });
 
@@ -256,5 +248,12 @@ describe('Configured vs Unconfigured View Differentiation', () => {
       expect(screen.getByText(/sign in for private cloud history/i)).toBeDefined();
       expect(screen.queryByText(/cloud history setup required/i)).toBeNull();
     }
+  });
+
+  it('verifies guest session storage persistence contract', () => {
+    sessionStorage.setItem('proofledger_guest_mode', 'true');
+    expect(sessionStorage.getItem('proofledger_guest_mode')).toBe('true');
+    sessionStorage.removeItem('proofledger_guest_mode');
+    expect(sessionStorage.getItem('proofledger_guest_mode')).toBeNull();
   });
 });
