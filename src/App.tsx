@@ -15,6 +15,7 @@ import { PrivacyDrawer } from './components/PrivacyDrawer';
 import { AuditTrailView } from './components/AuditTrailView';
 import { BrandedPreloader } from './components/BrandedPreloader';
 import { SetupRequiredModal } from './components/SetupRequiredModal';
+import { WelcomeScreen } from './components/WelcomeScreen';
 import type { 
   CanonicalTransaction, 
   ReconciliationResult, 
@@ -42,6 +43,10 @@ export const App: React.FC = () => {
   const [sessionName, setSessionName] = useState('Reconciliation Workspace');
   const [isSynthetic, setIsSynthetic] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
+  const [hasEnteredApp, setHasEnteredApp] = useState<boolean>(() => {
+    // If a session or guest choice was previously remembered in this browser session
+    return sessionStorage.getItem('proofledger_guest_mode') === 'true';
+  });
   const [activeTableFilter, setActiveTableFilter] = useState<string | undefined>(undefined);
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -183,6 +188,9 @@ export const App: React.FC = () => {
 
     const { data: authListener } = onAuthStateChange((_event, session) => {
       setCurrentUser(session?.user ?? null);
+      if (session?.user) {
+        setHasEnteredApp(true);
+      }
     });
 
     return () => {
@@ -215,6 +223,8 @@ export const App: React.FC = () => {
     try {
       await signOut();
       setCurrentUser(null);
+      sessionStorage.removeItem('proofledger_guest_mode');
+      setHasEnteredApp(false);
     } catch (err) {
       setAuthError(err instanceof Error ? err.message : 'Sign out failed');
     } finally {
@@ -465,157 +475,175 @@ export const App: React.FC = () => {
   const pendingReviewCount =
     reconciliationResult?.exceptions.filter((e) => !e.reviewDecision || e.reviewDecision.status === 'PENDING').length || 0;
 
+  const isUserAuthenticated = Boolean(currentUser);
+  const shouldShowWelcomeScreen = !isUserAuthenticated && !hasEnteredApp;
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#F6F7F2] text-[#111827]">
       <BrandedPreloader isReady={isAppReady} />
 
-      <NavigationRail
-        currentTab={currentTab}
-        onSelectTab={(tab) => {
-          setCurrentTab(tab);
-          if (tab === 'overview') {
-            setActiveTableFilter(undefined);
-          }
-        }}
-        exceptionCount={reconciliationResult?.summary.exceptionCount || 0}
-        aiStatus={aiStatus}
-      />
-
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <TopBar
-          sessionName={sessionName}
-          isSynthetic={isSynthetic}
-          onLoadDemo={loadSyntheticDemo}
-          onOpenImport={() => setIsImportModalOpen(true)}
-          onRunReconciliation={handleRunReconciliation}
-          onOpenExport={() => setIsExportModalOpen(true)}
-          onResetSession={handleResetSession}
-          hasData={bankRows.length > 0}
-          isReconciled={Boolean(reconciliationResult)}
-          summary={reconciliationResult?.summary ?? null}
-          currentUser={currentUser}
-          isSupabaseAvailable={isSupabaseConfigured()}
+      {shouldShowWelcomeScreen ? (
+        <WelcomeScreen
+          onContinueWithGoogle={handleSignIn}
+          onContinueAsGuest={() => {
+            sessionStorage.setItem('proofledger_guest_mode', 'true');
+            setHasEnteredApp(true);
+          }}
           isAuthLoading={isAuthLoading}
           authError={authError}
-          onOpenSaveHistory={() => setIsSaveHistoryModalOpen(true)}
-          onSignIn={handleSignIn}
-          onSignOut={handleSignOut}
+          isSupabaseAvailable={isSupabaseConfigured()}
         />
+      ) : (
+        <>
+          <NavigationRail
+            currentTab={currentTab}
+            onSelectTab={(tab) => {
+              setCurrentTab(tab);
+              if (tab === 'overview') {
+                setActiveTableFilter(undefined);
+              }
+            }}
+            exceptionCount={reconciliationResult?.summary.exceptionCount || 0}
+            aiStatus={aiStatus}
+          />
 
-        {currentTab === 'overview' && (
-          !reconciliationResult && bankRows.length === 0 ? (
-            <WelcomeView
-              onOpenImport={() => setIsImportModalOpen(true)}
-              onLoadDemo={loadSyntheticDemo}
-              currentUser={currentUser}
-              onSignIn={handleSignIn}
-              isAuthLoading={isAuthLoading}
-              isSupabaseAvailable={isSupabaseConfigured()}
-            />
-          ) : (
-            <OverviewView
+          <div className="flex-1 flex flex-col h-full overflow-hidden">
+            <TopBar
               sessionName={sessionName}
               isSynthetic={isSynthetic}
-              bankRows={bankRows}
-              ledgerRows={ledgerRows}
-              reconciliationResult={reconciliationResult}
-              onNavigateToWorkspace={(exceptionId, filterType) => {
-                setCurrentTab('workspace');
-                if (exceptionId) {
-                  setSelectedItem({ type: 'exception', id: exceptionId });
-                }
-                if (filterType) {
-                  setActiveTableFilter(filterType);
-                }
-              }}
+              onLoadDemo={loadSyntheticDemo}
+              onOpenImport={() => setIsImportModalOpen(true)}
+              onRunReconciliation={handleRunReconciliation}
               onOpenExport={() => setIsExportModalOpen(true)}
-            />
-          )
-        )}
-
-        {currentTab === 'workspace' && (
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <WorkflowRibbon
-              currentStage={
-                !reconciliationResult
-                  ? 'sources'
-                  : pendingReviewCount > 0
-                  ? 'triage'
-                  : approvedCount > 0
-                  ? 'review'
-                  : 'export'
-              }
+              onResetSession={handleResetSession}
               hasData={bankRows.length > 0}
               isReconciled={Boolean(reconciliationResult)}
-              pendingReviewCount={pendingReviewCount}
-              approvedCount={approvedCount}
+              summary={reconciliationResult?.summary ?? null}
+              currentUser={currentUser}
+              isSupabaseAvailable={isSupabaseConfigured()}
+              isAuthLoading={isAuthLoading}
+              authError={authError}
+              onOpenSaveHistory={() => setIsSaveHistoryModalOpen(true)}
+              onSignIn={handleSignIn}
+              onSignOut={handleSignOut}
             />
 
-            {/* AI Investigation Progress Banner if loading */}
-            {isAILoading && (
-              <div className="bg-[#101A2B] text-white px-4 md:px-6 py-2.5 flex items-center justify-between text-xs animate-in slide-in-from-top duration-150 shrink-0">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-3.5 h-3.5 border-2 border-[#D7FF56] border-t-transparent rounded-full animate-spin" />
-                  <span className="font-semibold text-[#D7FF56]">Nemotron Investigation:</span>
-                  <span className="text-slate-300">{aiInvestigationStep || 'Processing forensic evidence...'}</span>
+            {currentTab === 'overview' && (
+              !reconciliationResult && bankRows.length === 0 ? (
+                <WelcomeView
+                  onOpenImport={() => setIsImportModalOpen(true)}
+                  onLoadDemo={loadSyntheticDemo}
+                  currentUser={currentUser}
+                  onSignIn={handleSignIn}
+                  isAuthLoading={isAuthLoading}
+                  isSupabaseAvailable={isSupabaseConfigured()}
+                />
+              ) : (
+                <OverviewView
+                  sessionName={sessionName}
+                  isSynthetic={isSynthetic}
+                  bankRows={bankRows}
+                  ledgerRows={ledgerRows}
+                  reconciliationResult={reconciliationResult}
+                  onNavigateToWorkspace={(exceptionId, filterType) => {
+                    setCurrentTab('workspace');
+                    if (exceptionId) {
+                      setSelectedItem({ type: 'exception', id: exceptionId });
+                    }
+                    if (filterType) {
+                      setActiveTableFilter(filterType);
+                    }
+                  }}
+                  onOpenExport={() => setIsExportModalOpen(true)}
+                />
+              )
+            )}
+
+            {currentTab === 'workspace' && (
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <WorkflowRibbon
+                  currentStage={
+                    !reconciliationResult
+                      ? 'sources'
+                      : pendingReviewCount > 0
+                      ? 'triage'
+                      : approvedCount > 0
+                      ? 'review'
+                      : 'export'
+                  }
+                  hasData={bankRows.length > 0}
+                  isReconciled={Boolean(reconciliationResult)}
+                  pendingReviewCount={pendingReviewCount}
+                  approvedCount={approvedCount}
+                />
+
+                {/* AI Investigation Progress Banner if loading */}
+                {isAILoading && (
+                  <div className="bg-[#101A2B] text-white px-4 md:px-6 py-2.5 flex items-center justify-between text-xs animate-in slide-in-from-top duration-150 shrink-0">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-3.5 h-3.5 border-2 border-[#D7FF56] border-t-transparent rounded-full animate-spin" />
+                      <span className="font-semibold text-[#D7FF56]">Nemotron Investigation:</span>
+                      <span className="text-slate-300">{aiInvestigationStep || 'Processing forensic evidence...'}</span>
+                    </div>
+                    <span className="text-[11px] font-mono text-slate-400">NVIDIA Llama-3.1-Nemotron-70B-Instruct</span>
+                  </div>
+                )}
+
+                <div className="flex-1 px-4 md:px-6 py-4 overflow-hidden flex flex-col">
+                  <TransactionGrid
+                    matches={reconciliationResult?.matches || []}
+                    exceptions={reconciliationResult?.exceptions || []}
+                    selectedItem={selectedItem}
+                    onSelectItem={setSelectedItem}
+                    externalFilter={activeTableFilter}
+                  />
                 </div>
-                <span className="text-[11px] font-mono text-slate-400">NVIDIA Llama-3.1-Nemotron-70B-Instruct</span>
+
+                <EvidencePanel
+                  selectedItem={selectedItem}
+                  match={selectedMatch}
+                  exception={selectedException}
+                  totalVariancePaise={reconciliationResult?.summary.unresolvedVariancePaise}
+                  onClose={() => setSelectedItem(null)}
+                  onReviewDecision={handleReviewDecision}
+                  aiStatus={aiStatus}
+                  onRunAIInvestigation={handleRunAIInvestigation}
+                  isAILoading={isAILoading}
+                />
               </div>
             )}
 
-            <div className="flex-1 px-4 md:px-6 py-4 overflow-hidden flex flex-col">
-              <TransactionGrid
-                matches={reconciliationResult?.matches || []}
-                exceptions={reconciliationResult?.exceptions || []}
-                selectedItem={selectedItem}
-                onSelectItem={setSelectedItem}
-                externalFilter={activeTableFilter}
-              />
-            </div>
+            {currentTab === 'history' && (
+              <div className="flex-1 overflow-hidden flex flex-col">
+                <HistoryView
+                  currentUser={currentUser}
+                  onSignIn={handleSignIn}
+                  isAuthLoading={isAuthLoading}
+                  authError={authError}
+                />
+              </div>
+            )}
 
-            <EvidencePanel
-              selectedItem={selectedItem}
-              match={selectedMatch}
-              exception={selectedException}
-              totalVariancePaise={reconciliationResult?.summary.unresolvedVariancePaise}
-              onClose={() => setSelectedItem(null)}
-              onReviewDecision={handleReviewDecision}
-              aiStatus={aiStatus}
-              onRunAIInvestigation={handleRunAIInvestigation}
-              isAILoading={isAILoading}
-            />
-          </div>
-        )}
+            {currentTab === 'privacy' && (
+              <div className="flex-1 overflow-y-auto">
+                <PrivacyDrawer aiStatus={aiStatus} />
+              </div>
+            )}
 
-        {currentTab === 'history' && (
-          <div className="flex-1 overflow-hidden flex flex-col">
-            <HistoryView
-              currentUser={currentUser}
-              onSignIn={handleSignIn}
-              isAuthLoading={isAuthLoading}
-              authError={authError}
-            />
+            {currentTab === 'audit' && (
+              <div className="flex-1 overflow-y-auto">
+                <AuditTrailView
+                  matches={reconciliationResult?.matches || []}
+                  exceptions={reconciliationResult?.exceptions || []}
+                  summary={reconciliationResult?.summary || null}
+                  sessionName={sessionName}
+                  onOpenExport={() => setIsExportModalOpen(true)}
+                />
+              </div>
+            )}
           </div>
-        )}
-
-        {currentTab === 'privacy' && (
-          <div className="flex-1 overflow-y-auto">
-            <PrivacyDrawer aiStatus={aiStatus} />
-          </div>
-        )}
-
-        {currentTab === 'audit' && (
-          <div className="flex-1 overflow-y-auto">
-            <AuditTrailView
-              matches={reconciliationResult?.matches || []}
-              exceptions={reconciliationResult?.exceptions || []}
-              summary={reconciliationResult?.summary || null}
-              sessionName={sessionName}
-              onOpenExport={() => setIsExportModalOpen(true)}
-            />
-          </div>
-        )}
-      </div>
+        </>
+      )}
 
       <ImportModal
         isOpen={isImportModalOpen}
