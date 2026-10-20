@@ -11,7 +11,6 @@ import {
  */
 export interface SanitizedHistorySnapshot {
   sessionName: string;
-  notes?: string;
   savedAt: string;
   isSynthetic: boolean;
   summary: {
@@ -102,14 +101,12 @@ export interface HistoryRecord {
 export function buildSanitizedHistorySnapshot(
   sessionName: string,
   result: ReconciliationResult,
-  isSynthetic: boolean,
-  description?: string
+  isSynthetic: boolean
 ): SanitizedHistorySnapshot {
   const bridge = getReconciliationBridge(result.summary, result.exceptions);
 
   return {
     sessionName,
-    notes: description,
     savedAt: new Date().toISOString(),
     isSynthetic,
     summary: {
@@ -180,8 +177,7 @@ export function buildSanitizedHistorySnapshot(
 export async function saveReconciliationToHistory(
   sessionName: string,
   result: ReconciliationResult,
-  isSynthetic: boolean,
-  description?: string
+  isSynthetic: boolean
 ): Promise<{ data: HistoryRecord | null; error: Error | null }> {
   const client = getSupabaseClient();
   if (!client) {
@@ -199,7 +195,7 @@ export async function saveReconciliationToHistory(
     };
   }
 
-  const snapshot = buildSanitizedHistorySnapshot(sessionName, result, isSynthetic, description);
+  const snapshot = buildSanitizedHistorySnapshot(sessionName, result, isSynthetic);
 
   try {
     const { data, error } = await client
@@ -287,4 +283,3 @@ export async function deleteReconciliationHistory(
     return { error: err instanceof Error ? err : new Error(String(err)) };
   }
 }
-

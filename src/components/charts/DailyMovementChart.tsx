@@ -1,7 +1,6 @@
-import React, { useState, useId } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import type { DailyMovementBucket } from '../../lib/reconciliation/analytics';
 import { formatPaise } from '../../lib/money';
-import { useCountUp } from '../../lib/animation/useCountUp';
 
 interface DailyMovementChartProps {
   data: DailyMovementBucket[];
@@ -9,9 +8,22 @@ interface DailyMovementChartProps {
 
 export const DailyMovementChart: React.FC<DailyMovementChartProps> = ({ data }) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => {
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+    return false;
+  });
   const chartId = useId();
-  const animProgressRaw = useCountUp(100, { duration: 700 });
-  const animProgress = animProgressRaw / 100;
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const onChange = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+      mql.addEventListener?.('change', onChange);
+      return () => mql.removeEventListener?.('change', onChange);
+    }
+  }, []);
 
   if (!data || data.length === 0) {
     return (
@@ -27,6 +39,7 @@ export const DailyMovementChart: React.FC<DailyMovementChartProps> = ({ data }) 
   const padding = { top: 20, right: 20, bottom: 35, left: 55 };
   const innerWidth = svgWidth - padding.left - padding.right;
   const innerHeight = svgHeight - padding.top - padding.bottom;
+  const baseLine = padding.top + innerHeight;
 
   // Find max value for Y axis (either inflow or outflow)
   const maxPaise = Math.max(
@@ -46,6 +59,9 @@ export const DailyMovementChart: React.FC<DailyMovementChartProps> = ({ data }) 
   const barWidth = Math.max(2, Math.min(8, step * 0.35));
 
   const hoveredBucket = hoveredIndex !== null ? data[hoveredIndex] : null;
+
+  // Stable animation key to trigger clean re-animation whenever dataset changes
+  const chartKey = `${data.length}-${data[0]?.date ?? ''}-${data[data.length - 1]?.date ?? ''}`;
 
   return (
     <div className="bg-white border border-[#DDE3DA] rounded-xl p-4 md:p-5 shadow-2xs">
@@ -81,6 +97,7 @@ export const DailyMovementChart: React.FC<DailyMovementChartProps> = ({ data }) 
 
       <div className="relative w-full overflow-hidden">
         <svg
+          key={chartKey}
           viewBox={`0 0 ${svgWidth} ${svgHeight}`}
           className="w-full h-56 select-none"
           role="img"
@@ -95,6 +112,30 @@ export const DailyMovementChart: React.FC<DailyMovementChartProps> = ({ data }) 
               <stop offset="0%" stopColor="#D75E4C" stopOpacity="0.9" />
               <stop offset="100%" stopColor="#D75E4C" stopOpacity="0.4" />
             </linearGradient>
+
+            {/* Revealing clip path for net connecting trend line */}
+            <clipPath id={`${chartId}-net-reveal`}>
+              <rect
+                x={padding.left}
+                y={0}
+                width={innerWidth + padding.right}
+                height={svgHeight}
+              >
+                {!prefersReducedMotion && (
+                  <animate
+                    attributeName="width"
+                    from="0"
+                    to={innerWidth + padding.right}
+                    dur="0.85s"
+                    begin="0.12s"
+                    fill="freeze"
+                    calcMode="spline"
+                    keySplines="0.16 1 0.3 1"
+                    keyTimes="0;1"
+                  />
+                )}
+              </rect>
+            </clipPath>
           </defs>
 
           {/* Grid lines and Y-axis labels */}
@@ -106,7 +147,7 @@ export const DailyMovementChart: React.FC<DailyMovementChartProps> = ({ data }) 
                 x2={svgWidth - padding.right}
                 y2={yPos}
                 stroke="#EEF1EB"
-                strokeDasharray={yPos === padding.top + innerHeight ? 'none' : '3 3'}
+                strokeDasharray={yPos === baseLine ? 'none' : '3 3'}
                 strokeWidth="1"
               />
               <text
@@ -127,13 +168,11 @@ export const DailyMovementChart: React.FC<DailyMovementChartProps> = ({ data }) 
           {/* Bars and hover hit areas */}
           {data.map((d, idx) => {
             const centerX = padding.left + idx * step + step / 2;
-            const fullInflowHeight = (d.bankInflowPaise / maxPaise) * innerHeight;
-            const fullOutflowHeight = (d.bankOutflowPaise / maxPaise) * innerHeight;
-            const currentInflowHeight = fullInflowHeight * animProgress;
-            const currentOutflowHeight = fullOutflowHeight * animProgress;
-            const baseLine = padding.top + innerHeight;
-
+            const fullInflowHeight = Math.round((d.bankInflowPaise / maxPaise) * innerHeight);
+            const fullOutflowHeight = Math.round((d.bankOutflowPaise / maxPaise) * innerHeight);
             const isHovered = hoveredIndex === idx;
+            // Subtle stagger delay: 15ms per bar across the timeline up to 400ms max
+            const delay = Math.min(idx * 0.015, 0.4);
 
             return (
               <g
@@ -151,30 +190,84 @@ export const DailyMovementChart: React.FC<DailyMovementChartProps> = ({ data }) 
                   fill={isHovered ? 'rgba(37, 99, 235, 0.05)' : 'transparent'}
                 />
 
-                {/* Inflow Bar */}
+                {/* Inflow Bar — Animates upward from baseline */}
                 {d.bankInflowPaise > 0 && (
                   <rect
                     x={centerX - barWidth - 1}
-                    y={baseLine - currentInflowHeight}
+                    y={baseLine - fullInflowHeight}
                     width={barWidth}
-                    height={Math.max(1, currentInflowHeight)}
+                    height={Math.max(1, fullInflowHeight)}
                     rx="1.5"
                     fill={`url(#${chartId}-inflow)`}
                     opacity={hoveredIndex === null || isHovered ? 1 : 0.45}
-                  />
+                  >
+                    {!prefersReducedMotion && (
+                      <>
+                        <animate
+                          attributeName="height"
+                          from="0"
+                          to={Math.max(1, fullInflowHeight)}
+                          dur="0.65s"
+                          begin={`${delay}s`}
+                          fill="freeze"
+                          calcMode="spline"
+                          keySplines="0.16 1 0.3 1"
+                          keyTimes="0;1"
+                        />
+                        <animate
+                          attributeName="y"
+                          from={baseLine}
+                          to={baseLine - fullInflowHeight}
+                          dur="0.65s"
+                          begin={`${delay}s`}
+                          fill="freeze"
+                          calcMode="spline"
+                          keySplines="0.16 1 0.3 1"
+                          keyTimes="0;1"
+                        />
+                      </>
+                    )}
+                  </rect>
                 )}
 
-                {/* Outflow Bar */}
+                {/* Outflow Bar — Animates upward from baseline */}
                 {d.bankOutflowPaise > 0 && (
                   <rect
                     x={centerX + 1}
-                    y={baseLine - currentOutflowHeight}
+                    y={baseLine - fullOutflowHeight}
                     width={barWidth}
-                    height={Math.max(1, currentOutflowHeight)}
+                    height={Math.max(1, fullOutflowHeight)}
                     rx="1.5"
                     fill={`url(#${chartId}-outflow)`}
                     opacity={hoveredIndex === null || isHovered ? 1 : 0.45}
-                  />
+                  >
+                    {!prefersReducedMotion && (
+                      <>
+                        <animate
+                          attributeName="height"
+                          from="0"
+                          to={Math.max(1, fullOutflowHeight)}
+                          dur="0.65s"
+                          begin={`${delay}s`}
+                          fill="freeze"
+                          calcMode="spline"
+                          keySplines="0.16 1 0.3 1"
+                          keyTimes="0;1"
+                        />
+                        <animate
+                          attributeName="y"
+                          from={baseLine}
+                          to={baseLine - fullOutflowHeight}
+                          dur="0.65s"
+                          begin={`${delay}s`}
+                          fill="freeze"
+                          calcMode="spline"
+                          keySplines="0.16 1 0.3 1"
+                          keyTimes="0;1"
+                        />
+                      </>
+                    )}
+                  </rect>
                 )}
 
                 {/* X Axis Date Label (Sample every 3-4 days to avoid clutter) */}
@@ -192,7 +285,7 @@ export const DailyMovementChart: React.FC<DailyMovementChartProps> = ({ data }) 
             );
           })}
 
-          {/* Net position connecting path drawn progressively */}
+          {/* Net position connecting path — drawn cleanly across exact coordinates with reveal animation */}
           {data.length > 1 && (
             <polyline
               fill="none"
@@ -200,11 +293,10 @@ export const DailyMovementChart: React.FC<DailyMovementChartProps> = ({ data }) 
               strokeWidth="1.5"
               strokeDasharray="2 2"
               opacity="0.75"
+              clipPath={`url(#${chartId}-net-reveal)`}
               points={data
-                .slice(0, Math.max(2, Math.ceil(data.length * animProgress)))
                 .map((d, idx) => {
                   const cx = padding.left + idx * step + step / 2;
-                  // Map net to vertical position (clamped)
                   const normalized = Math.max(0, Math.min(maxPaise, Math.abs(d.netBankPaise)));
                   const cy = padding.top + innerHeight - (normalized / maxPaise) * innerHeight;
                   return `${cx},${cy}`;
@@ -218,9 +310,6 @@ export const DailyMovementChart: React.FC<DailyMovementChartProps> = ({ data }) 
         {hoveredBucket && (
           <div
             className="absolute top-2 right-2 sm:right-auto sm:top-2 pointer-events-none bg-[#101A2B] text-white text-xs rounded-lg p-2.5 shadow-lg border border-slate-700 font-sans z-10 space-y-1 transition-all"
-            style={{
-              left: hoveredIndex !== null && hoveredIndex < data.length / 2 ? undefined : undefined,
-            }}
           >
             <div className="font-semibold text-slate-200 border-b border-slate-700 pb-1 flex items-center justify-between gap-4">
               <span>{hoveredBucket.displayDate} ({hoveredBucket.date})</span>
@@ -254,4 +343,3 @@ export const DailyMovementChart: React.FC<DailyMovementChartProps> = ({ data }) 
     </div>
   );
 };
-

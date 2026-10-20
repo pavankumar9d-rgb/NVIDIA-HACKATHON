@@ -1,7 +1,9 @@
 import { createClient, type SupabaseClient, type User, type AuthChangeEvent, type Session } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseAnonKey = 
+  import.meta.env.VITE_SUPABASE_ANON_KEY || 
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 export function isSupabaseConfigured(): boolean {
   if (!supabaseUrl || !supabaseAnonKey) {
@@ -9,7 +11,8 @@ export function isSupabaseConfigured(): boolean {
   }
   if (
     supabaseUrl.includes('your-project.supabase.co') ||
-    supabaseAnonKey.includes('your-anon-key')
+    supabaseAnonKey.includes('your-anon-key') ||
+    supabaseAnonKey.includes('your-publishable-key')
   ) {
     return false;
   }
@@ -19,7 +22,7 @@ export function isSupabaseConfigured(): boolean {
 let clientInstance: SupabaseClient | null = null;
 
 export function getSupabaseClient(): SupabaseClient | null {
-  if (!isSupabaseConfigured()) {
+  if (!isSupabaseConfigured() || !supabaseUrl || !supabaseAnonKey) {
     return null;
   }
 

@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { CompositionSegment } from '../../lib/reconciliation/analytics';
 import { formatPaise } from '../../lib/money';
-import { useCountUp } from '../../lib/animation/useCountUp';
 
 interface ReconciliationCompositionChartProps {
   segments: CompositionSegment[];
@@ -15,8 +14,30 @@ export const ReconciliationCompositionChart: React.FC<ReconciliationCompositionC
   activeFilter,
 }) => {
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
-  const animProgressRaw = useCountUp(100, { duration: 700 });
-  const animProgress = animProgressRaw / 100;
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => {
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const onChange = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+      mql.addEventListener?.('change', onChange);
+      return () => mql.removeEventListener?.('change', onChange);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Trigger smooth horizontal bar entrance expansion on next animation frame
+    const frame = requestAnimationFrame(() => {
+      setIsLoaded(true);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [segments]);
 
   const totalCount = segments.reduce((acc, s) => acc + s.count, 0);
 
@@ -52,9 +73,9 @@ export const ReconciliationCompositionChart: React.FC<ReconciliationCompositionC
         role="progressbar"
         aria-label="Reconciliation match and exception breakdown"
       >
-        {segments.map((seg) => {
+        {segments.map((seg, idx) => {
           const finalWidthPct = Math.max(seg.percentage, seg.count > 0 ? 3 : 0);
-          const widthPct = finalWidthPct * animProgress;
+          const widthPct = prefersReducedMotion || isLoaded ? finalWidthPct : 0;
           const isHovered = hoveredKey === seg.key;
           const isSelected = activeFilter === seg.filterType;
 
@@ -65,13 +86,16 @@ export const ReconciliationCompositionChart: React.FC<ReconciliationCompositionC
               onClick={() => seg.filterType && onSelectFilter?.(seg.filterType)}
               onMouseEnter={() => setHoveredKey(seg.key)}
               onMouseLeave={() => setHoveredKey(null)}
-              className={`h-full transition-all duration-150 relative cursor-pointer first:rounded-l-md last:rounded-r-md ${
+              className={`h-full relative cursor-pointer first:rounded-l-md last:rounded-r-md ${
                 isSelected ? 'ring-2 ring-offset-1 ring-[#111827] z-10' : ''
               }`}
               style={{
                 width: `${widthPct}%`,
                 backgroundColor: isHovered ? seg.hoverColor : seg.color,
                 opacity: hoveredKey === null || isHovered || isSelected ? 1 : 0.6,
+                transition: prefersReducedMotion
+                  ? 'none'
+                  : `width 0.7s cubic-bezier(0.16, 1, 0.3, 1) ${idx * 60}ms, opacity 150ms ease, background-color 150ms ease`,
               }}
               title={`${seg.label}: ${seg.count} (${seg.percentage}%)`}
               aria-label={`${seg.label}: ${seg.count} (${seg.percentage}%)`}
@@ -128,4 +152,3 @@ export const ReconciliationCompositionChart: React.FC<ReconciliationCompositionC
     </div>
   );
 };
-
