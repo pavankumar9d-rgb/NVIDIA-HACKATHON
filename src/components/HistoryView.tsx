@@ -156,7 +156,17 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
           <div>
             <h2 className="text-base font-bold text-[#111827]">Sign In for Private Cloud History</h2>
             <p className="text-xs text-slate-600 leading-relaxed mt-1">
-              Sign in with Google to view and manage your encrypted reconciliation history. Row Level Security ensures only you can access your saved audit reports.
+              Guest session data is strictly temporary and kept only in your browser memory. Sign in with Google to save encrypted reconciliation snapshots across sessions.
+            </p>
+          </div>
+
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-left text-[11px] text-amber-900 space-y-1">
+            <span className="font-bold flex items-center gap-1.5 text-amber-950">
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-700" />
+              Temporary Guest Session Guarantee:
+            </span>
+            <p className="text-[11px] leading-relaxed text-amber-800">
+              Your imported CSVs and reconciliation results are stored in volatile client memory only and are completely discarded when you exit, reset, or close this tab. No cloud persistence occurs without an authenticated Google account and explicit save consent.
             </p>
           </div>
 

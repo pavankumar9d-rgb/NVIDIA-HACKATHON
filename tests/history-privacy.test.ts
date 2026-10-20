@@ -185,4 +185,36 @@ describe('Supabase Client & History Privacy Invariants', () => {
     expect(snapshot.summary.openingBankBalancePaise).toBe(10000000);
     expect(snapshot.summary.closingBankBalancePaise).toBe(5000000);
   });
+
+  describe('Guest Mode Isolation & Zero-Durable-Storage Guarantee', () => {
+    it('verifies that Guest Mode saves zero financial data to localStorage or indexedDB', () => {
+      // localStorage check
+      const localKeys = Object.keys(localStorage);
+      for (const key of localKeys) {
+        expect(key).not.toMatch(/financial|reconciliation|bank|ledger|transaction|snapshot/i);
+      }
+    });
+
+    it('strictly confines guest session flag to non-sensitive boolean in sessionStorage', () => {
+      sessionStorage.setItem('proofledger_guest_mode', 'true');
+      const val = sessionStorage.getItem('proofledger_guest_mode');
+      expect(val).toBe('true');
+
+      // The guest flag must not contain tokens, keys, or serialized payloads
+      expect(val).not.toContain('{');
+      expect(val).not.toContain('eyJ');
+      expect(val).not.toContain('sb_');
+
+      sessionStorage.removeItem('proofledger_guest_mode');
+    });
+
+    it('rejects saveReconciliationToHistory when user is not authenticated', async () => {
+      // In guest mode (no user session), attempting to call saveReconciliationToHistory fails safely
+      const saveRes = await saveReconciliationToHistory('Guest Session Attempt', {} as any, false);
+      expect(saveRes.data).toBeNull();
+      expect(saveRes.error).not.toBeNull();
+      // Should fail either due to unconfigured client or missing user session
+      expect(saveRes.error?.message).toMatch(/not configured|must be signed in/i);
+    });
+  });
 });

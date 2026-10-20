@@ -134,7 +134,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           </button>
         )}
 
-        {isReconciled && onOpenSaveHistory && (
+        {isReconciled && currentUser && onOpenSaveHistory && (
           <button
             type="button"
             onClick={onOpenSaveHistory}

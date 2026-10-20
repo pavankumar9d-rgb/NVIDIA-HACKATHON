@@ -224,6 +224,13 @@ export const App: React.FC = () => {
       await signOut();
       setCurrentUser(null);
       sessionStorage.removeItem('proofledger_guest_mode');
+      // Wipe all in-memory financial data on sign-out to guarantee isolation
+      setBankRows([]);
+      setLedgerRows([]);
+      setReconciliationResult(null);
+      setSelectedItem(null);
+      setSessionName('Reconciliation Workspace');
+      setIsSynthetic(false);
       setHasEnteredApp(false);
     } catch (err) {
       setAuthError(err instanceof Error ? err.message : 'Sign out failed');
@@ -234,6 +241,10 @@ export const App: React.FC = () => {
 
   const handleSaveHistoryConfirm = async (name: string, _description?: string) => {
     if (!reconciliationResult) return;
+    if (!currentUser) {
+      setSaveHistoryError('You must be signed in with Google to save private reconciliation history.');
+      return;
+    }
     setIsSavingHistory(true);
     setSaveHistoryError(null);
     try {
@@ -487,6 +498,13 @@ export const App: React.FC = () => {
           onContinueWithGoogle={handleSignIn}
           onContinueAsGuest={() => {
             sessionStorage.setItem('proofledger_guest_mode', 'true');
+            // Clean slate for new guest session
+            setBankRows([]);
+            setLedgerRows([]);
+            setReconciliationResult(null);
+            setSelectedItem(null);
+            setSessionName('Reconciliation Workspace');
+            setIsSynthetic(false);
             setHasEnteredApp(true);
           }}
           isAuthLoading={isAuthLoading}
