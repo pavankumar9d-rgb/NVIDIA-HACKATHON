@@ -112,8 +112,8 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
 
           <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-left text-[11px] font-mono text-slate-700 space-y-1">
             <div className="text-slate-500 font-sans font-bold">To enable private cloud history:</div>
-            <div>VITE_SUPABASE_URL=https://...</div>
-            <div>VITE_SUPABASE_ANON_KEY=...</div>
+            <div>VITE_SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL)=https://...</div>
+            <div>VITE_SUPABASE_ANON_KEY (or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)=...</div>
           </div>
 
           {onSignIn && (

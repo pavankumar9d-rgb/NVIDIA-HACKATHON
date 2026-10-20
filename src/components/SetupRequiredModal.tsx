@@ -62,8 +62,8 @@ export const SetupRequiredModal: React.FC<SetupRequiredModalProps> = ({
 
             <div className="bg-[#101A2B] text-slate-200 p-3 rounded-lg font-mono text-[11px] space-y-1 overflow-x-auto">
               <div className="text-slate-400"># Required for Google Sign-in & History</div>
-              <div><span className="text-[#D7FF56]">VITE_SUPABASE_URL</span>=https://your-ref.supabase.co</div>
-              <div><span className="text-[#D7FF56]">VITE_SUPABASE_ANON_KEY</span>=your-anon-public-key</div>
+              <div><span className="text-[#D7FF56]">VITE_SUPABASE_URL</span> (or NEXT_PUBLIC_SUPABASE_URL)=https://your-ref.supabase.co</div>
+              <div><span className="text-[#D7FF56]">VITE_SUPABASE_ANON_KEY</span> (or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)=your-anon-public-key</div>
             </div>
           </div>
 
