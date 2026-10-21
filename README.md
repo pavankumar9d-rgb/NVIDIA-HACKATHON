@@ -28,8 +28,8 @@ Generic AI chatbots fail because language models cannot do reliable arithmetic o
 
 ProofLedger AI separates mathematical calculation from natural language reasoning:
 1. **Deterministic Financial Engine:** Runs 100% in-browser in pure TypeScript. Computes balances in decimal-safe integer minor units (paise for INR), runs 1-to-1 matching, enforces date clearance tolerances, detects duplicate candidates, and calculates variance. **The AI never touches calculations or confirms ledger matches.**
-2. **Targeted AI Investigation Agent:** When a human operator encounters an ambiguous exception (e.g. an unexplained ₹240 payment gateway deduction or a 3-day timing lag), the operator can invoke the **NVIDIA Nemotron** agent via **Nebius Token Factory**. The system sends only a sanitized, anonymized 4-field packet—never raw CSVs or PII.
-3. **Human-in-the-Loop Audit Trail:** The agent provides structured hypotheses citing only genuine source row IDs. The human operator explicitly approves, rejects, or defers the suggestion, generating a non-destructive audit log with CSV formula-injection protection (CWE-1236).
+2. **Targeted AI Investigation Adapter:** When a human operator encounters an ambiguous exception (e.g. an unexplained ₹240 payment gateway deduction or a 3-day timing lag), the operator can invoke the **NVIDIA Nemotron** adapter designed for **Nebius Token Factory**. The system sends only a sanitized, anonymized 4-field packet—never raw CSVs or PII. In zero-cost development or unprovisioned production states, the gateway transparently executes deterministic local fallback analysis with zero fabricated AI claims.
+3. **Human-in-the-Loop Audit Trail:** The investigation adapter provides structured hypotheses citing only genuine source row IDs. The human operator explicitly approves, rejects, or defers the suggestion, generating a non-destructive audit log with CSV formula-injection protection (CWE-1236).
 
 ---
 

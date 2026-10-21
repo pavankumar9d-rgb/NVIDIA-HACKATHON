@@ -44,25 +44,25 @@
   > 
   > The deterministic connector highlights an exact variance of -₹240. But why was less deposited than invoiced?"
 
-### 1:50 – 2:20: Privacy Boundary, Consent Gate & NVIDIA Nemotron Investigation
+### 1:50 – 2:20: Privacy Boundary, Consent Gate & Investigation Adapter
 - **Visual:** Click **"Investigate Exception"**. The Outbound Privacy Payload Preview modal appears. Check the consent box and click **"Proceed with Inference"**.
 - **Voiceover:**
-  > "We click 'Investigate Exception'. Notice our privacy boundary: ProofLedger presents an exact JSON preview of the data about to be sent. Bank account numbers, UPI handles, and client names are automatically masked with `[REDACTED]` tokens. 
+  > "We click 'Investigate Exception'. Notice our privacy boundary: ProofLedger presents an exact JSON preview of the data about to be investigated. Bank account numbers, UPI handles, and client names are automatically masked with `[REDACTED]` tokens.
   > 
-  > Only upon explicit operator consent does our server adapter dispatch this sanitized 4-field packet to **NVIDIA Llama-3.1-Nemotron-70B-Instruct** on **Nebius Token Factory** (or executes transparent local deterministic investigation when running in zero-cost Local Mode).
+  > Only upon explicit operator consent does our server adapter process this sanitized 4-field packet.
   > 
-  > The model responds with strict structured JSON, verified by runtime Zod schemas. It correctly classifies this as `BANK_FEE_OR_SURCHARGE`, cites only genuine row IDs, explains the ₹240 payment gateway deduction, and suggests posting a debit voucher to Bank Charges Expense."
+  > The architecture is built to query **NVIDIA Llama-3.1-Nemotron-70B-Instruct** on **Nebius Token Factory** with Zod schema and citation provenance guards. Because our zero-cost live environment currently runs with live AI toggled off in `LOCAL_ONLY` mode, the server gateway transparently executes deterministic local fallback analysis, suggesting a review of the ₹240 variance against payment gateway settlement terms."
 
 ### 2:20 – 2:40: Human-in-the-Loop Review & Audit Trail
 - **Visual:** Type in reviewer note: *"Verified gateway merchant settlement slip; ₹240 processing fee confirmed."* Click **"Approve"**. Press `Escape` to close the drawer, then switch to the **Audit Trail** tab in the navigation rail.
 - **Voiceover:**
   > "The AI never automatically alters financial records. Final authority remains with the human operator. We enter an auditor verification note and click **Approve**.
   > 
-  > Switching to the **Audit Trail**, we see an append-only forensic record: every mathematical match, AI hypothesis, and operator sign-off is logged with ISO timestamps and reviewer identities for statutory auditors."
+  > Switching to the **Audit Trail**, we see an append-only forensic record: every mathematical match, analysis hypothesis, and operator sign-off is logged with ISO timestamps and reviewer identities for statutory auditors."
 
 ### 2:40 – 2:50: Formula-Safe Export Package & Conclusion
 - **Visual:** Click **"Export Pack"**. Open the export modal, preview the Markdown Executive Report and CSV tabs, and click **"Download File"**.
 - **Voiceover:**
   > "When month-end closes, ProofLedger exports a complete audit package: Reconciled CSV, Exceptions CSV, Audit JSON, and an Executive Markdown Report—with automatic formula injection protection (CWE-1236).
   > 
-  > ProofLedger AI: 100% deterministic arithmetic, zero-raw-upload privacy, and targeted NVIDIA Nemotron reasoning on Nebius Token Factory. Built for the Nebius × NVIDIA Global AI Hackathon 2026. Thank you!"
+  > ProofLedger AI: 100% deterministic arithmetic, zero-raw-upload privacy, and an extensible architecture designed for NVIDIA Nemotron on Nebius Token Factory. Built for the Nebius × NVIDIA Global AI Hackathon 2026. Thank you!"
