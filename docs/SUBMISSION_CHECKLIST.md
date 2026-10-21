@@ -11,14 +11,14 @@
 
 | Rule / Requirement | Official Devpost Specification | ProofLedger AI Compliance Status | Verifiable Evidence |
 | :--- | :--- | :--- | :--- |
-| **Compute / Platform Requirement** | Must use Nebius Token Factory or Nebius AI Cloud compute. | **COMPLIANT** | Server gateway in `server/index.ts` connects to `https://api.tokenfactory.nebius.com/v1/` OpenAI-compatible endpoint. |
-| **Model Requirement** | Must use at least one NVIDIA open-source model. | **COMPLIANT** | Configured for verified available open model: `nvidia/Llama-3.1-Nemotron-70B-Instruct`. |
+| **Compute / Platform Requirement** | Must use Nebius Token Factory or Nebius AI Cloud compute. | **IMPLEMENTED (Live Runtime Pending Promo Provisioning)** | Server gateway in `server/index.ts` connects to `https://api.tokenfactory.nebius.com/v1/` OpenAI-compatible endpoint. Production runtime is configured with payload serialization, Zod validation, and error guards, running safely in `LOCAL_ONLY` until promotional credits are unlocked without requiring card entry. |
+| **Model Requirement** | Must use at least one NVIDIA open-source model. | **IMPLEMENTED (Adapter Verified)** | Configured for open model `nvidia/Llama-3.1-Nemotron-70B-Instruct`. Verified via test suite and server gateway schema tests; live token inference pending no-card promo provisioning. |
 | **Track Alignment** | Best Apps & Agents: real-world utility, agents/copilots, autonomous workflows. | **COMPLIANT** | Multi-stage agent: deterministic telemetry extraction $\to$ context reduction $\to$ explicit consent gate $\to$ Nemotron inference $\to$ Zod provenance check $\to$ human sign-off $\to$ audit export. |
 | **Working Software** | Working application, not a static mockup or non-interactive page. | **VERIFIED** | Full interactive SPA with real PapaParse CSV parser, integer paise engine, 1-to-1 matcher, evidence inspector, and audit pack generation. |
 | **Open Source License** | Public repository with visible open-source license. | **COMPLIANT** | Public repository at `https://github.com/pavankumar9d-rgb/NVIDIA-HACKATHON.git` with MIT License committed in `LICENSE` file. |
 | **Documentation & README** | Clear setup instructions, architecture, threat model, testing. | **COMPLIANT** | Comprehensive `README.md`, `docs/PRD.md`, `docs/DESIGN_SPEC.md`, `docs/ARCHITECTURE.md`, `docs/THREAT_MODEL.md`, `docs/TEST_PLAN.md`. |
 | **Video Demonstration** | Public demonstration video under 3 minutes. | **READY FOR RECORDING** | Complete timestamped script (2m 50s) in `docs/DEMO_SCRIPT.md`. |
-| **₹0 Budget / No Paid Resources** | Zero expenditure on APIs, paid tools, or credit card subscriptions. | **COMPLIANT** | Uses genuinely free local stack (React, Vite, Express, Vitest). Nebius Token Factory uses hackathon provided serverless credits/keys. |
+| **₹0 Budget / No Paid Resources** | Zero expenditure on APIs, paid tools, or credit card subscriptions. | **COMPLIANT** | Strictly adheres to ₹0 budget with zero paid APIs. Does not enter credit card info. Transparently operates in Local Mode when external API credits are unprovisioned. |
 
 ---
 
@@ -52,5 +52,5 @@
 ## 3. Truthful Runtime Status Disclosure
 - **Deterministic Reconciliation Engine:** Fully implemented, verified, and passes 141 of 141 automated tests across 11 test suites.
 - **Nebius Token Factory Adapter:** Fully implemented and configured in `server/index.ts` with model `nvidia/Llama-3.1-Nemotron-70B-Instruct`.
-- **Live Cloud Inference State:** Currently running in **Local Mode** with live inference switch `ALLOW_LIVE_AI=false` because a funded `NEBIUS_API_KEY` has not yet been supplied. All deterministic rules, redactions, schemas, and UI fallbacks function cleanly.
+- **Live Cloud Inference State:** Currently running in **Local Mode** with live inference switch `ALLOW_LIVE_AI=false` because a funded `NEBIUS_API_KEY` has not yet been provisioned. All deterministic rules, redactions, schemas, and UI fallbacks function cleanly.
 - **Eligibility Verdict:** **PASS ON ARCHITECTURE, CODE & DEMO; LIVE API INFERENCE PENDING USER KEY CONFIGURATION.**

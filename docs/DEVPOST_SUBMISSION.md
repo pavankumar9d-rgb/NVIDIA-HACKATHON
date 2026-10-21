@@ -22,8 +22,8 @@ Existing software forces an unacceptable trade-off:
 ### Our Solution
 **ProofLedger AI** splits calculation from natural language reasoning:
 - **Deterministic Math Engine:** Pure TypeScript in-browser engine operating in decimal-safe integer minor units (paise for INR). 1-to-1 matching, date tolerance evaluation, duplicate candidate detection, and reconciliation bridge calculation run 100% locally. The AI never touches calculations or confirms matches.
-- **Targeted AI Investigation Agent:** When a human operator encounters an ambiguous exception (e.g. an unrecorded ₹240 payment gateway deduction), the operator can invoke **NVIDIA Nemotron 70B** via **Nebius Token Factory**. Only a sanitized, anonymized 4-field packet is sent—never raw CSVs or PII.
-- **Human-in-the-Loop Governance:** The model returns structured hypotheses citing only genuine source row IDs. The human operator approves, rejects, or defers the suggestion, generating an audit log with CSV formula-injection protection (CWE-1236).
+- **Targeted AI Investigation Adapter:** When a human operator encounters an ambiguous exception (e.g. an unrecorded ₹240 payment gateway deduction), the operator can invoke **NVIDIA Nemotron 70B** via **Nebius Token Factory**. Only a sanitized, anonymized 4-field packet is sent—never raw CSVs or PII.
+- **Human-in-the-Loop Governance:** The model adapter returns structured hypotheses citing only genuine source row IDs. The human operator approves, rejects, or defers the suggestion, generating an audit log with CSV formula-injection protection (CWE-1236).
 
 ---
 
@@ -33,7 +33,7 @@ Existing software forces an unacceptable trade-off:
 2. **Deterministic 1-to-1 Matching Engine:** Matches identical references and amounts across clearance windows, detects timing lags, flags suspected duplicate debits, and computes exact variances with zero IEEE-754 floating-point drift.
 3. **Forensic Evidence Drawer:** A sliding desktop drawer visualizing the chain of evidence: bank record vs. ledger record, exact monetary delta, clearance days, and match signals.
 4. **Outbound Privacy Boundary & Consent Gate:** Pre-flight redaction automatically scrubs account numbers, UPI handles, PAN card IDs, Aadhaar numbers, and phone numbers. Operators inspect the raw outbound JSON before granting explicit consent.
-5. **NVIDIA Nemotron Investigation Agent:** Queries `nvidia/Llama-3.1-Nemotron-70B-Instruct` on Nebius Token Factory with strict Zod schema validation, provenance verification (hallucinated row IDs are rejected), and low-temperature JSON output.
+5. **NVIDIA Nemotron Architecture:** Fully engineered to query `nvidia/Llama-3.1-Nemotron-70B-Instruct` on Nebius Token Factory with strict Zod schema validation, provenance verification (hallucinated row IDs are rejected), and low-temperature JSON output. When unprovisioned with an external API key, the gateway transparently operates in **Local Mode** with deterministic rules.
 6. **Zero-Durable-Storage Guest Mode:** Guests can run full reconciliations locally with zero financial records written to `localStorage`, `IndexedDB`, or cloud databases. In-memory records are wiped cleanly on session reset or exit.
 7. **Optional Encrypted Cloud History:** Authenticated users (via Google OAuth) can securely persist sanitized audit snapshots to private PostgreSQL tables protected by Supabase Row Level Security (`auth.uid() = user_id`).
 8. **Statutory Audit Package Export:** Generates downloadable CSV exports (with UTF-8 BOM and CWE-1236 spreadsheet formula neutralization), machine-readable JSON audit logs, and executive Markdown reconciliation reports.
@@ -45,7 +45,7 @@ Existing software forces an unacceptable trade-off:
 - **Frontend Architecture:** React 19, TypeScript, Tailwind CSS, Lucide Icons, Vite, pure SVG dynamic visualization charts (zero bloated chart libraries).
 - **In-Browser Financial Engine:** PapaParse, integer minor unit arithmetic (`src/lib/money/`), 1-to-1 consumption tracker (`src/lib/reconciliation/`), PII sanitizer regex filters (`src/lib/privacy/`).
 - **Server Gateway & Security Adapter:** Express on Node.js, strict CORS origin validator (rejects wildcards), sliding-window rate limiter (15 req/min per IP), 32 KB request body cap, Zod runtime schema validation, citation provenance verification.
-- **Cloud AI Platform:** Nebius Token Factory (`https://api.tokenfactory.nebius.com/v1/`), querying `nvidia/Llama-3.1-Nemotron-70B-Instruct` with OpenAI-compatible chat completions API.
+- **Cloud AI Platform:** Nebius Token Factory (`https://api.tokenfactory.nebius.com/v1/`), targeting `nvidia/Llama-3.1-Nemotron-70B-Instruct` with OpenAI-compatible chat completions API.
 - **Database & Cloud Storage:** Supabase PostgreSQL with strict Row Level Security (RLS) policies enforcing multi-tenant user isolation.
 - **Hosting & Infrastructure:** Deployed on Render as a unified full-stack Node service with automated health check gateways (`/api/health`) and SPA fallback routing.
 
@@ -55,7 +55,7 @@ Existing software forces an unacceptable trade-off:
 
 ProofLedger AI was engineered specifically for the **Best Apps & Agents** track:
 - **Practical Utility:** Solves an acute, universal small-business problem: closing books without financial panic or manual spreadsheets.
-- **Autonomous Agentic Workflow:** Extracts structured telemetry from deterministic reconciliation, constructs a minimal context prompt, queries the high-reasoning NVIDIA Nemotron model, verifies evidence provenance against active records, and proposes verified accounting journal entries.
+- **Agentic Workflow Architecture:** Extracts structured telemetry from deterministic reconciliation, constructs a minimal context prompt, interfaces with the high-reasoning NVIDIA Nemotron model, verifies evidence provenance against active records, and proposes verified accounting journal entries.
 - **Guardrails & Safety:** Enforces strict provenance gates—if the AI cites a row ID that does not exist in the active exception evidence, the gateway rejects the response.
 
 ---
@@ -86,18 +86,17 @@ ProofLedger AI was engineered specifically for the **Best Apps & Agents** track:
 ## 7. Tool Feedback: Nebius Token Factory & NVIDIA
 
 ### Nebius Token Factory
-- **What Worked Well:** The OpenAI-compatible API endpoint (`/v1/chat/completions`) makes drop-in integration straightforward. Latency on Nemotron 70B inference is competitive, and JSON mode (`response_format: { type: "json_object" }`) produces clean structured outputs.
+- **What Worked Well:** The OpenAI-compatible API endpoint (`/v1/chat/completions`) makes drop-in integration straightforward. The gateway interface design and standard JSON mode schemas allow strict typing with Zod.
 - **Areas for Improvement:** 
-  1. *Billing Dropdown Onboarding Loop:* Many international hackathon participants whose countries are omitted from the billing country dropdown get locked into a payment details page, even when they have promo codes. Providing a self-service voucher redemption flow that bypasses the credit card requirement for hackathon builders would drastically improve onboarding.
+  1. *Billing Dropdown Onboarding Loop:* Many international hackathon participants whose countries are omitted from the billing country dropdown get locked into a payment details page, even when they possess official promotional codes (`NEBIUS-DEVPOST-GLOBAL26`). Providing a self-service voucher redemption flow that bypasses the credit card requirement for hackathon builders would drastically improve onboarding.
   2. *Granular Usage Analytics:* Providing per-key token budget caps in the console would help builders safely expose demo endpoints without fear of token exhaustion.
 
 ### NVIDIA Nemotron 70B (`nvidia/Llama-3.1-Nemotron-70B-Instruct`)
-- **What Worked Well:** Exceptionally strong reasoning on complex financial narrations, payment gateway fees, and timing differences. It reliably adheres to structured JSON schemas and follows system prompts with precision.
-- **Areas for Improvement:** Occasionally requires explicit reminders in the prompt not to invent external identifiers. Our provenance verification layer caught and neutralized these attempts.
+- **What Worked Well:** The prompt architecture and structured JSON adherence make Nemotron an ideal model for financial classification and structured evidence citing.
+- **Areas for Improvement:** When running autonomous workflows, models require strict architectural boundaries (like our provenance verification layer) to prevent citing unverified external reference IDs.
 
 ---
 
 ## 8. Built With
 
 `nvidia-nemotron` `nebius-token-factory` `typescript` `react-19` `vite` `tailwind-css` `express` `zod` `papaparse` `supabase` `postgresql` `vitest` `render`
-
