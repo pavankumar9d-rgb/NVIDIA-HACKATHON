@@ -34,3 +34,6 @@ temp/
 *.njsproj
 *.sln
 *.sw?
+
+# Video production and build artifacts
+artifacts/
