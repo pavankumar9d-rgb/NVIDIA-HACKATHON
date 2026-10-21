@@ -1,5 +1,9 @@
-import { describe, it, expect } from 'vitest';
-import { renderHook, act, render, screen } from '@testing-library/react';
+import { describe, it, expect, afterEach } from 'vitest';
+import { renderHook, act, render, screen, cleanup } from '@testing-library/react';
+
+afterEach(() => {
+  cleanup();
+});
 import React from 'react';
 import { useCountUp } from '../src/lib/animation/useCountUp';
 import { DailyMovementChart } from '../src/components/charts/DailyMovementChart';

@@ -8,7 +8,7 @@
   </p>
   <p>
     <a href="#quickstart"><img src="https://img.shields.io/badge/Status-Built%20%26%20Tested-17845B" alt="Status" /></a>
-    <a href="#test-results"><img src="https://img.shields.io/badge/Tests-128%2F128%20Passing-17845B" alt="Tests" /></a>
+    <a href="#test-results"><img src="https://img.shields.io/badge/Tests-141%2F141%20Passing-17845B" alt="Tests" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue" alt="License" /></a>
     <img src="https://img.shields.io/badge/Model-NVIDIA%20Nemotron%2070B-D7FF56?labelColor=101A2B" alt="Model" />
     <img src="https://img.shields.io/badge/Platform-Nebius%20Token%20Factory-101A2B" alt="Nebius" />
@@ -59,7 +59,9 @@ ProofLedger AI separates mathematical calculation from natural language reasonin
 
 ### Security & Privacy Protections
 - **Zero Raw Uploads:** Raw bank and ledger CSV files are parsed entirely in the user's browser memory. Zero files are stored on any backend server or database.
-- **Pre-Flight Redaction:** Account numbers (`\b\d{11,18}\b`), UPI handles (`user@bank`), and phone numbers are scrubbed with `[REDACTED]` tokens before prompt creation.
+- **Guest Mode Zero-Durable-Storage Guarantee:** Unauthenticated guests run 100% locally. Zero financial records or transaction metadata are written to `localStorage`, `IndexedDB`, or durable browser caches. The sole browser storage is a non-sensitive boolean navigation flag (`sessionStorage.proofledger_guest_mode = 'true'`). All in-memory records are wiped immediately on session reset or exit.
+- **Private Cloud History with Supabase RLS:** Authenticated users who sign in via Google can optionally save sanitized, PII-stripped reconciliation snapshots to private PostgreSQL tables isolated by Supabase Row Level Security (`auth.uid() = user_id`). Unauthenticated guests cannot trigger cloud-save actions.
+- **Pre-Flight Redaction:** Account numbers (`\b\d{11,18}\b`), UPI handles (`user@bank`), PAN IDs, Aadhaar numbers, and phone numbers are scrubbed with `[REDACTED]` tokens before prompt creation.
 - **Citation Provenance Guard:** Every row ID cited by the AI is cross-referenced against active session records. Any hallucinated reference is immediately rejected.
 - **Formula Injection Defense (CWE-1236):** All exported CSV cells starting with dangerous spreadsheet prefixes (`=`, `+`, `-`, `@`) have an apostrophe (`'`) prepended to neutralize executable macro injection in Excel. Legitimate negative numbers in numeric columns remain intact.
 - **Ephemeral Session Review State:** Human triage decisions (Approved/Rejected/Deferred) and notes exist exclusively in client React state. Refreshing or restarting resets state to pending, ensuring zero persistence leakage.
@@ -115,7 +117,7 @@ pnpm run dev
 
 ## 4. Test Results & Quality Gates
 
-The test suite contains **128 automated tests** across 11 test suites covering arithmetic precision, matching rules, Zod schemas, provenance guards, duplicate detection, export consistency, UTF-8 BOM encoding, ISO date formatting, bridge sign conventions, real-world CSV import edge cases, deterministic calendar dates, balance anchor preservation, balance source provenance, Supabase client graceful fallback, snapshot PII sanitization allowlist, presentation count-up animations, authentication discoverability and setup reassurance, production static serving, SPA fallback routing, and formula injection escaping:
+The test suite contains **141 automated tests** across 11 test suites covering arithmetic precision, matching rules, Zod schemas, provenance guards, duplicate detection, export consistency, UTF-8 BOM encoding, ISO date formatting, bridge sign conventions, real-world CSV import edge cases, deterministic calendar dates, balance anchor preservation, balance source provenance, Supabase client graceful fallback, snapshot PII sanitization allowlist, presentation count-up animations, authentication discoverability and setup reassurance, Guest Mode zero-durable-storage guarantee, behavioral cloud-save UI visibility, production static serving, SPA fallback routing, and formula injection escaping:
 
 ```powershell
 pnpm test
@@ -125,27 +127,27 @@ pnpm test
 ```
  RUN  v5.0.5 C:/Users/saipa/OneDrive/Desktop/nvidia hackathon
 
- ✓ tests/privacy-security.test.ts (17 tests)
- ✓ tests/reconciliation.test.ts (12 tests)
- ✓ tests/money.test.ts (13 tests)
- ✓ tests/csv-import.test.ts (20 tests)
- ✓ tests/history-privacy.test.ts (3 tests)
- ✓ tests/analytics.test.ts (5 tests)
- ✓ tests/ai-safety.test.ts (6 tests)
- ✓ tests/export-consistency.test.ts (15 tests)
- ✓ tests/animation.test.ts (2 tests)
  ✓ tests/server-api.test.ts (23 tests)
- ✓ tests/auth-ui.test.tsx (12 tests)
+ ✓ tests/csv-import.test.ts (20 tests)
+ ✓ tests/auth-ui.test.tsx (18 tests)
+ ✓ tests/privacy-security.test.ts (17 tests)
+ ✓ tests/export-consistency.test.ts (15 tests)
+ ✓ tests/money.test.ts (13 tests)
+ ✓ tests/reconciliation.test.ts (12 tests)
+ ✓ tests/history-privacy.test.ts (7 tests)
+ ✓ tests/ai-safety.test.ts (6 tests)
+ ✓ tests/animation.test.ts (5 tests)
+ ✓ tests/analytics.test.ts (5 tests)
 
  Test Files  11 passed (11)
-      Tests  128 passed (128)
+      Tests  141 passed (141)
 ```
 
 ### Quality Linters & Production Build:
 ```powershell
-pnpm run lint        # Oxlint: 0 warnings, 0 errors across 42 files
+pnpm run lint        # Oxlint: 0 warnings, 0 errors across 47 files
 pnpm run typecheck   # tsc --noEmit: zero type errors
-pnpm run build       # Vite build: production client bundle generated cleanly in ~2.7s
+pnpm run build       # Vite build: production client bundle generated cleanly in ~3.8s
 ```
 
 ---
