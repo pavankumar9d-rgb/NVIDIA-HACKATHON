@@ -82,7 +82,7 @@ export function generateMarkdownReport(options: ExportReportOptions): string {
   const date = options.generatedDate || new Date();
   const dateFormatted = date.toLocaleDateString('en-IN', { dateStyle: 'full' });
 
-  const configuredModel = aiStatus?.model || 'nvidia/Llama-3.1-Nemotron-70B-Instruct';
+  const configuredModel = aiStatus?.model || 'Deterministic Rule Engine';
 
   // Count per-exception AI invocation types
   const liveCount = exceptions.filter((e) => getExceptionAIStatus(e).statusCode === 'LIVE_INFERENCE_SUCCEEDED').length;
@@ -90,7 +90,9 @@ export function generateMarkdownReport(options: ExportReportOptions): string {
 
   let sessionAIStatus = 'LOCAL_MODE — No live model response was used';
   if (liveCount > 0) {
-    sessionAIStatus = `LIVE_INFERENCE — ${liveCount} exception(s) investigated via ${configuredModel}`;
+    const liveException = exceptions.find((e) => getExceptionAIStatus(e).statusCode === 'LIVE_INFERENCE_SUCCEEDED');
+    const investigatedModel = liveException?.aiHypothesis?.model || configuredModel;
+    sessionAIStatus = `LIVE_INFERENCE — ${liveCount} exception(s) investigated via ${investigatedModel}`;
   } else if (localCount > 0) {
     sessionAIStatus = `LOCAL_MODE — Deterministic local rule fallback active (${localCount} exception(s) analyzed without live model)`;
   }
@@ -225,7 +227,7 @@ ${aiBlock}
 export function generateAuditJSON(options: ExportReportOptions): string {
   const { sessionName, summary, matches, exceptions, aiStatus } = options;
   const date = options.generatedDate || new Date();
-  const configuredModel = aiStatus?.model || 'nvidia/Llama-3.1-Nemotron-70B-Instruct';
+  const configuredModel = aiStatus?.model || 'Deterministic Rule Engine';
 
   const liveCount = exceptions.filter((e) => getExceptionAIStatus(e).statusCode === 'LIVE_INFERENCE_SUCCEEDED').length;
   const localCount = exceptions.filter((e) => getExceptionAIStatus(e).statusCode === 'LOCAL_DETERMINISTIC_FALLBACK').length;

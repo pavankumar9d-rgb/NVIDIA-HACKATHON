@@ -27,7 +27,7 @@ export const DailyMovementChart: React.FC<DailyMovementChartProps> = ({ data }) 
 
   if (!data || data.length === 0) {
     return (
-      <div className="h-64 flex items-center justify-center bg-[#F9FAF8] border border-[#DDE3DA] rounded-xl text-xs text-[#6B7280]">
+      <div className="h-44 sm:h-56 flex items-center justify-center bg-[#F9FAF8] border border-[#DDE3DA] rounded-xl text-xs text-[#6B7280]">
         No daily movement data available for the active period.
       </div>
     );
@@ -35,8 +35,8 @@ export const DailyMovementChart: React.FC<DailyMovementChartProps> = ({ data }) 
 
   // Dimensions
   const svgWidth = 680;
-  const svgHeight = 220;
-  const padding = { top: 20, right: 20, bottom: 35, left: 55 };
+  const svgHeight = 180;
+  const padding = { top: 15, right: 15, bottom: 30, left: 50 };
   const innerWidth = svgWidth - padding.left - padding.right;
   const innerHeight = svgHeight - padding.top - padding.bottom;
   const baseLine = padding.top + innerHeight;
@@ -99,7 +99,7 @@ export const DailyMovementChart: React.FC<DailyMovementChartProps> = ({ data }) 
         <svg
           key={chartKey}
           viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-          className="w-full h-56 select-none"
+          className="w-full h-40 sm:h-48 select-none"
           role="img"
           aria-label="Daily Inflow and Outflow Cash Movements Chart"
         >

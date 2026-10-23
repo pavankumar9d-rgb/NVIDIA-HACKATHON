@@ -183,47 +183,47 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             </div>
 
             {/* Bridge Steps Formula Flow */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-2.5 items-center font-mono text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5 items-stretch font-mono text-xs">
               {/* Ledger Balance */}
-              <div className="bg-[#F9FAF8] border border-[#DDE3DA] rounded-lg p-3 text-center">
+              <div className="col-span-2 sm:col-span-1 bg-[#F9FAF8] border border-[#DDE3DA] rounded-lg p-2.5 text-center flex flex-col justify-center">
                 <div className="text-[10px] text-[#6B7280] font-sans font-medium uppercase mb-0.5">Closing Ledger</div>
-                <div className="font-bold text-[#111827] text-sm">{formatPaise(bridge.closingLedgerBalancePaise)}</div>
+                <div className="font-bold text-[#111827] text-xs sm:text-sm">{formatPaise(bridge.closingLedgerBalancePaise)}</div>
               </div>
 
               {/* Exception 1: Outstanding Cheque */}
-              <div className="bg-emerald-50/50 border border-emerald-200 rounded-lg p-2.5 text-center">
+              <div className="bg-emerald-50/50 border border-emerald-200 rounded-lg p-2 text-center flex flex-col justify-center">
                 <div className="text-[10px] text-emerald-800 font-sans truncate" title="Unpresented Vendor Cheque">+ Vendor Cheque</div>
                 <div className="font-bold text-[#17845B] text-xs">+₹18,500.00</div>
               </div>
 
               {/* Exception 2: Interest Credited */}
-              <div className="bg-emerald-50/50 border border-emerald-200 rounded-lg p-2.5 text-center">
+              <div className="bg-emerald-50/50 border border-emerald-200 rounded-lg p-2 text-center flex flex-col justify-center">
                 <div className="text-[10px] text-emerald-800 font-sans truncate" title="Bank Interest Credited">+ Q2 Interest</div>
                 <div className="font-bold text-[#17845B] text-xs">+₹3,420.00</div>
               </div>
 
               {/* Exception 3: Fee Discrepancy */}
-              <div className="bg-rose-50/50 border border-rose-200 rounded-lg p-2.5 text-center">
+              <div className="bg-rose-50/50 border border-rose-200 rounded-lg p-2 text-center flex flex-col justify-center">
                 <div className="text-[10px] text-rose-800 font-sans truncate" title="Payment Gateway Fee Discrepancy">- Gateway Fee</div>
                 <div className="font-bold text-[#D75E4C] text-xs">-₹240.00</div>
               </div>
 
               {/* Exception 4: Bank Surcharge */}
-              <div className="bg-rose-50/50 border border-rose-200 rounded-lg p-2.5 text-center">
+              <div className="bg-rose-50/50 border border-rose-200 rounded-lg p-2 text-center flex flex-col justify-center">
                 <div className="text-[10px] text-rose-800 font-sans truncate" title="Unrecorded Bank Surcharge">- HDFC Surcharge</div>
                 <div className="font-bold text-[#D75E4C] text-xs">-₹1,250.00</div>
               </div>
 
               {/* Exception 5: Duplicate ATM */}
-              <div className="bg-purple-50/50 border border-purple-200 rounded-lg p-2.5 text-center">
+              <div className="bg-purple-50/50 border border-purple-200 rounded-lg p-2 text-center flex flex-col justify-center">
                 <div className="text-[10px] text-purple-800 font-sans truncate" title="Duplicate ATM Debit">- Duplicate ATM</div>
                 <div className="font-bold text-purple-700 text-xs">-₹5,000.00</div>
               </div>
 
               {/* Bank Balance Result */}
-              <div className="bg-[#EEF1EB] border border-[#CBD5C5] rounded-lg p-3 text-center">
+              <div className="col-span-2 sm:col-span-1 bg-[#EEF1EB] border border-[#CBD5C5] rounded-lg p-2.5 text-center flex flex-col justify-center">
                 <div className="text-[10px] text-[#4B5563] font-sans font-medium uppercase mb-0.5">Closing Bank</div>
-                <div className="font-bold text-[#111827] text-sm">{formatPaise(bridge.closingBankBalancePaise)}</div>
+                <div className="font-bold text-[#111827] text-xs sm:text-sm">{formatPaise(bridge.closingBankBalancePaise)}</div>
               </div>
             </div>
 

@@ -23,7 +23,7 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({
   onLoadDemo,
 }) => {
   return (
-    <div className="flex-1 overflow-y-auto bg-[#F6F7F2] p-6 md:p-10 flex flex-col items-center justify-center min-h-[600px]">
+    <div className="flex-1 overflow-y-auto bg-[#F6F7F2] p-4 sm:p-6 md:p-10 flex flex-col items-center justify-start md:justify-center min-h-full">
       <div className="max-w-3xl w-full space-y-8 animate-in fade-in duration-300">
         {/* Hero Section */}
         <div className="text-center space-y-4">
@@ -125,9 +125,9 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({
           <div className="flex items-start gap-3 p-3 rounded-xl bg-white/70 border border-[#EEF1EB]">
             <Cpu className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
             <div>
-              <h4 className="text-xs font-bold text-[#111827]">Nemotron Forensic AI</h4>
+              <h4 className="text-xs font-bold text-[#111827]">Deterministic Exception Analysis</h4>
               <p className="text-[11px] text-slate-500 mt-0.5 leading-normal">
-                NVIDIA Nemotron categorizes variances and proposes journal adjustments for human review.
+                Automated rule heuristics categorize variances and propose structured journal adjustments for human review.
               </p>
             </div>
           </div>

@@ -28,9 +28,36 @@ const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
 const DIST_DIR = path.resolve(process.cwd(), 'dist');
 
+// Security Hardening: Disable Express fingerprinting
+app.disable('x-powered-by');
+
+// Security Hardening: Trust single reverse proxy hop (Render / PaaS) for accurate rate limiting
+app.set('trust proxy', 1);
+
+// Security Hardening: Comprehensive Defense-in-Depth HTTP Headers
+app.use((_req: Request, res: Response, next: () => void) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('X-XSS-Protection', '0');
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.tokenfactory.nebius.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
+  );
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  next();
+});
+
 // Dynamic budget and origin getters for runtime configuration
 function getMaxLiveCalls(): number {
-  return parseInt(process.env.MAX_LIVE_CALLS_PER_PROCESS || '50', 10);
+  const parsed = parseInt(process.env.MAX_LIVE_CALLS_PER_PROCESS || '50', 10);
+  if (Number.isNaN(parsed) || parsed < 0) {
+    return 0; // Fail safe: disallow calls on invalid, non-numeric, or negative configuration
+  }
+  return parsed;
 }
 
 /**
@@ -40,11 +67,13 @@ function getMaxLiveCalls(): number {
  * Wildcard ('*') origins are strictly rejected across all environments.
  */
 export function isOriginAllowed(origin: string | undefined): boolean {
-  if (!origin) return true;
+  // If Origin header is undefined or not provided (non-browser clients like curl or server-to-server),
+  // CORS does not apply. CORS is a browser security mechanism, not caller authentication.
+  if (origin === undefined) return true;
 
   const trimmedOrigin = origin.trim();
-  // Reject wildcard origin requests
-  if (trimmedOrigin === '*' || trimmedOrigin.length === 0) {
+  // Reject wildcard origin requests, empty string origins, and opaque/sandboxed 'null' origins
+  if (trimmedOrigin === '*' || trimmedOrigin.length === 0 || trimmedOrigin === 'null') {
     return false;
   }
 
@@ -83,6 +112,14 @@ let liveCallsCount = 0;
 // Exported for testing
 export function resetLiveCallsBudgetForTesting() {
   liveCallsCount = 0;
+}
+
+export function getLiveCallsCountForTesting(): number {
+  return liveCallsCount;
+}
+
+export function resetRateLimiterForTesting() {
+  ipRequestWindow.clear();
 }
 
 // 1. Restrictive CORS
@@ -181,15 +218,16 @@ app.get('/api/health', (_req: Request, res: Response) => {
 
 // 5. Safe AI Configuration Status Endpoint (Never discloses secrets)
 app.get('/api/ai/status', (_req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   const hasKey = Boolean(process.env.NEBIUS_API_KEY && process.env.NEBIUS_API_KEY.trim().length > 0);
   const allowLive = process.env.ALLOW_LIVE_AI === 'true';
-  const modelId = process.env.NEBIUS_MODEL_ID || 'nvidia/Llama-3.1-Nemotron-70B-Instruct';
+  const modelId = process.env.NEBIUS_MODEL_ID || 'deterministic-rules-v1';
 
   res.json({
     configured: hasKey,
     allowLiveAI: allowLive,
     modelId,
-    endpoint: 'Nebius Token Factory (OpenAI-compatible)',
+    endpoint: 'Deterministic Local Engine (Optional External LLM Prototype Adapter)',
     status: hasKey && allowLive ? 'READY' : 'LOCAL_ONLY',
     liveCallsBudget: {
       maxPerProcess: getMaxLiveCalls(),
@@ -201,6 +239,7 @@ app.get('/api/ai/status', (_req: Request, res: Response) => {
 
 // 6. Exception Investigation Endpoint
 app.post('/api/investigate', originValidator, rateLimiter, async (req: Request, res: Response): Promise<void> => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   // Validate inbound payload structure with strict server schema
   const parseResult = InvestigationRequestSchema.safeParse(req.body);
   if (!parseResult.success) {
@@ -213,7 +252,8 @@ app.post('/api/investigate', originValidator, rateLimiter, async (req: Request, 
   }
 
   const payload = parseResult.data;
-  const apiKey = process.env.NEBIUS_API_KEY;
+  const rawKey = process.env.NEBIUS_API_KEY;
+  const apiKey = rawKey && rawKey.trim().length > 0 ? rawKey.trim() : null;
   const allowLive = process.env.ALLOW_LIVE_AI === 'true';
   const baseURL = process.env.NEBIUS_BASE_URL || 'https://api.tokenfactory.nebius.com/v1/';
   const modelId = process.env.NEBIUS_MODEL_ID || 'nvidia/Llama-3.1-Nemotron-70B-Instruct';
@@ -250,7 +290,7 @@ app.post('/api/investigate', originValidator, rateLimiter, async (req: Request, 
   if (!apiKey || !allowLive) {
     res.json({
       status: 'LOCAL_MODE',
-      message: 'Nebius API Key is unconfigured or ALLOW_LIVE_AI is disabled. Deterministic local investigation active.',
+      message: 'Live external AI is unconfigured or ALLOW_LIVE_AI is disabled. Deterministic local investigation active.',
       deterministicAnalysis: {
         exceptionId: payload.exceptionId,
         amountDeltaRupees: payload.amountDeltaRupees,
@@ -262,14 +302,20 @@ app.post('/api/investigate', originValidator, rateLimiter, async (req: Request, 
   }
 
   // Enforce process-level live call budget limit
-  if (liveCallsCount >= getMaxLiveCalls()) {
+  const maxCalls = getMaxLiveCalls();
+  if (liveCallsCount >= maxCalls) {
     res.status(429).json({
       error: 'Live AI Budget Exhausted',
       code: 'LIVE_BUDGET_EXHAUSTED',
-      message: `Inference budget cap of ${getMaxLiveCalls()} calls reached for this server process.`,
+      message: `Inference budget cap of ${maxCalls} calls reached for this server process.`,
     });
     return;
   }
+
+  // Atomically reserve one budget slot BEFORE dispatching the network request.
+  // This slot remains consumed regardless of success, timeout, network failure, upstream HTTP error,
+  // malformed JSON, or schema violation. The server performs no automatic retries.
+  liveCallsCount++;
 
   try {
     const userPrompt = `Investigate this financial exception:
@@ -389,8 +435,7 @@ Analyze whether this is a timing lag, surcharge fee, duplicate, or unrecorded tr
       return;
     }
 
-    // Increment process live call budget counter
-    liveCallsCount++;
+    // Budget slot was reserved upfront prior to network dispatch
 
     res.json({
       status: 'AI_SUCCESS',
@@ -416,13 +461,130 @@ Analyze whether this is a timing lag, surcharge fee, duplicate, or unrecorded tr
   }
 });
 
-// 7. Unmatched /api/* routes must return 404 JSON, not SPA HTML
+// 7. Account Deletion Endpoint (Protected via Supabase Bearer token)
+app.post('/api/account/delete', originValidator, rateLimiter, async (req: Request, res: Response): Promise<void> => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    res.status(401).json({
+      error: 'Unauthorized',
+      code: 'UNAUTHORIZED',
+      message: 'A valid Supabase authorization session bearer token is required to delete an account.',
+    });
+    return;
+  }
+
+  const token = authHeader.replace(/^Bearer\s+/, '').trim();
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  // If server-side administrative service key is unconfigured, fail safely and document blocker
+  if (!serviceRoleKey || !supabaseUrl) {
+    res.status(503).json({
+      error: 'Account Deletion Service Unavailable',
+      code: 'SERVICE_ROLE_UNCONFIGURED',
+      message: 'Server-side Supabase administrative service credentials are not configured on this host. Account deletion requires SUPABASE_SERVICE_ROLE_KEY on the server to invoke administrative user deletion safely.',
+    });
+    return;
+  }
+
+  try {
+    // 1. Authenticate the caller using their bearer token
+    const authVerifyUrl = `${supabaseUrl.replace(/\/$/, '')}/auth/v1/user`;
+    const verifyRes = await fetch(authVerifyUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: serviceRoleKey,
+      },
+    });
+
+    if (!verifyRes.ok) {
+      res.status(401).json({
+        error: 'Invalid or Expired Session',
+        code: 'INVALID_SESSION',
+        message: 'The provided authentication session is invalid or has expired.',
+      });
+      return;
+    }
+
+    const userData: any = await verifyRes.json();
+    const authenticatedUserId = userData?.id;
+
+    if (!authenticatedUserId) {
+      res.status(401).json({
+        error: 'Authentication Failed',
+        code: 'AUTH_FAILED',
+        message: 'Unable to resolve authenticated user identity from session.',
+      });
+      return;
+    }
+
+    // 2. Delete all user-owned reconciliation_history records
+    const historyDeleteUrl = `${supabaseUrl.replace(/\/$/, '')}/rest/v1/reconciliation_history?user_id=eq.${encodeURIComponent(authenticatedUserId)}`;
+    await fetch(historyDeleteUrl, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${serviceRoleKey}`,
+        apikey: serviceRoleKey,
+      },
+    });
+
+    // 3. Delete the user identity from Supabase Auth admin API
+    const adminDeleteUrl = `${supabaseUrl.replace(/\/$/, '')}/auth/v1/admin/users/${encodeURIComponent(authenticatedUserId)}`;
+    const adminDeleteRes = await fetch(adminDeleteUrl, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${serviceRoleKey}`,
+        apikey: serviceRoleKey,
+      },
+    });
+
+    if (!adminDeleteRes.ok) {
+      const errText = await adminDeleteRes.text();
+      console.error('[Account Deletion Error]:', adminDeleteRes.status, errText.slice(0, 100));
+      res.status(502).json({
+        error: 'Failed to Delete User Identity',
+        code: 'ADMIN_DELETE_FAILED',
+        message: 'Reconciliation history was purged, but identity deletion failed. Please contact administrator.',
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      message: 'User account and all associated cloud-saved reconciliation records have been permanently deleted.',
+    });
+  } catch (err: any) {
+    console.error('[Account Deletion Error]:', err.message);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      code: 'GATEWAY_ERROR',
+      message: 'An unexpected error occurred during account deletion.',
+    });
+  }
+});
+
+// 8. Unmatched /api/* routes must return 404 JSON, not SPA HTML
 app.all(/^\/api(\/.*)?$/, (_req: Request, res: Response) => {
   res.status(404).json({
     error: 'API Endpoint Not Found',
     code: 'API_NOT_FOUND',
     message: 'The requested /api endpoint does not exist on this server.',
   });
+});
+
+// JSON error handling middleware (handles body parser limits like 413 Payload Too Large)
+app.use((err: any, _req: Request, res: Response, next: () => void) => {
+  if (err && (err.type === 'entity.too.large' || err.status === 413)) {
+    res.status(413).json({
+      error: 'Payload Too Large',
+      code: 'PAYLOAD_TOO_LARGE',
+      message: 'Request payload exceeds the strict 32 KB gateway body limit.',
+    });
+    return;
+  }
+  next();
 });
 
 // 8. Safe SPA fallback for non-API client-side navigation

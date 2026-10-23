@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { NavigationRail } from './components/NavigationRail';
+import { BottomNav } from './components/BottomNav';
 import { TopBar } from './components/TopBar';
 import { WorkflowRibbon } from './components/WorkflowRibbon';
 import { OverviewView } from './components/OverviewView';
@@ -16,26 +17,32 @@ import { AuditTrailView } from './components/AuditTrailView';
 import { BrandedPreloader } from './components/BrandedPreloader';
 import { SetupRequiredModal } from './components/SetupRequiredModal';
 import { WelcomeScreen } from './components/WelcomeScreen';
-import type { 
-  CanonicalTransaction, 
-  ReconciliationResult, 
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
+import { TermsOfServiceModal } from './components/TermsOfServiceModal';
+import { FirstUseGuideModal } from './components/FirstUseGuideModal';
+import { DeleteAccountModal } from './components/DeleteAccountModal';
+import type {
+  CanonicalTransaction,
+  ReconciliationResult,
   ReconciliationException,
   ReconciliationOptions
 } from './lib/reconciliation';
 import { runReconciliation } from './lib/reconciliation';
 import { parseCSVString, validateAndNormalizeRows } from './lib/csv';
 import { buildMinimizedExceptionPayload } from './lib/privacy';
-import { 
-  isSupabaseConfigured, 
-  signInWithGoogle, 
-  signOut, 
-  getCurrentUser, 
-  onAuthStateChange 
+import {
+  isSupabaseConfigured,
+  signInWithGoogle,
+  signOut,
+  deleteUserAccount,
+  getCurrentUser,
+  onAuthStateChange
 } from './lib/supabase/client';
 import { saveReconciliationToHistory } from './lib/supabase/history';
-import { 
-  SYNTHETIC_BANK_CSV, 
-  SYNTHETIC_LEDGER_CSV 
+import {
+  SYNTHETIC_BANK_CSV,
+  SYNTHETIC_LEDGER_CSV
 } from './data/syntheticDemo';
 
 export const App: React.FC = () => {
@@ -72,10 +79,16 @@ export const App: React.FC = () => {
   const [isAILoading, setIsAILoading] = useState(false);
   const [aiInvestigationStep, setAiInvestigationStep] = useState<string | null>(null);
 
+  // Legal & User Guidance Modal States
+  const [isPrivacyPolicyModalOpen, setIsPrivacyPolicyModalOpen] = useState(false);
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
+  const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+  const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
+
   const [aiStatus, setAiStatus] = useState({
     configured: false,
     allowLiveAI: false,
-    modelId: 'nvidia/Llama-3.1-Nemotron-70B-Instruct',
+    modelId: 'deterministic-rules-v1',
     endpoint: 'Nebius Token Factory (OpenAI-compatible)',
     status: 'LOCAL_ONLY',
   });
@@ -88,8 +101,8 @@ export const App: React.FC = () => {
         setAiStatus({
           configured: Boolean(data.configured),
           allowLiveAI: Boolean(data.allowLiveAI),
-          modelId: data.modelId || 'nvidia/Llama-3.1-Nemotron-70B-Instruct',
-          endpoint: data.endpoint || 'Nebius Token Factory',
+          modelId: data.modelId || 'deterministic-rules-v1',
+          endpoint: data.endpoint || 'Local Deterministic Engine',
           status: data.status || 'LOCAL_ONLY',
         });
       })
@@ -97,8 +110,8 @@ export const App: React.FC = () => {
         setAiStatus({
           configured: false,
           allowLiveAI: false,
-          modelId: 'nvidia/Llama-3.1-Nemotron-70B-Instruct',
-          endpoint: 'Nebius Token Factory',
+          modelId: 'deterministic-rules-v1',
+          endpoint: 'Local Deterministic Engine',
           status: 'LOCAL_ONLY',
         });
       });
@@ -107,10 +120,10 @@ export const App: React.FC = () => {
   // Load the Northstar Studio synthetic dataset
   const loadSyntheticDemo = useCallback(async () => {
     const parsedBank = await parseCSVString(SYNTHETIC_BANK_CSV);
-    const { 
-      validRows: bankValid, 
-      detectedOpeningBalancePaise: bOpen, 
-      detectedClosingBalancePaise: bClose 
+    const {
+      validRows: bankValid,
+      detectedOpeningBalancePaise: bOpen,
+      detectedClosingBalancePaise: bClose
     } = validateAndNormalizeRows(parsedBank.rows, parsedBank.detectedMapping, 'BNK');
 
     const parsedLedger = await parseCSVString(SYNTHETIC_LEDGER_CSV);
@@ -186,10 +199,18 @@ export const App: React.FC = () => {
         setIsAppReady(true);
       });
 
-    const { data: authListener } = onAuthStateChange((_event, session) => {
+    const { data: authListener } = onAuthStateChange((event, session) => {
       setCurrentUser(session?.user ?? null);
       if (session?.user) {
         setHasEnteredApp(true);
+      } else if (event === 'SIGNED_OUT' || !session) {
+        // Defense-in-depth: Clear all in-memory financial data on session termination
+        setBankRows([]);
+        setLedgerRows([]);
+        setReconciliationResult(null);
+        setSelectedItem(null);
+        setSessionName('Reconciliation Workspace');
+        setIsSynthetic(false);
       }
     });
 
@@ -221,7 +242,11 @@ export const App: React.FC = () => {
     setAuthError(null);
     setIsAuthLoading(true);
     try {
-      await signOut();
+      const { error } = await signOut();
+      if (error) {
+        setAuthError(error.message);
+        return;
+      }
       setCurrentUser(null);
       sessionStorage.removeItem('proofledger_guest_mode');
       // Wipe all in-memory financial data on sign-out to guarantee isolation
@@ -236,6 +261,30 @@ export const App: React.FC = () => {
       setAuthError(err instanceof Error ? err.message : 'Sign out failed');
     } finally {
       setIsAuthLoading(false);
+    }
+  };
+
+  const handleConfirmDeleteAccount = async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await deleteUserAccount();
+      if (res.success) {
+        setCurrentUser(null);
+        sessionStorage.removeItem('proofledger_guest_mode');
+        // Clear in-memory data
+        setBankRows([]);
+        setLedgerRows([]);
+        setReconciliationResult(null);
+        setSelectedItem(null);
+        setSessionName('Reconciliation Workspace');
+        setIsSynthetic(false);
+        setHasEnteredApp(false);
+      }
+      return res;
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Account deletion failed unexpectedly.',
+      };
     }
   };
 
@@ -396,7 +445,7 @@ export const App: React.FC = () => {
 
       const response = await fetch('/api/investigate', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'X-ProofLedger-Client': 'v1',
         },
@@ -426,7 +475,7 @@ export const App: React.FC = () => {
         }
       } else {
         const localHypothesis = {
-          classification: 
+          classification:
             exception.type === 'AMOUNT_MISMATCH'
               ? 'BANK_FEE_OR_SURCHARGE'
               : exception.type === 'DUPLICATE_CANDIDATE'
@@ -490,7 +539,7 @@ export const App: React.FC = () => {
   const shouldShowWelcomeScreen = !isUserAuthenticated && !hasEnteredApp;
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#F6F7F2] text-[#111827]">
+    <div className="flex flex-col md:flex-row min-h-[100dvh] h-[100dvh] w-full overflow-hidden bg-[#F6F7F2] text-[#111827]">
       <BrandedPreloader isReady={isAppReady} />
 
       {shouldShowWelcomeScreen ? (
@@ -510,6 +559,9 @@ export const App: React.FC = () => {
           isAuthLoading={isAuthLoading}
           authError={authError}
           isSupabaseAvailable={isSupabaseConfigured()}
+          onOpenPrivacyPolicy={() => setIsPrivacyPolicyModalOpen(true)}
+          onOpenTerms={() => setIsTermsModalOpen(true)}
+          onOpenGuide={() => setIsGuideModalOpen(true)}
         />
       ) : (
         <>
@@ -523,9 +575,11 @@ export const App: React.FC = () => {
             }}
             exceptionCount={reconciliationResult?.summary.exceptionCount || 0}
             aiStatus={aiStatus}
+            onOpenPrivacyPolicy={() => setIsPrivacyPolicyModalOpen(true)}
+            onOpenTerms={() => setIsTermsModalOpen(true)}
           />
 
-          <div className="flex-1 flex flex-col h-full overflow-hidden">
+          <div className="flex-1 flex flex-col h-full overflow-hidden pb-16 md:pb-0">
             <TopBar
               sessionName={sessionName}
               isSynthetic={isSynthetic}
@@ -544,6 +598,8 @@ export const App: React.FC = () => {
               onOpenSaveHistory={() => setIsSaveHistoryModalOpen(true)}
               onSignIn={handleSignIn}
               onSignOut={handleSignOut}
+              onOpenDeleteAccount={() => setIsDeleteAccountModalOpen(true)}
+              onOpenGuide={() => setIsGuideModalOpen(true)}
             />
 
             {currentTab === 'overview' && (
@@ -603,7 +659,7 @@ export const App: React.FC = () => {
                       <span className="font-semibold text-[#D7FF56]">Nemotron Investigation:</span>
                       <span className="text-slate-300">{aiInvestigationStep || 'Processing forensic evidence...'}</span>
                     </div>
-                    <span className="text-[11px] font-mono text-slate-400">NVIDIA Llama-3.1-Nemotron-70B-Instruct</span>
+                    <span className="text-[11px] font-mono text-slate-400">Deterministic Rule Engine (Local Mode)</span>
                   </div>
                 )}
 
@@ -660,6 +716,16 @@ export const App: React.FC = () => {
               </div>
             )}
           </div>
+          <BottomNav
+            currentTab={currentTab}
+            onSelectTab={(tab) => {
+              setCurrentTab(tab);
+              if (tab === 'overview') {
+                setActiveTableFilter(undefined);
+              }
+            }}
+            exceptionCount={reconciliationResult?.summary.exceptionCount || 0}
+          />
         </>
       )}
 
@@ -700,8 +766,38 @@ export const App: React.FC = () => {
         isOpen={isSetupModalOpen}
         onClose={() => setIsSetupModalOpen(false)}
       />
+
+      <PrivacyPolicyModal
+        isOpen={isPrivacyPolicyModalOpen}
+        onClose={() => setIsPrivacyPolicyModalOpen(false)}
+      />
+
+      <TermsOfServiceModal
+        isOpen={isTermsModalOpen}
+        onClose={() => setIsTermsModalOpen(false)}
+      />
+
+      <FirstUseGuideModal
+        isOpen={isGuideModalOpen}
+        onClose={() => setIsGuideModalOpen(false)}
+        onStartDemo={loadSyntheticDemo}
+        onOpenImport={() => setIsImportModalOpen(true)}
+      />
+
+      <DeleteAccountModal
+        isOpen={isDeleteAccountModalOpen}
+        onClose={() => setIsDeleteAccountModalOpen(false)}
+        currentUser={currentUser}
+        onConfirmDelete={handleConfirmDeleteAccount}
+      />
     </div>
   );
 };
 
-export default App;
+export default function RootApp() {
+  return (
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  );
+}

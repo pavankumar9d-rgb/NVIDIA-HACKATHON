@@ -134,3 +134,42 @@ export function onAuthStateChange(
 
   return client.auth.onAuthStateChange(callback);
 }
+
+export async function deleteUserAccount(): Promise<{ success: boolean; error?: string }> {
+  const client = getSupabaseClient();
+  if (!client) {
+    return { success: false, error: 'Supabase client is not configured.' };
+  }
+
+  try {
+    const { data: { session }, error: sessionErr } = await client.auth.getSession();
+    if (sessionErr || !session?.access_token) {
+      return { success: false, error: 'No active authenticated session found.' };
+    }
+
+    const res = await fetch('/api/account/delete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
+
+    const body = await res.json();
+    if (!res.ok || !body.success) {
+      return {
+        success: false,
+        error: body.message || body.error || 'Server rejected account deletion request.',
+      };
+    }
+
+    // Explicitly sign out client locally
+    await client.auth.signOut();
+    return { success: true };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Network error during account deletion request.',
+    };
+  }
+}

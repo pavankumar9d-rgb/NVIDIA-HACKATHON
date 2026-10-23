@@ -14,6 +14,9 @@ interface WelcomeScreenProps {
   isAuthLoading?: boolean;
   authError?: string | null;
   isSupabaseAvailable?: boolean;
+  onOpenPrivacyPolicy?: () => void;
+  onOpenTerms?: () => void;
+  onOpenGuide?: () => void;
 }
 
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
@@ -22,6 +25,9 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   isAuthLoading = false,
   authError = null,
   isSupabaseAvailable = true,
+  onOpenPrivacyPolicy,
+  onOpenTerms,
+  onOpenGuide,
 }) => {
   return (
     <main 
@@ -142,12 +148,46 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
       </div>
 
       {/* Trust & Math Footer */}
-      <footer className="mt-6 text-[11px] text-slate-400 flex items-center gap-4">
+      <footer className="mt-6 text-[11px] text-slate-500 flex flex-wrap items-center justify-center gap-3">
         <span>Integer-Paise Precision</span>
         <span>•</span>
         <span>Client-Side Privacy</span>
         <span>•</span>
         <span>Zero Float Drift</span>
+        <span>•</span>
+        {onOpenGuide && (
+          <>
+            <button
+              type="button"
+              onClick={onOpenGuide}
+              className="hover:text-slate-800 underline cursor-pointer"
+            >
+              First-Use Guide
+            </button>
+            <span>•</span>
+          </>
+        )}
+        {onOpenPrivacyPolicy && (
+          <>
+            <button
+              type="button"
+              onClick={onOpenPrivacyPolicy}
+              className="hover:text-slate-800 underline cursor-pointer"
+            >
+              Privacy Policy
+            </button>
+            <span>•</span>
+          </>
+        )}
+        {onOpenTerms && (
+          <button
+            type="button"
+            onClick={onOpenTerms}
+            className="hover:text-slate-800 underline cursor-pointer"
+          >
+            Terms of Service
+          </button>
+        )}
       </footer>
     </main>
   );

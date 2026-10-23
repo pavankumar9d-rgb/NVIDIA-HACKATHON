@@ -1,29 +1,29 @@
 import React, { useState } from 'react';
-import { 
-  parseCSVString, 
-  validateAndNormalizeRows, 
+import {
+  parseCSVString,
+  validateAndNormalizeRows,
   detectFileDateFormat,
-  SAMPLE_BANK_CSV_TEMPLATE, 
+  SAMPLE_BANK_CSV_TEMPLATE,
   SAMPLE_LEDGER_CSV_TEMPLATE
 } from '../lib/csv';
-import type { 
-  ValidatedCSVRow, 
-  ColumnMapping, 
+import type {
+  ValidatedCSVRow,
+  ColumnMapping,
   DateFormat,
-  MappingDetectionResult 
+  MappingDetectionResult
 } from '../lib/csv';
 import type { CanonicalTransaction, ReconciliationOptions, BalanceProvenance } from '../lib/reconciliation';
 import { formatPaise, parseToPaise } from '../lib/money';
-import { 
-  Upload, 
-  Download, 
-  CheckCircle2, 
-  AlertTriangle, 
+import {
+  Upload,
+  Download,
+  CheckCircle2,
+  AlertTriangle,
   SlidersHorizontal,
   ChevronDown,
   ChevronUp,
   Info,
-  X 
+  X
 } from 'lucide-react';
 
 interface FileState {
@@ -471,7 +471,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
               {fileState.showAdvanced && (
                 <div className="mt-2 p-3 bg-white border border-[#DDE3DA] rounded-lg space-y-2.5 text-[11px]">
                   {/* Date format & date col */}
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
                     <div>
                       <label className="block text-[10px] font-semibold text-[#6B7280] mb-0.5">
                         Date Column
@@ -511,7 +511,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                   </div>
 
                   {/* Description & Reference */}
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
                     <div>
                       <label className="block text-[10px] font-semibold text-[#6B7280] mb-0.5">
                         Narration / Description
@@ -586,7 +586,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                     </div>
 
                     {fileState.amountMode === 'SEPARATE_DR_CR' ? (
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
                         <div>
                           <label className="block text-[10px] font-semibold text-[#6B7280] mb-0.5">
                             Debit Column (Outflow)
@@ -650,7 +650,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                   </div>
 
                   {/* Balance Anchor & Running Balance */}
-                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[#EEF1EB]">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5 pt-1 border-t border-[#EEF1EB]">
                     <div>
                       <label className="block text-[10px] font-semibold text-[#6B7280] mb-0.5">
                         Balance Column (Optional)
@@ -704,23 +704,33 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-[#101A2B]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl border border-[#DDE3DA] max-w-3xl w-full p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
-        <div className="flex items-center justify-between border-b border-[#DDE3DA] pb-3">
-          <div>
-            <h2 className="text-lg font-bold text-[#111827]">Import Financial Statements (CSV)</h2>
-            <p className="text-xs text-[#6B7280]">
+    <div
+      className="fixed inset-0 bg-[#101A2B]/60 backdrop-blur-xs z-50 flex items-center justify-center p-0 sm:p-4"
+      role="dialog"
+      aria-label="Import Financial Statements"
+      aria-modal="true"
+    >
+      <div className="bg-white sm:rounded-2xl border border-[#DDE3DA] max-w-3xl w-full h-full sm:h-auto sm:max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+        {/* Sticky Header */}
+        <div className="p-4 sm:p-6 pb-3 border-b border-[#DDE3DA] flex items-center justify-between shrink-0 bg-white">
+          <div className="pr-2">
+            <h2 className="text-base sm:text-lg font-bold text-[#111827]">Import Financial Statements (CSV)</h2>
+            <p className="text-[11px] sm:text-xs text-[#6B7280]">
               Files are parsed 100% in your browser. Raw bank statements never leave this machine.
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-md text-[#9CA3AF] hover:text-[#111827] hover:bg-[#EEF1EB] cursor-pointer"
+            className="p-2 min-h-[44px] min-w-[44px] rounded-lg text-[#9CA3AF] hover:text-[#111827] hover:bg-[#EEF1EB] flex items-center justify-center cursor-pointer shrink-0"
+            aria-label="Close Import Dialog"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Scrollable Body */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 overscroll-contain">
 
         {/* Supported format notice */}
         <div className="bg-[#FAFBF9] border border-[#DDE3DA] rounded-lg p-2.5 text-xs text-[#4B5563] flex items-start gap-2">
@@ -817,15 +827,18 @@ export const ImportModal: React.FC<ImportModalProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-2 border-t border-[#DDE3DA]">
-          <span className="text-[11px] text-[#6B7280]">
+        </div>
+
+        {/* Sticky Action Footer */}
+        <div className="p-3 sm:p-4 border-t border-[#DDE3DA] bg-white shrink-0 pb-safe flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+          <span className="text-[10px] sm:text-[11px] text-[#6B7280] text-center sm:text-left">
             Deterministic matching active • 5 MB / 10,000 row bounds
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 justify-end">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-1.5 rounded-md border border-[#DDE3DA] text-xs font-semibold text-[#4B5563] hover:bg-[#F6F7F2] cursor-pointer"
+              className="flex-1 sm:flex-none px-4 py-2 min-h-[44px] rounded-xl border border-[#DDE3DA] text-xs font-semibold text-[#4B5563] active:bg-[#F6F7F2] cursor-pointer flex items-center justify-center"
             >
               Cancel
             </button>
@@ -833,7 +846,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
               type="button"
               disabled={!canProceed}
               onClick={handleConfirmImport}
-              className="px-4 py-1.5 rounded-md bg-[#D7FF56] hover:bg-[#C9F540] text-[#111827] text-xs font-bold disabled:opacity-50 cursor-pointer shadow-xs disabled:cursor-not-allowed"
+              className="flex-1 sm:flex-none px-5 py-2 min-h-[44px] rounded-xl bg-[#D7FF56] active:bg-[#C9F540] text-[#111827] text-xs font-bold disabled:opacity-50 cursor-pointer shadow-xs disabled:cursor-not-allowed flex items-center justify-center"
             >
               Confirm & Reconcile
             </button>

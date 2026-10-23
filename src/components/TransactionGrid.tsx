@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import type { 
-  ReconciliationMatch, 
-  ReconciliationException 
+import type {
+  ReconciliationMatch,
+  ReconciliationException
 } from '../lib/reconciliation';
 import { formatPaise } from '../lib/money';
-import { 
-  Search, 
-  ChevronRight
+import {
+  Search,
+  ChevronRight,
+  ArrowDownLeft,
+  ArrowUpRight
 } from 'lucide-react';
 
 interface TransactionGridProps {
@@ -27,7 +29,7 @@ export const TransactionGrid: React.FC<TransactionGridProps> = ({
   const [userFilterTab, setUserFilterTab] = useState<'all' | 'exceptions' | 'matches' | 'bank_only' | 'ledger_only' | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filterTab: 'all' | 'exceptions' | 'matches' | 'bank_only' | 'ledger_only' = 
+  const filterTab: 'all' | 'exceptions' | 'matches' | 'bank_only' | 'ledger_only' =
     userFilterTab ?? (
       externalFilter === 'MATCHES'
         ? 'matches'
@@ -131,15 +133,16 @@ export const TransactionGrid: React.FC<TransactionGridProps> = ({
 
   return (
     <div className="bg-white rounded-xl border border-[#DDE3DA] overflow-hidden flex flex-col h-full shadow-2xs">
-      <div className="p-3 border-b border-[#DDE3DA] flex flex-col sm:flex-row items-center justify-between gap-2 bg-[#FAFBF9]">
-        <div className="flex items-center gap-1 overflow-x-auto w-full sm:w-auto">
+      {/* Top Filter and Search Bar */}
+      <div className="p-2.5 sm:p-3 border-b border-[#DDE3DA] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-[#FAFBF9]">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto pb-0.5">
           <button
             type="button"
             onClick={() => setFilterTab('exceptions')}
-            className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap min-h-[38px] transition-colors cursor-pointer shrink-0 ${
               filterTab === 'exceptions'
-                ? 'bg-[#101A2B] text-white'
-                : 'text-[#6B7280] hover:bg-[#EEF1EB] hover:text-[#111827]'
+                ? 'bg-[#101A2B] text-white shadow-2xs'
+                : 'text-[#4B5563] bg-white border border-[#DDE3DA] hover:bg-[#EEF1EB]'
             }`}
           >
             Exceptions ({exceptions.length})
@@ -147,10 +150,10 @@ export const TransactionGrid: React.FC<TransactionGridProps> = ({
           <button
             type="button"
             onClick={() => setFilterTab('matches')}
-            className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap min-h-[38px] transition-colors cursor-pointer shrink-0 ${
               filterTab === 'matches'
-                ? 'bg-[#101A2B] text-white'
-                : 'text-[#6B7280] hover:bg-[#EEF1EB] hover:text-[#111827]'
+                ? 'bg-[#101A2B] text-white shadow-2xs'
+                : 'text-[#4B5563] bg-white border border-[#DDE3DA] hover:bg-[#EEF1EB]'
             }`}
           >
             Matches ({matches.length})
@@ -158,29 +161,97 @@ export const TransactionGrid: React.FC<TransactionGridProps> = ({
           <button
             type="button"
             onClick={() => setFilterTab('all')}
-            className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap min-h-[38px] transition-colors cursor-pointer shrink-0 ${
               filterTab === 'all'
-                ? 'bg-[#101A2B] text-white'
-                : 'text-[#6B7280] hover:bg-[#EEF1EB] hover:text-[#111827]'
+                ? 'bg-[#101A2B] text-white shadow-2xs'
+                : 'text-[#4B5563] bg-white border border-[#DDE3DA] hover:bg-[#EEF1EB]'
             }`}
           >
             All Items ({displayRows.length})
           </button>
         </div>
 
-        <div className="relative w-full sm:w-64">
-          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+        <div className="relative w-full sm:w-64 shrink-0">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
           <input
             type="text"
-            placeholder="Search reference, description..."
+            placeholder="Search reference, particular..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1 bg-white border border-[#DDE3DA] rounded-md text-xs text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#101A2B]"
+            className="w-full pl-9 pr-3 py-1.5 bg-white border border-[#DDE3DA] rounded-lg text-xs text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#101A2B] min-h-[38px]"
           />
         </div>
       </div>
 
-      <div className="overflow-x-auto flex-1">
+      {/* Mobile Card-Based Transaction List (< md) */}
+      <div className="md:hidden flex-1 overflow-y-auto divide-y divide-[#EDF1EA]">
+        {filteredRows.length === 0 ? (
+          <div className="py-12 px-4 text-center text-xs text-[#9CA3AF]">
+            No transactions match the selected filter or search query.
+          </div>
+        ) : (
+          filteredRows.map((row) => {
+            const isSelected = selectedItem?.id === row.id;
+            const isCredit = row.direction === 'credit';
+
+            return (
+              <div
+                key={row.id}
+                onClick={() => onSelectItem({ type: row.kind, id: row.id })}
+                className={`p-3.5 transition-colors cursor-pointer select-none relative ${
+                  isSelected
+                    ? 'bg-[#EEF1EB]/80 border-l-4 border-l-[#101A2B]'
+                    : 'active:bg-[#FAFBF9] hover:bg-[#FAFBF9]/60'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2 mb-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="font-mono text-[11px] text-[#6B7280]">
+                      {row.date}
+                    </span>
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold border ${row.statusClass}`}>
+                      {row.statusLabel}
+                    </span>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <div className={`font-mono text-sm font-bold flex items-center justify-end gap-1 ${
+                      isCredit ? 'text-[#17845B]' : 'text-[#111827]'
+                    }`}>
+                      {isCredit ? (
+                        <ArrowDownLeft className="w-3.5 h-3.5 text-[#17845B]" />
+                      ) : (
+                        <ArrowUpRight className="w-3.5 h-3.5 text-slate-400" />
+                      )}
+                      <span>{formatPaise(row.amountPaise)}</span>
+                    </div>
+                    <span className="text-[10px] font-mono uppercase text-slate-400">
+                      {isCredit ? 'Credit (In)' : 'Debit (Out)'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-xs text-[#111827] font-medium leading-snug line-clamp-2 mb-1.5">
+                  {row.description}
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-[#6B7280] font-mono pt-1 border-t border-slate-100">
+                  <div className="truncate max-w-[220px]">
+                    {row.reference !== '—' ? `Ref: ${row.reference}` : `ID: ${row.sourceA !== '—' ? row.sourceA : row.sourceB}`}
+                  </div>
+                  <div className="flex items-center gap-1 text-[#101A2B] font-sans font-semibold text-[11px]">
+                    <span>Inspect</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Desktop Table View (>= md) */}
+      <div className="hidden md:block overflow-x-auto flex-1">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
             <tr className="bg-[#EEF1EB] border-b border-[#DDE3DA] text-[#4B5563] font-semibold select-none sticky top-0 z-10">

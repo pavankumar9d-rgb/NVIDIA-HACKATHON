@@ -1,13 +1,13 @@
 # Devpost Submission Package — ProofLedger AI
 
-**Hackathon:** Nebius × NVIDIA Global AI Hackathon 2026  
-**Track:** Best Apps & Agents  
-**Project Name:** ProofLedger AI — Reconciliation Investigation Workspace  
-**Tagline:** Deterministic financial truth, AI-assisted investigation, human-controlled resolution.  
-**Public Demo URL:** https://proofledger-ai.onrender.com  
-**GitHub Repository:** https://github.com/pavankumar9d-rgb/NVIDIA-HACKATHON  
-**License:** MIT License  
-**Video Walkthrough:** [YouTube Video Link — Under 3 Minutes]  
+**Hackathon:** Nebius × NVIDIA Global AI Hackathon 2026
+**Track:** Best Apps & Agents
+**Project Name:** ProofLedger AI — Reconciliation Investigation Workspace
+**Tagline:** Deterministic financial truth, AI-assisted investigation, human-controlled resolution.
+**Public Demo URL:** https://proofledger-ai.onrender.com
+**GitHub Repository:** https://github.com/pavankumar9d-rgb/ProofLedger-AI
+**License:** MIT License
+**Video Walkthrough:** [YouTube Video Link — Under 3 Minutes]
 
 ---
 
@@ -87,7 +87,7 @@ ProofLedger AI was engineered specifically for the **Best Apps & Agents** track:
 
 ### Nebius Token Factory
 - **What Worked Well:** The OpenAI-compatible API endpoint (`/v1/chat/completions`) makes drop-in integration straightforward. The gateway interface design and standard JSON mode schemas allow strict typing with Zod.
-- **Areas for Improvement:** 
+- **Areas for Improvement:**
   1. *Billing Dropdown Onboarding Loop:* Many international hackathon participants whose countries are omitted from the billing country dropdown get locked into a payment details page, even when they possess official promotional codes (`NEBIUS-DEVPOST-GLOBAL26`). Providing a self-service voucher redemption flow that bypasses the credit card requirement for hackathon builders would drastically improve onboarding.
   2. *Granular Usage Analytics:* Providing per-key token budget caps in the console would help builders safely expose demo endpoints without fear of token exhaustion.
 

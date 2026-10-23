@@ -18,6 +18,8 @@ interface NavigationRailProps {
     modelId: string;
     status: string;
   };
+  onOpenPrivacyPolicy?: () => void;
+  onOpenTerms?: () => void;
 }
 
 export const NavigationRail: React.FC<NavigationRailProps> = ({
@@ -25,9 +27,11 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
   onSelectTab,
   exceptionCount = 0,
   aiStatus,
+  onOpenPrivacyPolicy,
+  onOpenTerms,
 }) => {
   return (
-    <aside className="w-16 md:w-60 bg-[#101A2B] text-slate-200 flex flex-col justify-between border-r border-[#1C2C45] select-none shrink-0 transition-all duration-200">
+    <aside className="hidden md:flex md:w-60 bg-[#101A2B] text-slate-200 flex-col justify-between border-r border-[#1C2C45] select-none shrink-0 transition-all duration-200">
       <div>
         <div className="h-16 flex items-center px-3 md:px-5 border-b border-[#1C2C45] gap-3">
           <img 
@@ -149,6 +153,37 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
           <div className="pt-1 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-500">
             <span>Client Math</span>
             <span className="text-emerald-400 font-mono font-bold">100% Deterministic</span>
+          </div>
+
+          <div className="pt-2 flex items-center justify-between text-[10px] text-slate-500 border-t border-slate-800/40">
+            {onOpenPrivacyPolicy && (
+              <button
+                type="button"
+                onClick={onOpenPrivacyPolicy}
+                className="hover:text-slate-300 underline cursor-pointer"
+              >
+                Privacy
+              </button>
+            )}
+            <span>•</span>
+            {onOpenTerms && (
+              <button
+                type="button"
+                onClick={onOpenTerms}
+                className="hover:text-slate-300 underline cursor-pointer"
+              >
+                Terms
+              </button>
+            )}
+            <span>•</span>
+            <a
+              href="https://github.com/pavankumar9d-rgb/ProofLedger-AI"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="hover:text-slate-300 underline cursor-pointer"
+            >
+              MIT
+            </a>
           </div>
         </div>
 

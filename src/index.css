@@ -57,6 +57,29 @@
   background: #9CA3AF;
 }
 
+/* Mobile Safe Area & Touch Enhancements */
+.pb-safe {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+.pt-safe {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+
+/* Touch manipulation: eliminates 300ms mobile tap delay */
+button, a, input, select, textarea {
+  touch-action: manipulation;
+}
+
+/* Hide scrollbar for touch swipe containers */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
     animation-delay: -1ms !important;

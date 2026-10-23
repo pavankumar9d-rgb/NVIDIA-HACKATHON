@@ -1,247 +1,164 @@
-# ProofLedger AI — Reconciliation Investigation Workspace
-
 <div align="center">
-  <img src="public/assets/proofledger-wordmark.svg" alt="ProofLedger AI Logo" width="280" />
-  <p><strong>Deterministic financial truth, AI-assisted investigation, human-controlled resolution.</strong></p>
+  <img src="public/assets/proofledger-wordmark.svg" alt="ProofLedger AI Logo" width="360" />
+  <p><strong>Deterministic Financial Reconciliation Desk & Audit Safeguard System</strong></p>
+
   <p>
-    <em>Built for the <strong>Best Apps & Agents</strong> track of the <strong>Nebius × NVIDIA Global AI Hackathon 2026</strong></em>
-  </p>
-  <p>
-    <a href="#quickstart"><img src="https://img.shields.io/badge/Status-Built%20%26%20Tested-17845B" alt="Status" /></a>
-    <a href="#test-results"><img src="https://img.shields.io/badge/Tests-141%2F141%20Passing-17845B" alt="Tests" /></a>
-    <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue" alt="License" /></a>
-    <img src="https://img.shields.io/badge/Model-NVIDIA%20Nemotron%2070B-D7FF56?labelColor=101A2B" alt="Model" />
-    <img src="https://img.shields.io/badge/Platform-Nebius%20Token%20Factory-101A2B" alt="Nebius" />
+    <a href="https://github.com/pavankumar9d-rgb/ProofLedger-AI/actions"><img src="https://img.shields.io/badge/Tests-155%20Passing-17845B?style=flat&labelColor=101A2B" alt="Tests" /></a>
+    <img src="https://img.shields.io/badge/Arithmetic-Integer%20Paise-D7FF56?style=flat&labelColor=101A2B" alt="Math" />
+    <img src="https://img.shields.io/badge/Privacy-Zero%20Raw%20Upload-101A2B?style=flat" alt="Privacy" />
+    <img src="https://img.shields.io/badge/License-MIT-blue?style=flat&labelColor=101A2B" alt="License" />
   </p>
 </div>
 
 ---
 
-## 1. Executive Summary & Product Thesis
+## 1. Product Overview & Problem Statement
 
-Small-business finance operators face severe friction during month-end closes: comparing bank statement CSVs against accounting ledger CSVs, finding missing entries, unpresented cheques, duplicate transactions, and unexplained fee surcharges.
+Financial reconciliation is notoriously prone to human error, spreadsheet formula corruption, and IEEE 754 floating-point rounding discrepancies. Traditional bookkeeping software often suffers from:
 
-Generic AI chatbots fail because language models cannot do reliable arithmetic or guarantee row citations. Cloud accounting suites cost thousands per year and ingest unredacted client financial statements into third-party cloud databases—violating data sovereignty and customer privacy.
+- **Floating-point drift**: Binary float representations introduce tiny fractional rounding errors (e.g. `0.1 + 0.2 !== 0.3`) across large transaction volumes.
+- **Unverified spreadsheet exports**: CSV files generated without formula injection escaping are vulnerable to CSV injection attacks (`=CMD|'...'!A0`).
+- **Data privacy risks**: Uploading sensitive, unredacted corporate bank statements to third-party cloud AI vendors exposes PII and confidential financial details.
 
-### The ProofLedger AI Solution:
-> **"Deterministic financial truth, AI-assisted investigation, human-controlled resolution."**
-
-ProofLedger AI separates mathematical calculation from natural language reasoning:
-1. **Deterministic Financial Engine:** Runs 100% in-browser in pure TypeScript. Computes balances in decimal-safe integer minor units (paise for INR), runs 1-to-1 matching, enforces date clearance tolerances, detects duplicate candidates, and calculates variance. **The AI never touches calculations or confirms ledger matches.**
-2. **Targeted AI Investigation Adapter:** When a human operator encounters an ambiguous exception (e.g. an unexplained ₹240 payment gateway deduction or a 3-day timing lag), the operator can invoke the **NVIDIA Nemotron** adapter designed for **Nebius Token Factory**. The system sends only a sanitized, anonymized 4-field packet—never raw CSVs or PII. In zero-cost development or unprovisioned production states, the gateway transparently executes deterministic local fallback analysis with zero fabricated AI claims.
-3. **Human-in-the-Loop Audit Trail:** The investigation adapter provides structured hypotheses citing only genuine source row IDs. The human operator explicitly approves, rejects, or defers the suggestion, generating a non-destructive audit log with CSV formula-injection protection (CWE-1236).
+**ProofLedger AI** solves this through a client-side, integer-paise mathematical reconciliation desk with automated discrepancy analysis, formula-safe exports, and strict privacy boundaries.
 
 ---
 
-## 2. Key Architecture & Security Safeguards
+## 2. Core Implemented Capabilities
 
-```
-[ BROWSER CLIENT (React 19 + TypeScript + Vite) ]
-  ├── PapaParse In-Browser Parser (Raw CSVs never leave browser)
-  ├── Decimal-Safe Minor Unit Math (Integer Paise - Zero Float Drift)
-  ├── 1-to-1 Matcher & Ambiguity Guard (No row matched twice)
-  ├── PII Redaction Filter (Account numbers, UPI IDs, Phones masked)
-  └── Outbound Payload Preview (Explicit consent checkbox required)
-            │
-            │ HTTPS (Sanitized 4-Field Packet Only)
-            ▼
-[ PROOFLEDGER SERVER ADAPTER (Node.js + Express) ]
-  ├── Rate Limiter (15 req/min) & Body Size Cap (32 KB DoS guard)
-  ├── Secure Environment Isolation (NEBIUS_API_KEY in server memory only)
-  ├── Zod Runtime Schema Validator & Citation Provenance Verifier
-  └── Truthful Local Mode Fallback (Zero fake AI when unconfigured)
-            │
-            │ OpenAI-Compatible API (Bearer Token)
-            ▼
-[ NEBIUS TOKEN FACTORY (https://api.tokenfactory.nebius.com/v1/) ]
-  └── NVIDIA Llama-3.1-Nemotron-70B-Instruct (Structured JSON Inference)
-```
+### A. Deterministic Reconciliation Engine
+- **Integer-Paise Precision**: All currency operations are calculated in discrete whole paise (1 INR = 100 paise), guaranteeing zero floating-point accumulation errors.
+- **Multi-Tier Matching**:
+  1. *Tier 1 (Exact Match)*: Exact transaction amount match and normalized reference match.
+  2. *Tier 2 (Date-Tolerance Match)*: Exact amount match within a configurable date window (default: 3 days) with description similarity scoring.
+  3. *Tier 3 (Reviewer Override)*: Manual review decision recording with audit notes.
+- **Strict 1-to-1 Row Consumption**: Transaction records are never double-counted or consumed by multiple matches. Competing matches are flagged as ambiguous rather than greedily paired.
+- **Mathematical Reconciliation Bridge**: Transparent, balanced bridge linking closing ledger balances to ending bank positions with zero delta variance.
 
-### Security & Privacy Protections
-- **Zero Raw Uploads:** Raw bank and ledger CSV files are parsed entirely in the user's browser memory. Zero files are stored on any backend server or database.
-- **Guest Mode Zero-Durable-Storage Guarantee:** Unauthenticated guests run 100% locally. Zero financial records or transaction metadata are written to `localStorage`, `IndexedDB`, or durable browser caches. The sole browser storage is a non-sensitive boolean navigation flag (`sessionStorage.proofledger_guest_mode = 'true'`). All in-memory records are wiped immediately on session reset or exit.
-- **Private Cloud History with Supabase RLS:** Authenticated users who sign in via Google can optionally save sanitized, PII-stripped reconciliation snapshots to private PostgreSQL tables isolated by Supabase Row Level Security (`auth.uid() = user_id`). Unauthenticated guests cannot trigger cloud-save actions.
-- **Pre-Flight Redaction:** Account numbers (`\b\d{11,18}\b`), UPI handles (`user@bank`), PAN IDs, Aadhaar numbers, and phone numbers are scrubbed with `[REDACTED]` tokens before prompt creation.
-- **Citation Provenance Guard:** Every row ID cited by the AI is cross-referenced against active session records. Any hallucinated reference is immediately rejected.
-- **Formula Injection Defense (CWE-1236):** All exported CSV cells starting with dangerous spreadsheet prefixes (`=`, `+`, `-`, `@`) have an apostrophe (`'`) prepended to neutralize executable macro injection in Excel. Legitimate negative numbers in numeric columns remain intact.
-- **Ephemeral Session Review State:** Human triage decisions (Approved/Rejected/Deferred) and notes exist exclusively in client React state. Refreshing or restarting resets state to pending, ensuring zero persistence leakage.
-- **CSV UTF-8 BOM Encoding:** CSV downloads include a UTF-8 BOM (`\uFEFF`) prefix, guaranteeing clean Unicode rendering in Excel on Windows (preventing `â€”` mojibake for missing-row em dashes) while leaving JSON and Markdown exports strictly unaffected.
-- **Hardened Real-World CSV Import & Anchor Engine:** In-browser deterministic date parser supporting ISO (`YYYY-MM-DD`), Indian/UK (`DD/MM/YYYY`), US (`MM/DD/YYYY`), and alphanumeric (`DD-Mon-YYYY`) conventions with zero timezone calendar shifting and leap-year validation. Column mapping inspection supports single signed amount or dual debit/credit layouts. Opening and closing balance anchors are preserved from statement rows or user input into reconciliation metrics. Invalid rows are explicitly surfaced and cannot be silently dropped without user acknowledgement. Unsupported formats (such as PDF statements or scanned documents) are clearly disallowed with guidance to export CSVs from online banking portals.
+### B. Client-Side Statement Ingestion & Privacy
+- **Zero Raw File Upload**: Bank statements and general ledger CSVs are parsed and normalized 100% inside the browser session using Web Workers. Raw statements never leave the client device.
+- **Automated Column Heuristics**: Detects dates, references, narrations, debit/credit flows, and opening balances automatically.
+- **Guest Mode by Default**: Fully functional without requiring account creation, credit cards, or external cloud storage.
+
+### C. Security & Audit Safeguards
+- **Formula Injection Neutralization**: All exported CSV rows sanitize potentially executable spreadsheet prefixes (`=`, `+`, `-`, `@`, `\t`, `\r`) with single-quote escaping.
+- **Defensive API Gateway**: Express gateway with strict Origin validation, 32 KB body size limits, in-memory rate limiting, and cache-control suppression (`no-store`) on sensitive endpoints.
+- **GDPR Account & Data Deletion**: Full cascade deletion endpoint allowing authenticated users to purge both their reconciliation history and authentication credentials.
+
+### D. Mobile-First Responsive Interface
+- **Responsive Viewport Support**: Seamlessly transitions from mobile phones (320px–430px) to tablets and large desktop monitors.
+- **Mobile Navigation**: Features a fixed, touch-friendly bottom navigation bar (`BottomNav`) with safe-area insets (`pb-safe`) and tactile Transaction Cards replacing cramped data tables.
 
 ---
 
-## 3. Quickstart & Local Installation
+## 3. Technology Stack & Architecture
+
+- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS v4, Lucide Icons
+- **Backend API Gateway**: Node.js, Express 5, Tsx, Zod
+- **Data Processing**: PapaParse, deterministic custom financial algorithms
+- **Database / Auth (Optional)**: Supabase Auth & PostgreSQL (RLS-protected; optional for private multi-session history)
+- **Quality Assurance**: Vitest, Testing Library, Oxlint
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                 BROWSER CLIENT (REACT + TS)                 │
+│  - Integer-paise math (0 float drift)                       │
+│  - Client-side PapaParse normalization                     │
+│  - Multi-tier 1-to-1 matching engine                        │
+│  - Responsive Transaction Cards & Bottom Navigation         │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ (Optional: Minimized Exception Payload)
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│                 EXPRESS API GATEWAY SERVER                  │
+│  - Strict Origin verification & DNS rebinding defense       │
+│  - Cache-Control: no-store header enforcement               │
+│  - In-memory rate limiting (10 req/min per IP)              │
+│  - Server-side independent PII sanitization                 │
+│  - Deterministic rule-based exception analysis              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 4. Current Limitations & Roadmap
+
+- **Supported Formats**: Ingestion currently supports CSV format. PDF statement parsing and Excel XLSX native ingestion are planned for subsequent releases.
+- **External AI Integration Status**: The server includes an optional client adapter for external LLM inference (`/api/investigate`), but it is permanently gated under `ALLOW_LIVE_AI=false` to enforce a strict ₹0 operating cost. The application honestly communicates `LOCAL_ONLY` status and executes deterministic rule-based classifications.
+- **Multi-Instance Rate Limiting**: The in-memory rate limiter protects single server instances; distributed deployments require a Redis-backed token bucket.
+
+---
+
+## 5. Getting Started & Local Execution
 
 ### Prerequisites
-- Node.js `v20.x` or `v24.x` (Tested on Node.js v24.20.0)
-- `pnpm` (Preferred), `npm`, or `yarn`
+- Node.js >= 20.x
+- pnpm (recommended) or npm
 
-### 1. Clone & Install Dependencies
-```powershell
-git clone https://github.com/pavankumar9d-rgb/NVIDIA-HACKATHON.git
-cd NVIDIA-HACKATHON
+### Installation
+```bash
+# Clone the repository
+git clone https://github.com/pavankumar9d-rgb/ProofLedger-AI.git
+cd ProofLedger-AI
+
+# Install dependencies
 pnpm install
-```
 
-### 2. Configure Environment (Optional for Local Mode)
-Copy `.env.example` to `.env`:
-```powershell
+# Copy environment template
 cp .env.example .env
 ```
-Default configuration runs in **Local Mode** with 100% deterministic matching active. To activate live cloud inference with NVIDIA Nemotron:
-```env
-NEBIUS_BASE_URL=https://api.tokenfactory.nebius.com/v1/
-NEBIUS_API_KEY=your_nebius_api_key_here
-NEBIUS_MODEL_ID=nvidia/Llama-3.1-Nemotron-70B-Instruct
-ALLOW_LIVE_AI=true
-APP_ALLOWED_ORIGIN=http://localhost:5173
-PORT=3001
-```
 
-### 3. Run Development Servers
-Open two terminal windows (or run concurrently):
+### Running Locally
+```bash
+# Start frontend dev server (port 5173)
+pnpm run dev
 
-**Terminal 1 — Backend Gateway:**
-```powershell
+# Start backend gateway server (port 3001)
 pnpm run server
 ```
-*Server runs on `http://localhost:3001`.*
 
-**Terminal 2 — Frontend Application:**
-```powershell
-pnpm run dev
-```
-*Client opens on `http://localhost:5173`.*
+Open [http://localhost:5173](http://localhost:5173) in your browser. Click **"Load Demo Scenario"** on the welcome screen to test the reconciliation desk with 32 synthetic bank and ledger rows.
 
 ---
 
-## 4. Test Results & Quality Gates
+## 6. Verification & Quality Gates
 
-The test suite contains **141 automated tests** across 11 test suites covering arithmetic precision, matching rules, Zod schemas, provenance guards, duplicate detection, export consistency, UTF-8 BOM encoding, ISO date formatting, bridge sign conventions, real-world CSV import edge cases, deterministic calendar dates, balance anchor preservation, balance source provenance, Supabase client graceful fallback, snapshot PII sanitization allowlist, presentation count-up animations, authentication discoverability and setup reassurance, Guest Mode zero-durable-storage guarantee, behavioral cloud-save UI visibility, production static serving, SPA fallback routing, and formula injection escaping:
+Run the automated verification suite:
 
-```powershell
+```bash
+# Execute full unit & integration test suite (155 tests)
 pnpm test
-```
 
-### Actual Test Suite Output:
-```
- RUN  v5.0.5 C:/Users/saipa/OneDrive/Desktop/nvidia hackathon
+# Run TypeScript static type checking
+pnpm run typecheck
 
- ✓ tests/server-api.test.ts (23 tests)
- ✓ tests/csv-import.test.ts (20 tests)
- ✓ tests/auth-ui.test.tsx (18 tests)
- ✓ tests/privacy-security.test.ts (17 tests)
- ✓ tests/export-consistency.test.ts (15 tests)
- ✓ tests/money.test.ts (13 tests)
- ✓ tests/reconciliation.test.ts (12 tests)
- ✓ tests/history-privacy.test.ts (7 tests)
- ✓ tests/ai-safety.test.ts (6 tests)
- ✓ tests/animation.test.ts (5 tests)
- ✓ tests/analytics.test.ts (5 tests)
+# Run linter
+pnpm run lint
 
- Test Files  11 passed (11)
-      Tests  141 passed (141)
-```
-
-### Quality Linters & Production Build:
-```powershell
-pnpm run lint        # Oxlint: 0 warnings, 0 errors across 47 files
-pnpm run typecheck   # tsc --noEmit: zero type errors
-pnpm run build       # Vite build: production client bundle generated cleanly in ~3.8s
+# Build production client bundle
+pnpm run build
 ```
 
 ---
 
-## 5. Production Deployment on Render (Free Plan)
+## 7. Verified Live Demo & Deployment
 
-ProofLedger AI is configured as a single full-stack Node.js web service. The Express backend serves the pre-built React/Vite frontend from `dist/`, routes all `/api/*` endpoints, guards against unmatched API requests (returns 404 JSON, not HTML), and falls back safely to `index.html` for client-side SPA routing.
-
-Repository: `https://github.com/pavankumar9d-rgb/NVIDIA-HACKATHON.git`
-
-### 5.1 Option A: Automatic Blueprint Deployment (`render.yaml`)
-The repository includes a committed `render.yaml` Blueprint file:
-1. Log in to [Render Dashboard](https://dashboard.render.com/).
-2. Click **New +** $\to$ **Blueprint**.
-3. Connect repository `https://github.com/pavankumar9d-rgb/NVIDIA-HACKATHON.git` on branch `main`.
-4. Render will detect `render.yaml` and configure the free Node web service automatically.
-5. Click **Apply**.
-6. After provisioning, copy your assigned Render service URL (e.g., `https://proofledger-ai.onrender.com`), go to **Environment**, set `APP_ALLOWED_ORIGIN` to this exact URL, and click **Save Changes**.
-
-### 5.2 Option B: Manual Web Service Setup Checklist
-If creating the service manually:
-1. In Render Dashboard, click **New +** $\to$ **Web Service**.
-2. Select **Build and deploy from a Git repository**.
-3. Enter repository URL: `https://github.com/pavankumar9d-rgb/NVIDIA-HACKATHON.git`.
-4. Configure service settings:
-   - **Name:** `proofledger-ai`
-   - **Region:** Any preferred region (e.g., Oregon, Frankfurt, Singapore)
-   - **Branch:** `main`
-   - **Root Directory:** Leave blank (root of repo)
-   - **Runtime:** `Node`
-   - **Build Command:** `corepack pnpm install --frozen-lockfile && corepack pnpm run build`
-   - **Start Command:** `corepack pnpm run server`
-   - **Instance Type:** `Free`
-5. Open **Advanced** settings:
-   - **Health Check Path:** `/api/health`
-   - **Auto-Deploy:** `Yes`
-6. Add Environment Variables:
-   - `ALLOW_LIVE_AI` = `false` *(Strictly mandatory: keeps live model calls disabled on public demo)*
-   - `APP_ALLOWED_ORIGIN` = `http://localhost:5173` *(Temporarily set, then updated to Render URL after first deploy)*
-7. Click **Create Web Service**.
-8. Once the build finishes and the service is live, copy your assigned HTTPS URL (e.g. `https://proofledger-ai.onrender.com`), edit `APP_ALLOWED_ORIGIN` in **Environment** to match this exact origin, and save.
-
-### 5.3 Important Operational Disclosures
-- **Free-Tier Sleep Cycle:** Render's free plan spins down web services after 15 minutes of inactivity. When visiting the site after an idle period, expect a ~30 to 50 second cold start delay while the instance wakes up.
-- **Hackathon Live Model Requirement Disclosure:** In this deployed demo, live cloud inference calls to NVIDIA Nemotron on Nebius Token Factory remain **disabled** (`ALLOW_LIVE_AI=false`). Live inference requires a verified, funded `NEBIUS_API_KEY` and rate/budget controls to prevent token drainage. The live model integration is fully implemented and tested via mock suites, but pending developer key configuration.
-- **Full Local Mode Functionality:** Even with live AI disabled, the application is 100% interactive and functional: loading synthetic client records, integer paise arithmetic, deterministic reconciliation, cash flow charts, evidence drawer, human triage decisions, audit trail recording, and formula-safe CSV/JSON/Markdown exports all function seamlessly in-browser.
-- **Session-Only Ephemeral Triage State:** Human auditor decisions (Approved/Rejected/Deferred) and review notes are retained exclusively in active React state for the duration of the browser session. They are immediately reflected in downloaded CSV, JSON, and Markdown export packages. Reloading the page or restarting the service resets the triage state to pending, ensuring zero persistence leakage.
-- **Export UTF-8 BOM & Sign Convention Semantics:** Downloaded CSVs include a UTF-8 BOM (`\uFEFF`) so spreadsheet tools (such as Excel on Windows) cleanly display em dashes (`—`) without mojibake. Dates are exported in raw ISO `YYYY-MM-DD` format (spreadsheet display formatting is locale-dependent). In the Exceptions CSV, the `Transaction Net Delta (INR)` represents the transaction's cash flow impact (e.g. -₹18,500.00 for an unpresented ledger cheque expenditure), whereas in the Reconciliation Bridge, the items represent signed contributions to the Net Bank-minus-Ledger Variance (summing to +₹15,430.00), where the closing bridge follows the exact formula: `Ledger Closing Balance = Bank Closing Balance − Net Bank-minus-Ledger Variance` (`₹4,60,950.00 = ₹4,76,380.00 − ₹15,430.00`).
-- **Formula Injection Defense & Numeric Preservation (CWE-1236):** In CSV exports, untrusted freeform text cells starting with executable characters (`=`, `+`, `-`, `@`, `|`, `%`) are prefixed with a neutralizing apostrophe (`'`), while validated financial numeric columns preserve legitimate signed numbers (e.g. `-18500.00`) to maintain arithmetic interoperability without risk of code execution.
+- **Live Production URL**: [https://proofledger-ai.onrender.com](https://proofledger-ai.onrender.com)
+- **Deployment Platform**: Render (Free Tier, Node.js Web Service)
+- **Operational Status**: Runs in zero-cost Local Mode (`ALLOW_LIVE_AI=false`) with full client-side matching, synthetic demo loading, and audit exports active.
 
 ---
 
-## 6. Demonstration Walkthrough (Northstar Studio Scenario)
+## 8. Project History & Competition Disclosure
 
-1. Open `http://localhost:5173` (or your deployed Render URL).
-2. Notice the top bar: **"Northstar Studio — September Close"** synthetic dataset is loaded automatically.
-3. The Executive Overview computes verified accounting positions:
-   - **Opening Anchor:** ₹4,50,000.00
-   - **Net Bank Period Movement:** +₹26,380.00 (Inflows: ₹1,61,630.00, Outflows: ₹1,35,250.00)
-   - **Net Ledger Period Movement:** +₹10,950.00 (Inflows: ₹1,42,000.00, Outflows: ₹1,31,050.00)
-   - **Closing Bank Position:** ₹4,76,380.00 (29 rows)
-   - **Closing Ledger Position:** ₹4,60,950.00 (27 rows)
-   - **Closing Variance (Bank - Ledger):** +₹15,430.00
-   - **Confirmed Matches:** 25 pairs (50 rows matched / 56 active rows = 89.3%)
-   - **Actionable Exceptions:** 5 items (6 rows: 1 amount mismatch, 1 duplicate candidate `ATM-00912`, 2 unmatched bank, 1 unmatched ledger)
-   - **Reconciliation Bridge:** Reconciles the ₹15,430.00 closing variance to an exact ₹0.00 residual ledger variance.
-4. Inspect pure SVG charts: Dual-series daily movement & volume composition.
-5. Click on exception row **`EXP-AMT-BNK-013-LDG-012`** (Zenith Brand) or **`EXP-DUP-BNK-018`** (ATM Withdrawal duplicate candidate).
-6. Inspect the sliding **Evidence Drawer**:
-   - For Zenith Brand: Bank row shows ₹49,760.00 credited, Ledger row shows ₹50,000.00 invoiced, deterministic delta: -₹240.00.
-   - For ATM-00912: Highlights identical amount ₹5,000.00 debited consecutively within clearance tolerance.
-7. Click **"Investigate Exception"**.
-8. Preview the sanitized JSON payload and check the consent box.
-9. Click **"Proceed with Inference"** to receive the structured hypothesis (via live Nebius Nemotron-70B when configured, or transparent local deterministic rule in Local Mode).
-10. Enter an auditor review note and click **Approve**, **Reject**, or **Defer**.
-11. Click **"Export Pack"** to download the formula-safe CSVs, JSON audit log, and executive Markdown report.
+ProofLedger AI is submitted for **LaunchPad Hacks (October 16 – November 20, 2026)**.
+
+In adherence to competition rules and transparent engineering standards, the baseline core reconciliation logic existed prior to the hackathon. During the LaunchPad Hacks event period, the team designed and implemented the complete mobile-first responsive architecture, formula injection export safeguards, defensive Origin/CORS validation, and GDPR account deletion workflows.
+
+For complete commit links, test evidence, and chronological breakdown, please review [LAUNCHPAD_CONTRIBUTIONS.md](docs/LAUNCHPAD_CONTRIBUTIONS.md).
 
 ---
 
-## 7. Project Documentation Index
+## 9. License
 
-- [`docs/PRD.md`](docs/PRD.md) — Comprehensive Product Requirements Document & Acceptance Criteria.
-- [`docs/DESIGN_SPEC.md`](docs/DESIGN_SPEC.md) — UI/UX Design System, Design Tokens & Information Architecture.
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — Component Boundaries, Sequence Diagrams & Technical Architecture.
-- [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) — 15 Threat Scenarios, Mitigations, and Privacy Boundary.
-- [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md) — Test Matrix, Acceptance Gates & Command Execution Evidence.
-- [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md) — Timestamped 2m 50s Video Walkthrough Script.
-- [`docs/SUBMISSION_CHECKLIST.md`](docs/SUBMISSION_CHECKLIST.md) — Official Devpost Rules & Judging Criteria Compliance.
-- [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) — Zero-Cost Supabase PostgreSQL Setup, RLS Policies & Architecture.
-- [`docs/IMPLEMENTATION_REPORT.md`](docs/IMPLEMENTATION_REPORT.md) — Full Engineering & Implementation Status Report.
-- [`docs/CODEX_REVIEW_PROMPT.md`](docs/CODEX_REVIEW_PROMPT.md) — Independent Read-Only Review Prompt for OpenAI Codex.
-
----
-
-## 8. License
-
-Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for details.
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.

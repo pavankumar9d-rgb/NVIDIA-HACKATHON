@@ -1,20 +1,20 @@
 import React, { useState } from 'react';
-import type { 
-  ReconciliationMatch, 
-  ReconciliationException 
+import type {
+  ReconciliationMatch,
+  ReconciliationException
 } from '../lib/reconciliation';
 import { formatPaise } from '../lib/money';
 import { calculateExceptionVarianceContributionPaise } from '../lib/reconciliation/analytics';
 import { buildMinimizedExceptionPayload } from '../lib/privacy';
-import { 
-  ShieldCheck, 
-  Sparkles, 
-  Check, 
-  X, 
-  Clock, 
-  Building2, 
-  BookOpen, 
-  Lock, 
+import {
+  ShieldCheck,
+  Sparkles,
+  Check,
+  X,
+  Clock,
+  Building2,
+  BookOpen,
+  Lock,
   AlertCircle
 } from 'lucide-react';
 
@@ -79,12 +79,12 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
   if (match) {
     return (
       <>
-        <div 
+        <div
           className="fixed inset-0 bg-[#101A2B]/40 backdrop-blur-[2px] z-40 transition-opacity"
           onClick={onClose}
           aria-hidden="true"
         />
-        <aside 
+        <aside
           className="fixed inset-y-0 right-0 z-50 w-full sm:w-[480px] lg:w-[540px] bg-white shadow-2xl border-l border-[#CBD5C5] flex flex-col h-full overflow-hidden animate-in slide-in-from-right duration-200"
           role="dialog"
           aria-label="Forensic Match Evidence"
@@ -100,7 +100,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#111827] hover:bg-[#EEF1EB] transition-colors cursor-pointer"
+              className="p-2 min-h-[44px] min-w-[44px] rounded-lg text-[#6B7280] hover:text-[#111827] hover:bg-[#EEF1EB] transition-colors cursor-pointer flex items-center justify-center"
               title="Close panel (Esc)"
               aria-label="Close panel"
             >
@@ -241,12 +241,12 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
 
   return (
     <>
-      <div 
+      <div
         className="fixed inset-0 bg-[#101A2B]/40 backdrop-blur-[2px] z-40 transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
-      <aside 
+      <aside
         className="fixed inset-y-0 right-0 z-50 w-full sm:w-[480px] lg:w-[540px] bg-white shadow-2xl border-l border-[#CBD5C5] flex flex-col h-full overflow-hidden animate-in slide-in-from-right duration-200"
         role="dialog"
         aria-label="Exception Investigation Drawer"
@@ -262,7 +262,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-[#6B7280] hover:text-[#111827] hover:bg-[#EEF1EB] transition-colors cursor-pointer"
+            className="p-2 min-h-[44px] min-w-[44px] rounded-lg text-[#6B7280] hover:text-[#111827] hover:bg-[#EEF1EB] transition-colors cursor-pointer flex items-center justify-center"
             title="Close panel (Esc)"
             aria-label="Close panel"
           >
@@ -371,7 +371,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-xs font-bold text-[#111827]">
             <Sparkles className="w-4 h-4 text-[#101A2B]" />
-            NVIDIA Nemotron Investigation
+            Forensic Exception Investigation
           </div>
           <span className="text-[10px] font-mono bg-[#EEF1EB] px-1.5 py-0.5 rounded text-[#4B5563]">
             {aiStatus.allowLiveAI && aiStatus.configured ? 'Token Factory' : 'Local Mode'}
@@ -410,7 +410,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
         ) : (
           <div>
             <p className="text-xs text-[#6B7280] mb-3">
-              Request an evidence-backed hypothesis from NVIDIA Nemotron regarding this exception.
+              Request an evidence-backed deterministic analysis and journal adjustment hypothesis for this exception.
               All account numbers and PII will be sanitized.
             </p>
 
@@ -464,7 +464,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
           <button
             type="button"
             onClick={() => onReviewDecision(exception.exceptionId, 'APPROVED', reviewNote)}
-            className="py-1.5 px-2 rounded-md bg-[#E8F5EE] hover:bg-[#D5EFE0] text-[#17845B] border border-[#A7D7BC] text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+            className="py-2.5 px-2 min-h-[44px] rounded-xl bg-[#E8F5EE] active:bg-[#D5EFE0] text-[#17845B] border border-[#A7D7BC] text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
             title="Accept hypothesis for this period close"
           >
             <Check className="w-3.5 h-3.5" />
@@ -474,7 +474,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
           <button
             type="button"
             onClick={() => onReviewDecision(exception.exceptionId, 'REJECTED', reviewNote)}
-            className="py-1.5 px-2 rounded-md bg-[#FDEDEA] hover:bg-[#FCD9D3] text-[#D75E4C] border border-[#F3BDB4] text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+            className="py-2.5 px-2 min-h-[44px] rounded-xl bg-[#FDEDEA] active:bg-[#FCD9D3] text-[#D75E4C] border border-[#F3BDB4] text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
             title="Reject hypothesis as ungrounded"
           >
             <X className="w-3.5 h-3.5" />
@@ -484,7 +484,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
           <button
             type="button"
             onClick={() => onReviewDecision(exception.exceptionId, 'DEFERRED', reviewNote)}
-            className="py-1.5 px-2 rounded-md bg-[#FEF3C7] hover:bg-[#FDE68A] text-[#D97706] border border-[#FDE68A] text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+            className="py-2.5 px-2 min-h-[44px] rounded-xl bg-[#FEF3C7] active:bg-[#FDE68A] text-[#D97706] border border-[#FDE68A] text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
             title="Defer for external voucher confirmation"
           >
             <Clock className="w-3.5 h-3.5" />
@@ -496,7 +496,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
 
       {showConsentModal && (
         <div className="fixed inset-0 bg-[#101A2B]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl border border-[#DDE3DA] max-w-lg w-full p-6 shadow-xl space-y-4">
+          <div className="bg-white rounded-2xl border border-[#DDE3DA] max-w-lg w-full p-4 sm:p-6 shadow-xl space-y-4 max-h-[92vh] overflow-y-auto pb-safe">
             <div className="flex items-center gap-2 text-base font-bold text-[#111827]">
               <Lock className="w-5 h-5 text-[#2563EB]" />
               Outbound Privacy Payload Preview
@@ -519,7 +519,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
               <ul className="list-disc list-inside text-[11px] space-y-0.5">
                 <li>Bank account numbers, UPI handles, and phones are masked with [REDACTED].</li>
                 <li>Raw CSV statements remain strictly in your browser session.</li>
-                <li>Model inference uses NVIDIA Nemotron-70B on Nebius Token Factory.</li>
+                <li>Analysis runs through deterministic rule heuristics with optional prototype model adapter (currently LOCAL_ONLY).</li>
               </ul>
             </div>
 
@@ -532,7 +532,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
               />
               <span>
                 I give explicit consent to transmit this single sanitized exception packet to
-                Nebius Token Factory for AI investigation.
+                the investigation gateway for exception analysis.
               </span>
             </label>
 
@@ -540,7 +540,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
               <button
                 type="button"
                 onClick={() => setShowConsentModal(false)}
-                className="px-4 py-1.5 rounded-md border border-[#DDE3DA] text-xs font-semibold text-[#4B5563] hover:bg-[#F6F7F2]"
+                className="px-4 py-2.5 min-h-[44px] rounded-xl border border-[#DDE3DA] text-xs font-semibold text-[#4B5563] active:bg-[#F6F7F2] cursor-pointer flex items-center justify-center"
               >
                 Cancel / Stay Local
               </button>
@@ -551,7 +551,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
                   setShowConsentModal(false);
                   await onRunAIInvestigation(exception, true);
                 }}
-                className="px-4 py-1.5 rounded-md bg-[#D7FF56] hover:bg-[#C9F540] text-[#111827] text-xs font-bold disabled:opacity-50 cursor-pointer shadow-xs"
+                className="px-5 py-2.5 min-h-[44px] rounded-xl bg-[#D7FF56] active:bg-[#C9F540] text-[#111827] text-xs font-bold disabled:opacity-50 cursor-pointer shadow-xs flex items-center justify-center"
               >
                 Proceed with Inference
               </button>
