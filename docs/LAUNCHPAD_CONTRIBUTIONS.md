@@ -11,8 +11,9 @@
 
 In full compliance with competition rules and academic transparency, ProofLedger AI openly discloses its development history:
 
-- **Baseline Codebase Origin**: The core financial reconciliation engine, integer-paise mathematical design, deterministic matching algorithm, and initial Supabase schema were developed prior to LaunchPad Hacks as part of an experimental exploratory prototype.
-- **Historical Context**: The initial code repository was created under the working title `NVIDIA-HACKATHON` exploring potential Nebius/Nemotron integrations.
+- **Baseline Codebase Origin**: The core financial reconciliation engine, integer-paise mathematical design, deterministic matching algorithm, and initial Supabase schema were developed prior to and during the initial creation of this repository. The initial commit in the public repository appears on **October 18, 2026** (`6f8e807 Sun Oct 18 17:18:35 2026 +0530`), which falls inside the LaunchPad Hacks calendar window (October 16 – November 20, 2026).
+- **Historical Context**: The initial code repository was created under the working repository name `NVIDIA-HACKATHON` exploring prospective Nebius/Nemotron model integrations.
+- **Development Continuity**: Rather than concealing prior exploratory work, ProofLedger AI documents that foundational financial logic was established during early experimentation and substantially restructured, secured, and responsive-transformed during the active LaunchPad evaluation cycle.
 - **No Falsification**: No historical Git commits have been wiped, deleted, or backdated. Git history accurately reflects the foundational work and the distinct body of work executed during the LaunchPad Hacks competition period.
 
 ---
@@ -24,16 +25,16 @@ During the LaunchPad Hacks hackathon period (October 16 – November 20, 2026), 
 ### A. Mobile-First Product Transformation
 1. **Responsive Viewport Redesign (320px–430px Phones)**:
    - Eliminated the desktop-only permanent side rail on mobile devices (`hidden md:flex`).
-   - Implemented a dedicated [`BottomNav.tsx`](file:///c:/Users/saipa/OneDrive/Desktop/nvidia%20hackathon/src/components/BottomNav.tsx) providing persistent 5-destination navigation with active chartreuse pill indicators and safe-area inset support (`pb-safe`).
-   - Built responsive **Transaction Cards** (`src/components/TransactionGrid.tsx`) for phone viewports to replace cramped 9-column HTML tables.
-   - Sized all interactive buttons (`Approve`, `Reject`, `Defer`, `Close`) to WCAG 2.1 AA `min-h-[44px] min-w-[44px]`.
+   - Implemented a dedicated [`BottomNav.tsx`](../src/components/BottomNav.tsx) providing persistent 5-destination navigation with active chartreuse pill indicators and safe-area inset support (`pb-safe`).
+   - Built responsive **Transaction Cards** ([`src/components/TransactionGrid.tsx`](../src/components/TransactionGrid.tsx)) for phone viewports to replace cramped 9-column HTML tables.
+   - Sized primary interactive buttons (`Approve`, `Reject`, `Defer`, `Close`) with touch-accessible targets (`min-h-[44px] min-w-[44px]`) and tactile active feedback.
 2. **Compact Mobile Header & Action Sheet**:
-   - Rebuilt [`TopBar.tsx`](file:///c:/Users/saipa/OneDrive/Desktop/nvidia%20hackathon/src/components/TopBar.tsx) to fit 56px height on phones, featuring the brand mark, session title, status chip, primary action (`Reconcile`/`Import`), and a slide-up accessible Action Sheet.
+   - Rebuilt [`TopBar.tsx`](../src/components/TopBar.tsx) to fit 56px height on phones, featuring the brand mark, session title, status chip, primary action (`Reconcile`/`Import`), and a slide-up accessible Action Sheet.
 3. **Responsive Chart & Bridge Optimization**:
-   - Rescaled [`DailyMovementChart.tsx`](file:///c:/Users/saipa/OneDrive/Desktop/nvidia%20hackathon/src/components/charts/DailyMovementChart.tsx) coordinates and SVG height (`h-40 sm:h-48`) to eliminate dead vertical whitespace.
+   - Rescaled [`DailyMovementChart.tsx`](../src/components/charts/DailyMovementChart.tsx) coordinates and SVG height (`h-40 sm:h-48`) to eliminate dead vertical whitespace.
    - Restructured the 7-step mathematical bridge formula grid into responsive 2-column comparison blocks on small phone viewports.
 4. **Full-Screen Responsive Modals**:
-   - Refactored [`ImportModal.tsx`](file:///c:/Users/saipa/OneDrive/Desktop/nvidia%20hackathon/src/components/ImportModal.tsx) and [`ExportModal.tsx`](file:///c:/Users/saipa/OneDrive/Desktop/nvidia%20hackathon/src/components/ExportModal.tsx) with sticky headers, scrollable bodies, and fixed footers with `pb-safe`.
+   - Refactored [`ImportModal.tsx`](../src/components/ImportModal.tsx) and [`ExportModal.tsx`](../src/components/ExportModal.tsx) with sticky headers, scrollable bodies, and fixed footers with `pb-safe`.
 
 ### B. Security & Defense Hardening
 1. **Formula Injection Neutralization (`src/lib/export/index.ts`)**:
@@ -41,12 +42,12 @@ During the LaunchPad Hacks hackathon period (October 16 – November 20, 2026), 
 2. **Strict Express API Gateway Security (`server/index.ts`)**:
    - Origin verification with DNS-rebinding guards and explicit rejection of wildcard origins.
    - `Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate` on all sensitive AI status and investigation routes.
-   - In-memory rate limiting and 32 KB body size limits.
+   - In-memory rate limiting (per-instance defense) and 32 KB body size limits.
    - Server-side independent narration sanitization ensuring caller-supplied text is re-sanitized on the backend.
-3. **GDPR Account Deletion (`server/index.ts`, `src/components/DeleteAccountModal.tsx`)**:
+3. **Account Deletion & Right to Erasure (`server/index.ts`, `src/components/DeleteAccountModal.tsx`)**:
    - Built authenticated `/api/account/delete` endpoint with Supabase Auth verification, cascade purging of user audit history, and administrative user account deletion.
 4. **First-Use Guided Onboarding & Legal Modals**:
-   - Created [`FirstUseGuideModal.tsx`](file:///c:/Users/saipa/OneDrive/Desktop/nvidia%20hackathon/src/components/FirstUseGuideModal.tsx), [`PrivacyPolicyModal.tsx`](file:///c:/Users/saipa/OneDrive/Desktop/nvidia%20hackathon/src/components/PrivacyPolicyModal.tsx), and [`TermsOfServiceModal.tsx`](file:///c:/Users/saipa/OneDrive/Desktop/nvidia%20hackathon/src/components/TermsOfServiceModal.tsx).
+   - Created [`FirstUseGuideModal.tsx`](../src/components/FirstUseGuideModal.tsx), [`PrivacyPolicyModal.tsx`](../src/components/PrivacyPolicyModal.tsx), and [`TermsOfServiceModal.tsx`](../src/components/TermsOfServiceModal.tsx).
 
 ---
 
@@ -82,5 +83,4 @@ All claimed contributions are backed by deterministic tests in the repository te
 
 1. **Input Formats**: Currently supports structured standard CSV bank and ledger exports. Direct PDF statement OCR and Excel XLSX ingestion are on the future roadmap.
 2. **Cloud Model Inference**: External LLM inference remains an unverified prototype requiring funded API keys.
-3. **Guest Session Lifecycle**: Guest sessions exist entirely in client-side memory and are cleared upon browser tab termination. Persistent history requires optional Supabase authentication.
-
+3. **Guest Session Lifecycle**: Guest Mode operations run in ephemeral client memory and do not persist across browser restarts unless saved to Supabase with user authentication.

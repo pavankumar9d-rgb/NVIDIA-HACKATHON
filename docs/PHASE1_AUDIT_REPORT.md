@@ -80,7 +80,7 @@
    - Update package name in `package.json` from `nvidia-hackathon` to `proofledger-ai`.
 2. **Correct AI Claims to Reflect True Capabilities**:
    - Rebrand the investigation assistant as **Deterministic Forensic Analysis & Rule-Based Classification** (with an optional prototype adapter for external LLMs clearly labeled as inactive/unverified).
-   - In UI screens ([`WelcomeView.tsx`](file:///c:/Users/saipa/OneDrive/Desktop/nvidia%20hackathon/src/components/WelcomeView.tsx), [`TopBar.tsx`](file:///c:/Users/saipa/OneDrive/Desktop/nvidia%20hackathon/src/components/TopBar.tsx), [`EvidencePanel.tsx`](file:///c:/Users/saipa/OneDrive/Desktop/nvidia%20hackathon/src/components/EvidencePanel.tsx)), replace "NVIDIA Nemotron Investigation" with "Forensic Exception Analysis".
+   - In UI screens ([`WelcomeView.tsx`](../src/components/WelcomeView.tsx), [`TopBar.tsx`](../src/components/TopBar.tsx), [`EvidencePanel.tsx`](../src/components/EvidencePanel.tsx)), replace "NVIDIA Nemotron Investigation" with "Forensic Exception Analysis".
 3. **Comprehensive Documentation Overhaul**:
    - Update `README.md` to be an honest, standalone product document highlighting integer math, deterministic reconciliation, privacy guarantees, and current limitations.
    - Create `docs/LAUNCHPAD_CONTRIBUTIONS.md` documenting pre-existing code, LaunchPad-period enhancements (mobile-first UI, security hardening, audit safeguards), timestamps, and testing evidence.

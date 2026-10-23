@@ -33,7 +33,7 @@
 | **Page Titles & Meta Descriptions** | **PASS** | Verified in `index.html`: Title is `<title>ProofLedger AI — Reconciliation Investigation Workspace</title>` and meta description is concise, accurate, and search-engine compliant. |
 | **Mobile Layout & Keyboard Accessibility** | **PASS** | Audited in `NavigationRail.tsx`, `EvidencePanel.tsx`, and `OverviewView.tsx`. Focus states, ARIA modal attributes (`role="dialog"`, `aria-modal="true"`, `aria-label`), escape key handlers, and responsive breakpoints are fully functional. |
 | **Page-Load Performance & Avoidable Bundle Weight** | **PASS** | Production build compiles into a compact ~185 KB gzipped JS bundle and ~10 KB CSS bundle. Assets load sub-second without external blocking requests. |
-| **Structured Metadata & Broken Link Check** | **PASS** | Navigational links, repository links (`https://github.com/pavankumar9d-rgb/NVIDIA-HACKATHON`), and documentation markdown links were verified. |
+| **Structured Metadata & Broken Link Check** | **PASS** | Navigational links, repository links (`https://github.com/pavankumar9d-rgb/ProofLedger-AI`), and documentation markdown links were verified. |
 
 ---
 

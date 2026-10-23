@@ -10,7 +10,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ isOpen, 
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 overflow-y-auto animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
@@ -48,7 +48,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ isOpen, 
               1. Architecture & Data Handling Model
             </h3>
             <p>
-              ProofLedger AI is an enterprise financial reconciliation assistant designed for accounting and finance professionals. 
+              ProofLedger AI is an enterprise financial reconciliation assistant designed for accounting and finance professionals.
               The application is architected around <strong>data minimization and privacy-by-design</strong>.
             </p>
           </section>
@@ -60,13 +60,13 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ isOpen, 
             </h4>
             <ul className="space-y-2 list-disc pl-5">
               <li>
-                <strong>Guest Mode:</strong> Bank statement CSVs and general ledger CSVs are parsed and reconciled 
-                <strong> entirely inside client browser memory (volatile RAM)</strong> using PapaParse and deterministic integer math. 
+                <strong>Guest Mode:</strong> Bank statement CSVs and general ledger CSVs are parsed and reconciled
+                <strong> entirely inside client browser memory (volatile RAM)</strong> using PapaParse and deterministic integer math.
                 Zero statement rows, raw transaction texts, or balances are stored in localStorage, IndexedDB, or server databases.
               </li>
               <li>
-                <strong>Authenticated Mode (Google OAuth):</strong> Users may optionally sign in with Google to enable private cloud history. 
-                When a user explicitly chooses &quot;Save to History&quot;, a sanitized reconciliation snapshot is persisted to Supabase PostgreSQL, 
+                <strong>Authenticated Mode (Google OAuth):</strong> Users may optionally sign in with Google to enable private cloud history.
+                When a user explicitly chooses &quot;Save to History&quot;, a sanitized reconciliation snapshot is persisted to Supabase PostgreSQL,
                 protected strictly by PostgreSQL Row Level Security (RLS) linked to the user&apos;s authenticated ID.
               </li>
             </ul>
@@ -94,7 +94,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ isOpen, 
               3. Cloud Infrastructure & Live AI Status
             </h3>
             <p>
-              In the current production release, <strong>live cloud AI inference is disabled (<code>ALLOW_LIVE_AI=false</code>)</strong>. 
+              In the current production release, <strong>live cloud AI inference is disabled (<code>ALLOW_LIVE_AI=false</code>)</strong>.
               The gateway resolves investigations via deterministic local rules; <strong>zero financial data is transmitted to Nebius Token Factory or third-party AI models</strong>.
             </p>
             <p className="text-[11px] text-slate-500">
@@ -117,7 +117,7 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ isOpen, 
               5. Account Deletion & Data Retention
             </h3>
             <p>
-              Authenticated users have the right to permanently delete their account and associated cloud-saved reconciliation snapshots at any time via the Account Settings panel. 
+              Authenticated users have the right to permanently delete their account and associated cloud-saved reconciliation snapshots at any time via the Account Settings panel.
               Guest Mode sessions retain zero persistent data upon browser tab closure.
             </p>
           </section>
@@ -125,13 +125,13 @@ export const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ isOpen, 
           <section className="space-y-1.5 pt-2 border-t border-slate-200 text-slate-500 text-[11px]">
             <p>
               For privacy inquiries regarding this open-source hackathon implementation, visit the official repository at{' '}
-              <a 
-                href="https://github.com/pavankumar9d-rgb/NVIDIA-HACKATHON" 
-                target="_blank" 
+              <a
+                href="https://github.com/pavankumar9d-rgb/ProofLedger-AI"
+                target="_blank"
                 rel="noreferrer noopener"
                 className="text-[#101A2B] font-semibold underline"
               >
-                GitHub: pavankumar9d-rgb/NVIDIA-HACKATHON
+                GitHub: pavankumar9d-rgb/ProofLedger-AI
               </a>.
             </p>
           </section>

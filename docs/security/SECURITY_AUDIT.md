@@ -1,12 +1,12 @@
 # ProofLedger AI — Zero-Cost Security Hardening & Privacy Audit
 
-**Audit Target:** ProofLedger AI (Enterprise Financial Reconciliation & Forensic Investigation Workspace)  
-**Repository:** `https://github.com/pavankumar9d-rgb/NVIDIA-HACKATHON`  
-**Production URL:** `https://proofledger-ai.onrender.com`  
-**Base Commit Examined:** `5208a2799783cc8482321556a9b56354923bd671`  
-**Audit Date:** October 21, 2026  
-**Auditor Mode:** Senior Application Security Engineer & DevSecOps Reviewer  
-**Budget Consumed:** ₹0.00 (Zero paid cloud resources, cards, or external credits)  
+**Audit Target:** ProofLedger AI (Enterprise Financial Reconciliation & Forensic Investigation Workspace)
+**Repository:** `https://github.com/pavankumar9d-rgb/ProofLedger-AI`
+**Production URL:** `https://proofledger-ai.onrender.com`
+**Base Commit Examined:** `5208a2799783cc8482321556a9b56354923bd671`
+**Audit Date:** October 21, 2026
+**Auditor Mode:** Senior Application Security Engineer & DevSecOps Reviewer
+**Budget Consumed:** ₹0.00 (Zero paid cloud resources, cards, or external credits)
 
 ---
 
@@ -143,7 +143,7 @@ Four justified, zero-risk defensive hardenings were identified, implemented, and
   - Performed pattern-targeted Git history scans (`git log -p -G"(api_key|secret|password|bearer|authorization)"`) and client bundle searches.
   - Scanned for private JWT patterns (`eyJ...`), service-role strings, and private key headers (`-----BEGIN`).
   - **Findings:**
-    - The client bundle contains the string literal `"service_role"` only inside a security rejection guard ([src/lib/supabase/client.ts#L42](file:///c:/Users/saipa/OneDrive/Desktop/nvidia%20hackathon/src/lib/supabase/client.ts#L42)) that actively terminates initialization if a secret key is mistakenly provided.
+    - The client bundle contains the string literal `"service_role"` only inside a security rejection guard ([src/lib/supabase/client.ts#L42](../src/lib/supabase/client.ts#L42)) that actively terminates initialization if a secret key is mistakenly provided.
     - Git commit `f260cd1` added `.env.example` containing only dummy placeholders.
     - Git commit `9a580fa` added fallback support for Render public environment variables without committing any secrets.
   - **Confidence Boundary:** Pattern matching across Git commits and bundle outputs provides targeted confidence against known keyword conventions, but **does not constitute exhaustive secret scanning**. Comprehensive assurance requires running dedicated entropy-based scanners in CI/CD.

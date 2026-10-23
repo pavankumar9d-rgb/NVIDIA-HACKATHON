@@ -64,13 +64,13 @@ export const PrivacyDrawer: React.FC<PrivacyDrawerProps> = ({ aiStatus }) => {
         <div className="bg-white rounded-xl border border-[#DDE3DA] p-5 space-y-3 shadow-2xs">
           <div className="flex items-center gap-2 text-sm font-bold text-[#111827]">
             <Cpu className="w-4 h-4 text-[#2563EB]" />
-            What Nebius Token Factory Receives
+            What Investigation Gateway Receives (When Explicitly Requested)
           </div>
           <ul className="text-xs text-[#4B5563] space-y-2">
             <li className="flex items-start gap-2">
               <CheckCircle2 className="w-3.5 h-3.5 text-[#2563EB] shrink-0 mt-0.5" />
               <span>
-                <strong>Single Exception Only:</strong> The cloud model is only invoked when you explicitly choose to investigate a specific flagged discrepancy.
+                <strong>Single Exception Only:</strong> An investigation packet is only dispatched when you explicitly choose to analyze a specific discrepancy.
               </span>
             </li>
             <li className="flex items-start gap-2">
@@ -117,7 +117,7 @@ export const PrivacyDrawer: React.FC<PrivacyDrawerProps> = ({ aiStatus }) => {
         </div>
 
         <p className="text-[11px] text-[#6B7280]">
-          API keys are managed via server-side environment variables (<code>NEBIUS_API_KEY</code>) and are never exposed in client bundles.
+          Server credentials, if configured, are managed via server-side environment variables and are never exposed in client bundles.
         </p>
       </div>
 

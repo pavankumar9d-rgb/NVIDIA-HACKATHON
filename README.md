@@ -5,7 +5,7 @@
   <p>
     <a href="https://github.com/pavankumar9d-rgb/ProofLedger-AI/actions"><img src="https://img.shields.io/badge/Tests-155%20Passing-17845B?style=flat&labelColor=101A2B" alt="Tests" /></a>
     <img src="https://img.shields.io/badge/Arithmetic-Integer%20Paise-D7FF56?style=flat&labelColor=101A2B" alt="Math" />
-    <img src="https://img.shields.io/badge/Privacy-Zero%20Raw%20Upload-101A2B?style=flat" alt="Privacy" />
+    <img src="https://img.shields.io/badge/Privacy-Client--Side%20Parsing-101A2B?style=flat" alt="Privacy" />
     <img src="https://img.shields.io/badge/License-MIT-blue?style=flat&labelColor=101A2B" alt="License" />
   </p>
 </div>
@@ -43,7 +43,7 @@ Financial reconciliation is notoriously prone to human error, spreadsheet formul
 ### C. Security & Audit Safeguards
 - **Formula Injection Neutralization**: All exported CSV rows sanitize potentially executable spreadsheet prefixes (`=`, `+`, `-`, `@`, `\t`, `\r`) with single-quote escaping.
 - **Defensive API Gateway**: Express gateway with strict Origin validation, 32 KB body size limits, in-memory rate limiting, and cache-control suppression (`no-store`) on sensitive endpoints.
-- **GDPR Account & Data Deletion**: Full cascade deletion endpoint allowing authenticated users to purge both their reconciliation history and authentication credentials.
+- **Account Deletion & Data Purge**: Authenticated deletion endpoint allowing registered users to purge both their stored reconciliation history and auth identity on demand.
 
 ### D. Mobile-First Responsive Interface
 - **Responsive Viewport Support**: Seamlessly transitions from mobile phones (320px–430px) to tablets and large desktop monitors.
@@ -153,7 +153,7 @@ pnpm run build
 
 ProofLedger AI is submitted for **LaunchPad Hacks (October 16 – November 20, 2026)**.
 
-In adherence to competition rules and transparent engineering standards, the baseline core reconciliation logic existed prior to the hackathon. During the LaunchPad Hacks event period, the team designed and implemented the complete mobile-first responsive architecture, formula injection export safeguards, defensive Origin/CORS validation, and GDPR account deletion workflows.
+In adherence to competition rules and transparent engineering standards, the baseline core reconciliation logic existed prior to the hackathon. During the LaunchPad Hacks event period, the team designed and implemented the complete mobile-first responsive architecture, formula injection export safeguards, defensive Origin/CORS validation, and account deletion data erasure workflows.
 
 For complete commit links, test evidence, and chronological breakdown, please review [LAUNCHPAD_CONTRIBUTIONS.md](docs/LAUNCHPAD_CONTRIBUTIONS.md).
 
